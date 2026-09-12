@@ -91,3 +91,30 @@ This is a design mockup. The booking form validates and confirms locally; it pos
 nowhere. Photography is from [Unsplash](https://unsplash.com) under the Unsplash
 License and stands in for a real brand shoot — a live build would replace it with
 studio photography of the actual space.
+
+---
+
+## Deploying to Vercel
+
+The site is static with `index.html` at the repo root, so there is **no build step** —
+Vercel's zero-config "Other" preset serves it as-is. `vercel.json` is already in the
+repo and sets cache headers (fonts immutable, images a day with stale-while-revalidate,
+CSS/JS always revalidated so design tweaks show up immediately).
+
+**From the dashboard** — Add New → Project → import `ssaraberberi/Women-wellness-center`.
+Leave Framework Preset on *Other*, leave Build Command and Output Directory empty, and
+set the production branch to `claude/tirana-wellness-studio-design-gtqxps` (or merge to
+`main` first). Deploy.
+
+**From the CLI**
+
+```bash
+npm i -g vercel
+vercel login
+vercel          # preview URL
+vercel --prod   # production
+```
+
+One thing to change after the domain is live: `og:image` in `index.html` is a relative
+path. Make it absolute (`https://your-domain/assets/img/hero-reformer-reach-1200.jpg`)
+so the link preview renders when the site gets shared.
