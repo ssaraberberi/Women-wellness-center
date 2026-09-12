@@ -29,7 +29,8 @@ assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 
 
 | # | Section | Idea |
 |---|---------|------|
-| 1 | Hero | *Move like you mean it.* Full-bleed, parallax, minimal nav |
+| 0 | Opening | A full-screen image that disintegrates under your scroll |
+| 1 | Hero | *Move like you mean it.* Revealed as the fragments clear |
 | 2 | The experience | *The best hour of your week.* Asymmetric editorial grid + studio facts |
 | — | Four rituals | Vertical scroll drives a horizontal reveal: Reformer → Barre → Yoga → Massage |
 | 3 | Reformer | The signature service: oversized drifting type, sticky image, scrolling words |
@@ -77,12 +78,52 @@ so there is one continuous type ramp rather than breakpoint jumps.
 **Prices** are in Albanian lek, at levels that make sense for Tirana:
 first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month.
 
+## The opening
+
+The landing viewport is given over entirely to one image — a wide shot of the room —
+which comes apart as you scroll and reveals the hero underneath. The hero section grows
+to three viewports so its stage can stay pinned while the image travels through it.
+
+How it works: the opening image is painted into an offscreen canvas, cover-fitted to the
+viewport, and cut into a grid of roughly a thousand tiles. Scrolling drives one value
+from 0 to 1. Early on the whole field pushes in; from about 0.14 a wave sweeps outward
+from a focal point, and each tile it reaches is thrown along its own radial vector,
+rotating and fading as it goes. Tiles carry real image content, so what flies apart is
+the photograph itself rather than a texture standing in for it.
+
+Three details do most of the work:
+
+- **Depth.** Every tile belongs to one of three bands. Near tiles leave earliest, travel
+  furthest and swell past the camera; far tiles recede and shrink. A faster, shallower
+  layer of dust drifts in front of all of it.
+- **A readable front.** The wave is ordered radially but jittered, so it has a distinct
+  travelling edge rather than a clean expanding circle — a circle reads as a wipe, a
+  ragged edge reads as something breaking.
+- **Contrast.** Both layers are the same warm room, so the hero underneath is held in
+  shadow and brightens as it is uncovered. Without that the fragments have nothing to
+  read against and the whole effect flattens.
+
+Progress is lerped toward the scroll position rather than taken from it directly, so
+trackpad jitter never reaches the animation while the motion stays tied to the scroll.
+Before the wave starts, a single `drawImage` covers the frame; per-tile drawing only
+begins once tiles actually diverge, and each tile's matrix is composed by hand so the
+loop makes no `save`/`restore` calls. Measured at a locked 60fps on both desktop and
+phone viewports, with no dropped frames through the full sweep.
+
+Phones get a shorter run (2.4 viewports instead of 3), coarser tiles, less rotation and
+a third of the dust.
+
+**If anything is unavailable it simply does not happen.** `prefers-reduced-motion`, no
+JavaScript, no canvas, or an image that fails to load all leave a normal one-viewport
+hero with its headline in place — the tall section is only applied once the opening is
+known to work. Hero buttons are set to `visibility: hidden` until they are actually on
+screen, so they never sit invisible in the tab order.
+
 ## Motion
 
 Every effect is driven from a single throttled `requestAnimationFrame` loop and only
 ever writes `transform` and `opacity`.
 
-- **Hero parallax** — the image drifts at 0.22× page speed; the headline stays put.
 - **Image reveals** — a mask wipes up while the photograph settles from 1.08 → 1.
 - **Text parallax** — `REFORMER PILATES` in outline drifts horizontally against scroll.
 - **Sticky + scrolling text** — one large image holds while *Strength. Control. Posture.

@@ -84,9 +84,12 @@
 
   function navState(y) {
     if (!nav) return;
-    nav.classList.toggle('is-stuck', y > 40);
-    var lightUntil = hero ? hero.offsetHeight - 90 : 0;
-    nav.classList.toggle('is-light', y < lightUntil && !document.body.classList.contains('is-menu'));
+    // Flip exactly when the hero's last sliver passes behind the bar. The two
+    // states are mutually exclusive: light text never sits on the light bar.
+    var flip = hero ? Math.max(40, hero.offsetHeight - 70) : 40;
+    var light = y < flip && !document.body.classList.contains('is-menu');
+    nav.classList.toggle('is-light', light);
+    nav.classList.toggle('is-stuck', !light);
   }
 
   /* ---------------------------------------------------------
@@ -129,6 +132,276 @@
     window.addEventListener('resize', function () {
       if (window.innerWidth > 980 && panel.classList.contains('is-open')) close();
     });
+  })();
+
+  /* ---------------------------------------------------------
+     4b. The opening — a scroll-driven disintegration
+     ---------------------------------------------------------
+     A second image is painted to a canvas over the hero and broken into
+     tiles. Scrolling zooms the whole field, then a wave sweeps outward from
+     a focal point, throwing each tile along its own radial vector until the
+     hero underneath is fully exposed. Progress is lerped so trackpad jitter
+     never reaches the animation.
+     --------------------------------------------------------- */
+  (function opening() {
+    var canvas = document.querySelector('.hero__shatter');
+    if (!hero || !canvas || !canvas.getContext || !motionOK()) return;
+
+    var ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    var media = hero.querySelector('.hero__media');
+    var content = hero.querySelector('.hero__content');
+    var enter = hero.querySelector('.enter');
+    var veil = hero.querySelector('.hero__veil');
+    var dim = hero.querySelector('.hero__dim');
+    var small = window.matchMedia('(max-width: 760px)');
+
+    var off = document.createElement('canvas');
+    var octx = off.getContext('2d');
+    var img = new Image();
+    img.decoding = 'async';
+
+    var tiles = [], dust = [], cw = 0, ch = 0, fx = 0, fy = 0;
+    var ready = false, target = 0, smooth = 0, painted = -1, running = false;
+
+    function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    function outCubic(t) { var u = 1 - t; return 1 - u * u * u; }
+    function inQuad(t) { return t * t; }
+
+    // Seeded so a rebuild after resize stays visually consistent.
+    var seed = 0x9e3779b9;
+    function rng() {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+
+    function build() {
+      var isSmall = small.matches;
+      var dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1.5 : 2);
+      var w = hero.clientWidth || window.innerWidth;
+      var h = window.innerHeight;
+
+      cw = Math.round(w * dpr); ch = Math.round(h * dpr);
+      canvas.width = cw; canvas.height = ch;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      off.width = cw; off.height = ch;
+
+      // cover-fit the source into the offscreen buffer
+      var ir = img.naturalWidth / img.naturalHeight, cr = cw / ch, dw, dh, dx, dy;
+      if (ir > cr) { dh = ch; dw = ch * ir; dx = (cw - dw) / 2; dy = 0; }
+      else { dw = cw; dh = cw / ir; dx = 0; dy = (ch - dh) * 0.42; }
+      octx.setTransform(1, 0, 0, 1, 0, 0);
+      octx.clearRect(0, 0, cw, ch);
+      octx.drawImage(img, dx, dy, dw, dh);
+
+      seed = 0x9e3779b9;
+      var px = (isSmall ? 40 : 42) * dpr;
+      var cols = Math.max(6, Math.round(cw / px));
+      var rows = Math.max(6, Math.round(ch / px));
+      var tw = cw / cols, th = ch / rows;
+
+      fx = cw * 0.5; fy = ch * 0.46;
+      var maxD = Math.max(
+        Math.hypot(fx, fy), Math.hypot(cw - fx, fy),
+        Math.hypot(fx, ch - fy), Math.hypot(cw - fx, ch - fy)
+      );
+      var far = Math.max(cw, ch);
+
+      tiles.length = 0;
+      for (var j = 0; j < rows; j++) {
+        for (var i = 0; i < cols; i++) {
+          var x = i * tw, y = j * th;
+          var tcx = x + tw / 2, tcy = y + th / 2;
+          var vx = tcx - fx, vy = tcy - fy;
+          var d = Math.hypot(vx, vy) || 1;
+          var nd = d / maxD;
+          var r1 = rng(), r2 = rng(), r3 = rng(), r4 = rng();
+          // three depth bands give the field real parallax: near tiles leave
+          // earlier, travel further and grow more.
+          var band = r4 < 0.34 ? 0 : (r4 < 0.72 ? 1 : 2);
+          var depth = band === 0 ? 0.70 : (band === 1 ? 1 : 1.45);
+          tiles.push({
+            x: x, y: y, w: tw, h: th, cx: tcx, cy: tcy,
+            ux: vx / d, uy: vy / d,
+            // Radial order, heavily jittered — a clean expanding circle reads
+            // as a wipe, a ragged one reads as something coming apart.
+            start: 0.14 + nd * 0.58 + r1 * 0.06 - (band - 1) * 0.025,
+            dur: 0.09 + r2 * 0.07,
+            eject: (0.14 + r3 * 0.30) * far * depth,
+            // Near fragments swell past the camera, far ones recede. That
+            // split is most of what sells the depth.
+            grow: band === 0 ? -(0.10 + r2 * 0.14) : (0.08 + r2 * 0.20) * depth,
+            rot: (r1 - 0.5) * (isSmall ? 0.22 : 0.34) * depth
+          });
+        }
+      }
+
+      dust.length = 0;
+      var n = isSmall ? 26 : 64;
+      for (var k = 0; k < n; k++) {
+        var a = rng() * Math.PI * 2, rr = rng();
+        dust.push({
+          x: fx + Math.cos(a) * rr * maxD * 0.42,
+          y: fy + Math.sin(a) * rr * maxD * 0.42,
+          ux: Math.cos(a), uy: Math.sin(a),
+          r: (1.1 + rng() * 3.2) * dpr,
+          start: 0.24 + rng() * 0.32,
+          dur: 0.22 + rng() * 0.30,
+          travel: (0.35 + rng() * 1.1) * far * 0.5,
+          rose: rng() < 0.45
+        });
+      }
+      ready = true;
+      painted = -1;
+    }
+
+    function draw(p) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Hero underneath: settles from a slight push-in as it is uncovered.
+      var rev = clamp((p - 0.60) / 0.32);
+      if (content) {
+        content.style.opacity = rev;
+        content.style.transform = 'translate3d(0,' + ((1 - rev) * 28).toFixed(2) + 'px,0)';
+        // Transparent buttons are still tabbable; keep them out of the tab
+        // order until they are actually on screen.
+        content.style.visibility = rev > 0.02 ? '' : 'hidden';
+      }
+      if (media) {
+        var ms = 1 + 0.10 * (1 - clamp((p - 0.22) / 0.74));
+        media.style.transform = 'scale(' + ms.toFixed(4) + ')';
+      }
+      if (enter) enter.style.opacity = (1 - clamp(p / 0.14)).toFixed(3);
+      // hand the darkening over to the hero's own scrim as it is uncovered
+      if (veil) veil.style.opacity = (1 - clamp((p - 0.40) / 0.36)).toFixed(3);
+      if (dim) dim.style.opacity = (0.64 * (1 - clamp((p - 0.26) / 0.62))).toFixed(3);
+
+      if (p >= 0.965) { canvas.style.visibility = 'hidden'; return; }
+      canvas.style.visibility = '';
+
+      // Global push-in. Keeps accelerating through the break-up so the
+      // fragments read as passing the camera rather than just sliding.
+      var k = 1 + 0.15 * outCubic(clamp(p / 0.30)) + 0.13 * clamp((p - 0.26) / 0.74);
+      var gx = -cw * 0.020 * clamp(p / 0.45);
+      var gy = -ch * 0.014 * clamp(p / 0.45);
+
+      // Before the wave starts nothing has moved, so one drawImage does it.
+      if (p < 0.185) {
+        ctx.globalAlpha = 1;
+        ctx.setTransform(k, 0, 0, k, fx * (1 - k) + gx, fy * (1 - k) + gy);
+        ctx.drawImage(off, 0, 0);
+        return;
+      }
+
+      for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        var lp = (p - t.start) / t.dur;
+        if (lp >= 1) continue;                       // gone
+        if (lp <= 0) {
+          ctx.globalAlpha = 1;
+          ctx.setTransform(k, 0, 0, k, fx * (1 - k) + gx, fy * (1 - k) + gy);
+          ctx.drawImage(off, t.x, t.y, t.w, t.h, t.x, t.y, t.w + 0.8, t.h + 0.8);
+          continue;
+        }
+        var e = outCubic(lp);
+        var a = 1 - inQuad(lp);
+        if (a <= 0.05) continue;
+
+        var s = 1 + e * t.grow;
+        var r = t.rot * e;
+        var ox = t.ux * e * t.eject;
+        var oy = t.uy * e * t.eject;
+
+        // local: rotate+scale about the tile centre, then throw it outward
+        var co = Math.cos(r) * s, si = Math.sin(r) * s;
+        var e1 = t.cx + ox - (co * t.cx - si * t.cy);
+        var f1 = t.cy + oy - (si * t.cx + co * t.cy);
+
+        // then the global push-in, composed by hand to avoid save/restore
+        ctx.globalAlpha = a;
+        ctx.setTransform(
+          k * co, k * si, -k * si, k * co,
+          k * (e1 - fx) + fx + gx,
+          k * (f1 - fy) + fy + gy
+        );
+        ctx.drawImage(off, t.x, t.y, t.w, t.h, t.x, t.y, t.w + 0.8, t.h + 0.8);
+      }
+
+      // A faster, shallower layer of dust in front of the fragments.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      for (var d = 0; d < dust.length; d++) {
+        var u = dust[d];
+        var dp = (p - u.start) / u.dur;
+        if (dp <= 0 || dp >= 1) continue;
+        var de = outCubic(dp);
+        var da = Math.sin(dp * Math.PI) * 0.5;
+        ctx.globalAlpha = da;
+        ctx.fillStyle = u.rose ? 'rgba(217,167,158,1)' : 'rgba(246,233,230,1)';
+        ctx.beginPath();
+        ctx.arc(u.x + u.ux * de * u.travel, u.y + u.uy * de * u.travel,
+                u.r * (1 - dp * 0.4), 0, 6.283185);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function measureTarget() {
+      var span = hero.offsetHeight - window.innerHeight;
+      if (span <= 0) { target = 1; return; }
+      target = clamp(-hero.getBoundingClientRect().top / span);
+    }
+
+    function tick() {
+      smooth += (target - smooth) * 0.14;
+      if (Math.abs(target - smooth) < 0.0005) smooth = target;
+      if (ready && smooth !== painted) { draw(smooth); painted = smooth; }
+      if (smooth !== target) window.requestAnimationFrame(tick);
+      else running = false;
+    }
+    function kick() {
+      measureTarget();
+      if (!running) { running = true; window.requestAnimationFrame(tick); }
+    }
+
+    var resizeTimer;
+    function onResize() {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(function () {
+        if (!ready) return;
+        build();
+        kick();
+      }, 180);
+    }
+
+    img.onload = function () {
+      root.classList.add('has-opening');
+      build();
+      smooth = target = 0;
+      measureTarget();
+      smooth = target;
+      draw(smooth);
+      painted = smooth;
+      window.addEventListener('scroll', kick, { passive: true });
+      window.addEventListener('resize', onResize);
+      window.addEventListener('orientationchange', onResize);
+      if (typeof measure === 'function') measure();
+    };
+    img.onerror = function () {
+      // No opening rather than a broken one; the hero stands on its own.
+      root.classList.remove('has-opening');
+      canvas.style.display = 'none';
+      if (enter) enter.style.display = 'none';
+      if (veil) veil.style.display = 'none';
+      if (dim) dim.style.display = 'none';
+      if (content) { content.style.opacity = ''; content.style.transform = ''; }
+    };
+    img.src = small.matches
+      ? 'assets/img/opening-studio-1200.jpg'
+      : 'assets/img/opening-studio-2200.jpg';
   })();
 
   /* ---------------------------------------------------------

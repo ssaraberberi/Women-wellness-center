@@ -14,6 +14,8 @@
      card is the first thing anyone sees when this gets sent around. -->
 <meta property="og:image" content="assets/img/hero-reformer-reach-1200.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%232E2124'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='21' fill='%23F6E9E6' text-anchor='middle'%3Eb%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/img/opening-studio-2200.jpg" as="image" fetchpriority="high" media="(min-width: 761px)">
+<link rel="preload" href="assets/img/opening-studio-1200.jpg" as="image" fetchpriority="high" media="(max-width: 760px)">
 <link rel="preload" href="assets/fonts/bodoni-moda-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jost-normal-200-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css">
@@ -87,7 +89,8 @@
 
 <!-- ───────────────────────────── 1. HERO ───────────────────────────── -->
 <section class="hero" id="hero">
-  <div class="hero__media" data-parallax="0.22">
+  <div class="hero__pin">
+  <div class="hero__media">
     <img src="assets/img/hero-reformer-reach-2200.jpg"
          srcset="assets/img/hero-reformer-reach-900.jpg 900w,
                  assets/img/hero-reformer-reach-1600.jpg 1600w,
@@ -95,6 +98,7 @@
          sizes="100vw" alt="A woman reaching overhead in a side position on a reformer inside a warm, arched studio" fetchpriority="high">
   </div>
   <div class="hero__scrim" aria-hidden="true"></div>
+  <div class="hero__dim" aria-hidden="true"></div>
 
   <div class="hero__content">
     <p class="eyebrow eyebrow--light hero__eyebrow"><span>Sheshi Wilson · Tiranë</span></p>
@@ -110,6 +114,14 @@
   </div>
 
   <a class="hero__scroll" href="#experience" aria-label="Scroll to content"><span>Scroll</span><i></i></a>
+
+  <!-- The opening: this canvas holds a second image that disintegrates as you
+       scroll, revealing the hero underneath. Added only when JS, canvas and
+       the user's motion preference all allow it. -->
+  <canvas class="hero__shatter" aria-hidden="true"></canvas>
+  <div class="hero__veil" aria-hidden="true"></div>
+  <div class="enter" aria-hidden="true"><span>Scroll to enter</span><i></i></div>
+  </div>
 </section>
 
 <!-- ───────────────────────────── MARQUEE ───────────────────────────── -->

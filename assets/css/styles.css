@@ -239,19 +239,51 @@ fieldset{border:0}
 .menu__meta a{border-bottom:1px solid rgba(46,33,36,.25)}
 
 /* ---------- 9. Hero ---------- */
-.hero{position:relative;height:100svh;min-height:600px;overflow:hidden;display:flex;align-items:flex-end;background:var(--plum)}
-.hero__media{position:absolute;inset:-12% 0 -12%;will-change:transform}
+.hero{position:relative;height:100svh;min-height:600px;background:var(--plum)}
+.hero__pin{position:relative;height:100svh;min-height:600px;overflow:hidden;display:flex;align-items:flex-end}
+
+/* Scroll-driven opening. The section grows to give the pin something to travel
+   through; the stage stays stuck to the viewport while the image comes apart. */
+.has-opening .hero{height:var(--open-h,300svh)}
+.has-opening .hero__pin{position:sticky;top:0;height:100svh}
+.has-opening .hero__content{opacity:0}
+.has-opening .hero__scroll{display:none}
+.hero__shatter{position:absolute;inset:0;z-index:5;width:100%;height:100%;pointer-events:none;display:none}
+/* The opening image is bright at the edges; this keeps the wordmark, the nav
+   and the scroll cue legible without dulling the middle of the picture. */
+.hero__veil{
+  position:absolute;inset:0;z-index:6;pointer-events:none;display:none;
+  background:
+    linear-gradient(to bottom, rgba(29,20,23,.58) 0%, rgba(29,20,23,.14) 20%, rgba(29,20,23,0) 42%),
+    linear-gradient(to top, rgba(29,20,23,.52) 0%, rgba(29,20,23,0) 34%);
+}
+.has-opening .hero__veil{display:block}
+.has-opening .hero__shatter{display:block}
+.enter{
+  position:absolute;left:0;right:0;bottom:clamp(34px,6vh,64px);z-index:7;
+  display:none;flex-direction:column;align-items:center;gap:13px;color:var(--blush);
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;pointer-events:none;
+}
+.has-opening .enter{display:flex}
+.enter i{display:block;width:1px;height:52px;background:rgba(246,233,230,.32);position:relative;overflow:hidden}
+.enter i::after{content:"";position:absolute;inset:0;background:var(--blush);animation:scrollLine 2.6s var(--ease) infinite}
+.hero__media{position:absolute;inset:0;z-index:0;will-change:transform}
 .hero__media img{width:100%;height:100%;object-fit:cover;object-position:58% 64%;transform:scale(1.06);animation:heroIn 2.6s var(--ease-out) .25s forwards}
 @keyframes heroIn{to{transform:scale(1)}}
 .hero__scrim{
-  position:absolute;inset:0;
+  position:absolute;inset:0;z-index:1;
   background:
     linear-gradient(to top right, rgba(217,167,158,.26) 0%, rgba(217,167,158,.06) 58%, rgba(217,167,158,0) 100%),
     linear-gradient(to top, rgba(29,20,23,.86) 0%, rgba(29,20,23,.5) 34%, rgba(29,20,23,.16) 60%, rgba(29,20,23,.42) 100%),
     linear-gradient(to right, rgba(29,20,23,.52) 0%, rgba(29,20,23,.12) 46%, rgba(29,20,23,0) 70%);
 }
+/* Holds the revealed hero back in shadow while the opening comes apart, so the
+   bright fragments read against something darker. Both layers are the same
+   warm room, and without this the dissolve has nothing to read against. */
+.hero__dim{position:absolute;inset:0;z-index:2;background:var(--plum-deep);opacity:0;pointer-events:none;display:none}
+.has-opening .hero__dim{display:block}
 .hero__content{
-  position:relative;z-index:2;width:100%;max-width:var(--maxw);margin:0 auto;
+  position:relative;z-index:3;will-change:opacity,transform;width:100%;max-width:var(--maxw);margin:0 auto;
   padding:0 var(--gut) clamp(74px,12vh,130px);color:var(--blush);
 }
 .hero__eyebrow{margin-bottom:clamp(18px,3vh,30px)}
@@ -744,6 +776,7 @@ fieldset{border:0}
 
 @media (max-width:980px){
   html{scroll-padding-top:70px}
+  .has-opening .hero{height:var(--open-h,250svh)}
   .nav__links{display:none}
   .nav__right .btn{display:none}
   .burger{display:block}
@@ -797,6 +830,9 @@ fieldset{border:0}
 
 @media (max-width:640px){
   html{scroll-padding-top:64px}
+  .has-opening .hero{height:var(--open-h,240svh)}
+  .enter{letter-spacing:.24em}
+  .enter i{height:40px}
   body{line-height:1.66}
   .hero{min-height:560px}
   .hero__media img{object-position:60% 66%}
@@ -838,6 +874,10 @@ fieldset{border:0}
   .js [data-reveal-img] .mask img{transform:none!important}
   .hero__title .line>span,.hero__services,.hero__cta,.hero__scroll{transform:none!important;opacity:1!important}
   .hero__media img{animation:none;transform:none}
+  .has-opening .hero{height:100svh}
+  .has-opening .hero__pin{position:relative}
+  .has-opening .hero__content{opacity:1}
+  .hero__shatter,.enter,.hero__veil,.hero__dim{display:none!important}
   .word{opacity:1!important}
   .intro{display:none}
 }
