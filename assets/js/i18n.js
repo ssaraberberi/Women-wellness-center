@@ -191,14 +191,12 @@
     /* ---- memberships ---- */
     'Find your': 'Gjej abonimin',
     'membership.': 'tënd.',
-    'No contracts, no joining fee. Pause any month, and classes roll over thirty days — because some weeks in Tirana are simply not yours.':
-      'Pa kontrata, pa tarifë anëtarësimi. Ndale çdo muaj, dhe klasat kalojnë tridhjetë ditë më tej — sepse disa javë në Tiranë thjesht nuk janë tuajat.',
+    'No contracts, no joining fee.': 'Pa kontrata, pa tarifë anëtarësimi.',
     '8 classes / month': '8 klasa / muaj',
     '12 classes / month': '12 klasa / muaj',
     '16 classes / month': '16 klasa / muaj',
     'Small-group reformer, max 8': 'Reformer në grup të vogël, maks. 8',
     'Free foundations session': 'Seancë bazë falas',
-    'Classes roll over 30 days': 'Klasat kalojnë 30 ditë më tej',
     'Choose Reformer': 'Zgjidh Reformer',
     'Most loved': 'Më e dashura',
     'per month': 'në muaj',
@@ -223,7 +221,7 @@
       'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
-    'The mat studio': 'Salla e dyshekëve',
+    'The mat studio': 'Salla e ushtrimeve të tokës',
     'Your locker': 'Dollapi yt',
     'The washroom': 'Lavamanët',
 
@@ -250,10 +248,9 @@
     'Sunday, slow': 'E diel, ngadalë',
     'Candlelit flow': 'Flow me qirinj',
     'Recovery day': 'Ditë rikuperimi',
-    'See you': 'Shihemi',
-    'Thursday.': 'të enjten.',
+    'Come and': 'Eja',
+    'visit us.': 'na vizito.',
     'Book your first class': 'Rezervo klasën tënde të parë',
-    'First class 990 ALL · Sheshi Wilson, Tiranë': 'Klasa e parë 990 ALL · Sheshi Wilson, Tiranë',
 
     /* ---- whatsapp ---- */
     'Usually replies within the hour': 'Zakonisht përgjigjemi brenda një ore',
@@ -300,7 +297,7 @@
     'The changing room in pink tile, with a backlit oval mirror':
       'Dhoma e zhveshjes me pllaka rozë dhe një pasqyrë ovale e ndriçuar',
     'The mat studio, arches and mirrors lit in pink, mats laid out with rings and balls':
-      'Salla e dyshekëve, harqe dhe pasqyra të ndriçuara rozë, dyshekë të shtruar me unaza dhe topa',
+      'Salla e ushtrimeve të tokës, harqe dhe pasqyra të ndriçuara rozë, dyshekë të shtruar me unaza dhe topa',
     'An open locker with a water bottle, wash bag and trainers':
       'Një dollap i hapur me shishe uji, çantë higjienike dhe atlete',
     'The washroom, plaster walls with stone basins and oval mirrors':
