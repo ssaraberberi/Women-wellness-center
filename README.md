@@ -21,7 +21,10 @@ tools/generate-schedule.py  regenerates the timetable section from a data table
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
 assets/fonts/               Bodoni Moda + Jost (woff2, latin + latin-ext)
-assets/img/                 31 photographs, sized and compressed per slot
+assets/img/                 photographs, sized and compressed per slot.
+                            opening-studio-*.jpg is the studio's own photograph,
+                            supplied for a landing treatment that was removed —
+                            kept, but not currently placed on the page.
 assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 KB)
 ```
 
@@ -29,8 +32,7 @@ assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 
 
 | # | Section | Idea |
 |---|---------|------|
-| 0 | Opening | A full-screen image that disintegrates under your scroll |
-| 1 | Hero | *Move like you mean it.* Revealed as the fragments clear |
+| 1 | Hero | *Move like you mean it.* Full-bleed, minimal nav |
 | 2 | The experience | *The best hour of your week.* Asymmetric editorial grid + studio facts |
 | — | Four rituals | Vertical scroll drives a horizontal reveal: Reformer → Barre → Yoga → Massage |
 | 3 | Reformer | The signature service: oversized drifting type, sticky image, scrolling words |
@@ -78,61 +80,6 @@ so there is one continuous type ramp rather than breakpoint jumps.
 **Prices** are in Albanian lek, at levels that make sense for Tirana:
 first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month.
 
-## The opening
-
-The landing viewport is given over entirely to one image — the studio floor, pink props
-wall and all — which comes apart as you scroll and reveals the hero underneath. The hero section grows
-to three viewports so its stage can stay pinned while the image travels through it.
-
-How it works: the opening image is painted into an offscreen canvas, cover-fitted to the
-viewport, and cut into a grid of roughly a thousand tiles. Scrolling drives one value
-from 0 to 1. Early on the whole field pushes in; from about 0.14 a wave sweeps outward
-from a focal point, and each tile it reaches is thrown along its own radial vector,
-rotating and fading as it goes. Tiles carry real image content, so what flies apart is
-the photograph itself rather than a texture standing in for it.
-
-Three details do most of the work:
-
-- **Depth.** Every tile belongs to one of three bands. Near tiles leave earliest, travel
-  furthest and swell past the camera; far tiles recede and shrink. A faster, shallower
-  layer of dust drifts in front of all of it.
-- **A readable front.** The wave is ordered radially but jittered, so it has a distinct
-  travelling edge rather than a clean expanding circle — a circle reads as a wipe, a
-  ragged edge reads as something breaking.
-- **Contrast.** The hero underneath is held slightly in shadow and brightens as it is
-  uncovered, so the bright fragments always have something to read against. An earlier
-  cut used two photographs of the same room and the dissolve was nearly invisible
-  without this; it still carries the sense of stepping out of shadow into the space.
-
-Progress is lerped toward the scroll position rather than taken from it directly, so
-trackpad jitter never reaches the animation while the motion stays tied to the scroll.
-
-Drawing is fill-rate bound, so the frame loop avoids paying for pixels twice. Tiles are
-sorted by launch time, and a binary search each frame finds the boundary between what has
-moved and what has not. Early on, one `drawImage` lays down the whole plate and the few
-departed tiles are punched out with `clearRect`, which costs no sampling; once most of
-the picture is in the air that would mean two full-screen fills to erase most of what was
-just drawn, so it flips to drawing only what is still standing. Each tile's matrix is
-composed by hand, so the loop makes no `save`/`restore` calls, and the buffer is sized to
-the asset's own resolution rather than the display's — a 2x canvas on a 1512 viewport
-would add pixels without adding picture and cost a third of the frame budget.
-
-Phones get a shorter run (2.4 viewports instead of 3), coarser tiles, less rotation and
-less dust — and their own portrait crop of the opening frame, which lands close to 1:1
-on a phone screen rather than being upscaled.
-
-The desktop frame is prepared offline: cropped to a landscape band, resampled with
-Lanczos and lightly unsharp-masked, because the browser's own upscale is bilinear and
-noticeably softer. Tiles sample a one-pixel bleed at 1:1 rather than being stretched to
-cover seams, and both canvas contexts ask for high-quality smoothing, so nothing in the
-pipeline blurs the picture beyond what the source itself limits.
-
-**If anything is unavailable it simply does not happen.** `prefers-reduced-motion`, no
-JavaScript, no canvas, or an image that fails to load all leave a normal one-viewport
-hero with its headline in place — the tall section is only applied once the opening is
-known to work. Hero buttons are set to `visibility: hidden` until they are actually on
-screen, so they never sit invisible in the tab order.
-
 ## Motion
 
 Every effect is driven from a single throttled `requestAnimationFrame` loop and only
@@ -147,8 +94,8 @@ ever writes `transform` and `opacity`.
 - **Micro-interactions** — buttons fill from below, links retract their underline,
   images ease in on hover, the nav solidifies once you leave the hero.
 
-`prefers-reduced-motion: reduce` disables parallax, pinning and the intro curtain, and
-shows all content immediately — the layout is unchanged.
+`prefers-reduced-motion: reduce` disables the drifting layers, the pinning and the intro
+curtain, and shows all content immediately — the layout is unchanged.
 
 ## Responsive
 
