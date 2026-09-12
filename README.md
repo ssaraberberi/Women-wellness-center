@@ -17,6 +17,7 @@ fonts and photography are served from `assets/`.
 
 ```
 index.html                  the full homepage
+tools/generate-schedule.py  regenerates the timetable section from a data table
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
 assets/fonts/               Bodoni Moda + Jost (woff2, latin + latin-ext)
@@ -34,11 +35,27 @@ assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 
 | 3 | Reformer | The signature service: oversized drifting type, sticky image, scrolling words |
 | 4 | Barre + Yoga | Offset split with an atmospheric full-bleed band |
 | 5 | Recovery | *You've earned the dark room.* Mood shift — plum, warm, intimate |
-| 6 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
-| 7 | The studio | Draggable cinematic gallery with a progress bar |
-| 8 | In their words | Lifestyle testimonials, sticky lead quote |
-| 9 | Community | `@beci.studio` feed grid |
-| 10 | Final CTA | *See you Thursday.* |
+| 6 | Schedule | The full week, 31 classes; tap any one for instructor, level and availability |
+| 7 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
+| 8 | The studio | Draggable cinematic gallery with a progress bar |
+| 9 | In their words | Lifestyle testimonials, sticky lead quote |
+| 10 | Community | `@beci.studio` feed grid |
+| 11 | Final CTA | *See you Thursday.* |
+
+**The schedule** is a seven-column timetable of the real week — Monday to Sunday, 31
+classes, instructor named on every one, with a discipline marker down the left edge
+(rose for reformer, plum for barre, deep rose for yoga). Tapping a class opens a panel
+with the description, instructor and their role, duration, level and how many places are
+left; full classes are dimmed and marked. *Book this class* hands straight over to the
+booking panel with the discipline already selected.
+
+To edit the timetable, change the `WEEK` and `CLASSES` tables in
+`tools/generate-schedule.py` and re-run it — it rewrites the section in place, so the
+markup cannot drift out of sync with itself.
+
+On phones the seven columns collapse to a day picker showing one day at a time. Without
+JavaScript the picker never appears and all seven days stay visible, so nothing is hidden
+behind a control that is not there.
 
 A full-screen booking panel opens from every CTA — service preselected from whichever
 button you pressed, time slots, validation and a confirmation state.

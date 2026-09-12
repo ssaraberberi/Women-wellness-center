@@ -328,6 +328,100 @@
   })();
 
   /* ---------------------------------------------------------
+     7b. Schedule — day tabs on small screens, detail on tap
+     --------------------------------------------------------- */
+  (function schedule() {
+    var sched = document.getElementById('schedule');
+    var modal = document.getElementById('classinfo');
+    if (!sched) return;
+
+    /* Day tabs. Without JS every day stays visible, so nothing is ever hidden
+       behind a control that isn't there. */
+    var tabs = document.getElementById('sched-tabs');
+    var days = Array.prototype.slice.call(sched.querySelectorAll('.day'));
+    var narrow = window.matchMedia('(max-width: 980px)');
+    var active = days.length ? days[0].getAttribute('data-day') : null;
+
+    function paint() {
+      var on = narrow.matches;
+      if (tabs) tabs.hidden = !on;
+      sched.classList.toggle('is-tabbed', on);
+      days.forEach(function (d) {
+        d.hidden = on && d.getAttribute('data-day') !== active;
+      });
+      if (tabs) {
+        tabs.querySelectorAll('.tab').forEach(function (t) {
+          var is = t.getAttribute('data-tab') === active;
+          t.classList.toggle('is-active', is);
+          t.setAttribute('aria-pressed', is ? 'true' : 'false');
+        });
+      }
+    }
+    if (tabs) {
+      tabs.addEventListener('click', function (e) {
+        var t = e.target.closest('.tab');
+        if (!t) return;
+        active = t.getAttribute('data-tab');
+        paint();
+      });
+    }
+    if (narrow.addEventListener) narrow.addEventListener('change', paint);
+    else if (narrow.addListener) narrow.addListener(paint);
+    paint();
+
+    /* Class detail */
+    if (!modal) return;
+    var panel = modal.querySelector('.cinfo__panel');
+    var book = modal.querySelector('[data-cinfo-book]');
+    var fields = ['when', 'name', 'note', 'instructor', 'role', 'dur', 'level', 'spots'];
+    var last = null;
+
+    // handingOver: the booking panel is taking over, so leave the scroll lock
+    // alone and do not yank focus back out of it half a second later.
+    function close(handingOver) {
+      modal.classList.remove('is-open');
+      if (!handingOver) document.body.classList.remove('is-modal');
+      window.setTimeout(function () {
+        if (modal.classList.contains('is-open')) return;
+        modal.hidden = true;
+        if (handingOver) return;
+        if (last && document.contains(last) && last.offsetParent !== null) {
+          last.focus({ preventScroll: true });
+        }
+      }, 520);
+    }
+
+    sched.addEventListener('click', function (e) {
+      var cell = e.target.closest('.cls');
+      if (!cell) return;
+      last = cell;
+      fields.forEach(function (f) {
+        var slot = modal.querySelector('[data-cinfo-' + f + ']');
+        if (slot) slot.textContent = cell.getAttribute('data-' + f) || '';
+      });
+      var title = modal.querySelector('#cinfo-name');
+      if (title) title.textContent = cell.getAttribute('data-name') || '';
+      // Hand the chosen discipline through to the booking panel.
+      if (book) book.setAttribute('data-service', cell.getAttribute('data-service') || '');
+      modal.hidden = false;
+      void modal.offsetWidth;
+      modal.classList.add('is-open');
+      document.body.classList.add('is-modal');
+      var first = panel.querySelector('button');
+      if (first) first.focus({ preventScroll: true });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('[data-cinfo-book]')) { close(true); return; }
+      if (e.target.closest('[data-cinfo-close]')) close();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !modal.classList.contains('is-open')) return;
+      close();
+    });
+  })();
+
+  /* ---------------------------------------------------------
      8. Booking
      --------------------------------------------------------- */
   (function booking() {
