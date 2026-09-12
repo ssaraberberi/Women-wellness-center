@@ -386,7 +386,7 @@ fieldset{border:0}
 }
 
 /* ---------- 13. Reformer ---------- */
-.reformer{padding:var(--sec) 0;position:relative;overflow:hidden}
+.reformer{padding:var(--sec) 0;position:relative}
 .xtype{overflow:hidden;margin-bottom:clamp(40px,6vw,90px)}
 .xtype__track{display:flex;align-items:center;gap:clamp(18px,2.4vw,40px);white-space:nowrap;will-change:transform}
 .xtype__track span{
