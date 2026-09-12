@@ -254,8 +254,8 @@ fieldset{border:0}
 .hero__veil{
   position:absolute;inset:0;z-index:6;pointer-events:none;display:none;
   background:
-    linear-gradient(to bottom, rgba(29,20,23,.58) 0%, rgba(29,20,23,.14) 20%, rgba(29,20,23,0) 42%),
-    linear-gradient(to top, rgba(29,20,23,.52) 0%, rgba(29,20,23,0) 34%);
+    linear-gradient(to bottom, rgba(29,20,23,.62) 0%, rgba(29,20,23,.18) 22%, rgba(29,20,23,0) 44%),
+    linear-gradient(to top, rgba(29,20,23,.60) 0%, rgba(29,20,23,.10) 22%, rgba(29,20,23,0) 40%);
 }
 .has-opening .hero__veil{display:block}
 .has-opening .hero__shatter{display:block}
@@ -263,6 +263,7 @@ fieldset{border:0}
   position:absolute;left:0;right:0;bottom:clamp(34px,6vh,64px);z-index:7;
   display:none;flex-direction:column;align-items:center;gap:13px;color:var(--blush);
   font-size:10px;letter-spacing:.3em;text-transform:uppercase;pointer-events:none;
+  text-shadow:0 1px 14px rgba(29,20,23,.6);
 }
 .has-opening .enter{display:flex}
 .enter i{display:block;width:1px;height:52px;background:rgba(246,233,230,.32);position:relative;overflow:hidden}

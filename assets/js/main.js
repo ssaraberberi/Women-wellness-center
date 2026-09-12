@@ -180,9 +180,13 @@
 
     function build() {
       var isSmall = small.matches;
-      var dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1.5 : 2);
-      var w = hero.clientWidth || window.innerWidth;
-      var h = window.innerHeight;
+      // The desktop frame is 2400px of real detail, so a 2x canvas on a 1512
+      // viewport would add pixels without adding picture and cost a third of
+      // the frame budget. 1.6 lands the buffer on the asset's own resolution.
+      var dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 2 : 1.6);
+      var wv = hero.clientWidth || window.innerWidth, hv = window.innerHeight;
+      while (dpr > 1 && wv * dpr * hv * dpr > 6e6) dpr -= 0.2;
+      var w = wv, h = hv;
 
       cw = Math.round(w * dpr); ch = Math.round(h * dpr);
       canvas.width = cw; canvas.height = ch;
@@ -195,7 +199,15 @@
       else { dw = cw; dh = cw / ir; dx = 0; dy = (ch - dh) * 0.42; }
       octx.setTransform(1, 0, 0, 1, 0, 0);
       octx.clearRect(0, 0, cw, ch);
+      octx.imageSmoothingEnabled = true;
+      octx.imageSmoothingQuality = 'high';
       octx.drawImage(img, dx, dy, dw, dh);
+      // High quality matters for the one resample into the buffer above. On the
+      // main context it would be paid per tile, ~1000 times a frame, and the
+      // tiles are drawn 1:1 anyway — that cost bought nothing and dropped the
+      // frame rate to 20fps.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'low';
 
       seed = 0x9e3779b9;
       var px = (isSmall ? 40 : 42) * dpr;
@@ -225,6 +237,7 @@
           var depth = band === 0 ? 0.70 : (band === 1 ? 1 : 1.45);
           tiles.push({
             x: x, y: y, w: tw, h: th, cx: tcx, cy: tcy,
+            sw: Math.min(tw + 1, cw - x), sh: Math.min(th + 1, ch - y),
             ux: vx / d, uy: vy / d,
             // Radial order, heavily jittered — a clean expanding circle reads
             // as a wipe, a ragged one reads as something coming apart.
@@ -238,6 +251,10 @@
           });
         }
       }
+
+      // Sorted by launch time so each frame can find the boundary between
+      // "not yet moved" and "moving" with a binary search instead of a scan.
+      tiles.sort(function (a, b) { return a.start - b.start; });
 
       dust.length = 0;
       var n = isSmall ? 26 : 64;
@@ -260,7 +277,6 @@
 
     function draw(p) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, cw, ch);
 
       // Hero underneath: settles from a slight push-in as it is uncovered.
       var rev = clamp((p - 0.60) / 0.32);
@@ -278,9 +294,13 @@
       if (enter) enter.style.opacity = (1 - clamp(p / 0.14)).toFixed(3);
       // hand the darkening over to the hero's own scrim as it is uncovered
       if (veil) veil.style.opacity = (1 - clamp((p - 0.40) / 0.36)).toFixed(3);
-      if (dim) dim.style.opacity = (0.64 * (1 - clamp((p - 0.26) / 0.62))).toFixed(3);
+      if (dim) dim.style.opacity = (0.44 * (1 - clamp((p - 0.24) / 0.52))).toFixed(3);
 
-      if (p >= 0.965) { canvas.style.visibility = 'hidden'; return; }
+      if (p >= 0.965) {
+        ctx.clearRect(0, 0, cw, ch);
+        canvas.style.visibility = 'hidden';
+        return;
+      }
       canvas.style.visibility = '';
 
       // Global push-in. Keeps accelerating through the break-up so the
@@ -288,6 +308,11 @@
       var k = 1 + 0.15 * outCubic(clamp(p / 0.30)) + 0.13 * clamp((p - 0.26) / 0.74);
       var gx = -cw * 0.020 * clamp(p / 0.45);
       var gy = -ch * 0.014 * clamp(p / 0.45);
+
+      // The plate is drawn opaque over the whole frame below, so the usual
+      // full clear is only needed while the push-in is too small to cover the
+      // drift. Skipping it saves a full-screen fill every frame.
+      if (k < 1.06) ctx.clearRect(0, 0, cw, ch);
 
       // Before the wave starts nothing has moved, so one drawImage does it.
       if (p < 0.185) {
@@ -297,16 +322,37 @@
         return;
       }
 
-      for (var i = 0; i < tiles.length; i++) {
-        var t = tiles[i];
-        var lp = (p - t.start) / t.dur;
-        if (lp >= 1) continue;                       // gone
-        if (lp <= 0) {
-          ctx.globalAlpha = 1;
-          ctx.setTransform(k, 0, 0, k, fx * (1 - k) + gx, fy * (1 - k) + gy);
-          ctx.drawImage(off, t.x, t.y, t.w, t.h, t.x, t.y, t.w + 0.8, t.h + 0.8);
-          continue;
+      var ex = fx * (1 - k) + gx, ey = fy * (1 - k) + gy;
+      var n = tiles.length, i, t, lp;
+
+      // Everything below `si` has launched; everything from `si` up is intact.
+      var lo = 0, hi = n;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (tiles[mid].start < p) lo = mid + 1; else hi = mid; }
+      var si = lo;
+
+      ctx.globalAlpha = 1;
+      if (si < n * 0.5) {
+        // Early: most of the picture is whole. One blit, then punch out the
+        // few that have left — clearRect costs no sampling.
+        ctx.setTransform(k, 0, 0, k, ex, ey);
+        ctx.drawImage(off, 0, 0);
+        for (i = 0; i < si; i++) { t = tiles[i]; ctx.clearRect(t.x, t.y, t.w, t.h); }
+      } else {
+        // Late: blitting the whole plate only to erase most of it again is
+        // two full-screen fills for nothing. Draw what is left standing.
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.setTransform(k, 0, 0, k, ex, ey);
+        for (i = si; i < n; i++) {
+          t = tiles[i];
+          ctx.drawImage(off, t.x, t.y, t.sw, t.sh, t.x, t.y, t.sw, t.sh);
         }
+      }
+
+      // Then only those still in the air.
+      for (i = 0; i < si; i++) {
+        t = tiles[i];
+        lp = (p - t.start) / t.dur;
+        if (lp >= 1) continue;
         var e = outCubic(lp);
         var a = 1 - inQuad(lp);
         if (a <= 0.05) continue;
@@ -328,7 +374,7 @@
           k * (e1 - fx) + fx + gx,
           k * (f1 - fy) + fy + gy
         );
-        ctx.drawImage(off, t.x, t.y, t.w, t.h, t.x, t.y, t.w + 0.8, t.h + 0.8);
+        ctx.drawImage(off, t.x, t.y, t.sw, t.sh, t.x, t.y, t.sw, t.sh);
       }
 
       // A faster, shallower layer of dust in front of the fragments.
@@ -401,7 +447,7 @@
     };
     img.src = small.matches
       ? 'assets/img/opening-studio-1200.jpg'
-      : 'assets/img/opening-studio-2200.jpg';
+      : 'assets/img/opening-studio-2400.jpg';
   })();
 
   /* ---------------------------------------------------------

@@ -80,8 +80,8 @@ first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month
 
 ## The opening
 
-The landing viewport is given over entirely to one image — a wide shot of the room —
-which comes apart as you scroll and reveals the hero underneath. The hero section grows
+The landing viewport is given over entirely to one image — the studio floor, pink props
+wall and all — which comes apart as you scroll and reveals the hero underneath. The hero section grows
 to three viewports so its stage can stay pinned while the image travels through it.
 
 How it works: the opening image is painted into an offscreen canvas, cover-fitted to the
@@ -99,19 +99,33 @@ Three details do most of the work:
 - **A readable front.** The wave is ordered radially but jittered, so it has a distinct
   travelling edge rather than a clean expanding circle — a circle reads as a wipe, a
   ragged edge reads as something breaking.
-- **Contrast.** Both layers are the same warm room, so the hero underneath is held in
-  shadow and brightens as it is uncovered. Without that the fragments have nothing to
-  read against and the whole effect flattens.
+- **Contrast.** The hero underneath is held slightly in shadow and brightens as it is
+  uncovered, so the bright fragments always have something to read against. An earlier
+  cut used two photographs of the same room and the dissolve was nearly invisible
+  without this; it still carries the sense of stepping out of shadow into the space.
 
 Progress is lerped toward the scroll position rather than taken from it directly, so
 trackpad jitter never reaches the animation while the motion stays tied to the scroll.
-Before the wave starts, a single `drawImage` covers the frame; per-tile drawing only
-begins once tiles actually diverge, and each tile's matrix is composed by hand so the
-loop makes no `save`/`restore` calls. Measured at a locked 60fps on both desktop and
-phone viewports, with no dropped frames through the full sweep.
+
+Drawing is fill-rate bound, so the frame loop avoids paying for pixels twice. Tiles are
+sorted by launch time, and a binary search each frame finds the boundary between what has
+moved and what has not. Early on, one `drawImage` lays down the whole plate and the few
+departed tiles are punched out with `clearRect`, which costs no sampling; once most of
+the picture is in the air that would mean two full-screen fills to erase most of what was
+just drawn, so it flips to drawing only what is still standing. Each tile's matrix is
+composed by hand, so the loop makes no `save`/`restore` calls, and the buffer is sized to
+the asset's own resolution rather than the display's — a 2x canvas on a 1512 viewport
+would add pixels without adding picture and cost a third of the frame budget.
 
 Phones get a shorter run (2.4 viewports instead of 3), coarser tiles, less rotation and
-a third of the dust.
+less dust — and their own portrait crop of the opening frame, which lands close to 1:1
+on a phone screen rather than being upscaled.
+
+The desktop frame is prepared offline: cropped to a landscape band, resampled with
+Lanczos and lightly unsharp-masked, because the browser's own upscale is bilinear and
+noticeably softer. Tiles sample a one-pixel bleed at 1:1 rather than being stretched to
+cover seams, and both canvas contexts ask for high-quality smoothing, so nothing in the
+pipeline blurs the picture beyond what the source itself limits.
 
 **If anything is unavailable it simply does not happen.** `prefers-reduced-motion`, no
 JavaScript, no canvas, or an image that fails to load all leave a normal one-viewport
