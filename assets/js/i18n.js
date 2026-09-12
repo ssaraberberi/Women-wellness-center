@@ -57,12 +57,12 @@
     'of your': 'e javës',
     'week.': 'sate.',
     'The main floor, 17:40': 'Salla kryesore, 17:40',
-    'Beci is small on purpose. Eight women, one instructor who knows your name and exactly which shoulder gives you trouble.':
-      'Beci është i vogël me qëllim. Tetë gra, një instruktore që e di emrin tënd dhe saktësisht cila shpatull të bezdis.',
-    'Reformer, barre, yoga and massage in one place, so you stop choosing between getting strong and actually resting. Come straight from work in whatever you have on. Nobody is looking at you — everyone is busy shaking.':
-      'Reformer, barre, yoga dhe masazh në një vend, që të mos zgjedhësh më mes forcimit dhe pushimit të vërtetë. Eja direkt nga puna, me çfarë ke veshur. Askush nuk të shikon — të gjitha janë të zëna duke u dridhur.',
-    'Then there is the part nobody puts on a website: the bench by the window, the coffee afterwards, and the forty minutes you spend there talking instead of going home.':
-      'Pastaj vjen pjesa që askush nuk e vë në faqe interneti: stoli te dritarja, kafeja pas klase dhe dyzet minutat që kalon aty duke folur, në vend që të shkosh në shtëpi.',
+    'Beci is small on purpose. Only eight women in a class, one instructor who knows you, and a room where you never feel like just a number.':
+      'Beci është i vogël me qëllim. Vetëm tetë gra në klasë, një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
+    'We have reformer, barre, yoga and massage, all in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
+      'Kemi reformer, barre, yoga dhe masazh, të gjitha në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
+    'And then there is the part outside the class: the bench by the window, a coffee afterwards and a little time to sit and talk. No rush.':
+      'Dhe pastaj është ajo pjesa jashtë klasës: stoli pranë dritares, një kafe pas orës dhe pak kohë për të ndejtur e për të folur. Pa nxitim.',
     'See what a month looks like': 'Shih si duket një muaj',
     'Corrections, every class': 'Korrigjime, në çdo klasë',
     'women per class': 'gra për klasë',
@@ -80,25 +80,27 @@
 
     /* ---- reformer ---- */
     'The signature': 'Klasika jonë',
-    'Strong.': 'E fortë.',
-    'On purpose.': 'Me qëllim.',
-    'Six reformers, eight women, forty-five minutes. Slow enough that it looks easy from the doorway, hard enough that you feel it every time you sit down on Thursday.':
-      'Gjashtë reformerë, tetë gra, dyzet e pesë minuta. Aq ngadalë sa duket e lehtë nga dera, aq fort sa e ndien sa herë ulesh të enjten.',
-    'Strength.': 'Forcë.',
-    'Progressive spring resistance that builds real capacity — without ever pounding your joints.':
-      'Rezistencë progresive me suste që ndërton kapacitet të vërtetë — pa ia rënë kurrë kyçeve.',
-    'Control.': 'Kontroll.',
-    'Every repetition is slow enough that you feel exactly which muscle is doing the work.':
-      'Çdo përsëritje është aq e ngadaltë sa e ndien saktësisht cili muskul po punon.',
+    'Strong, but in': 'E fortë, por në',
+    'the right way.': 'mënyrën e duhur.',
+    'Six reformers, a maximum of eight women and forty-five minutes that are only yours. Controlled movements, a calm tempo, and a class where the instructor has time to give you attention.':
+      'Gjashtë reformerë, maksimumi tetë gra dhe 45 minuta vetëm për ty. Lëvizje të kontrolluara, një ritëm i qetë dhe një klasë ku instruktori ka kohë të të kushtojë vëmendje.',
+    'It makes no difference whether you are starting now or have been doing reformer for a while. You come, you move, you breathe, and you leave feeling good — even if tomorrow you will remember the class. 🤍':
+      'Nuk ka rëndësi nëse je duke filluar tani apo ke kohë që bën reformer. Vjen, lëviz, merr frymë dhe del duke u ndjerë mirë — edhe pse të nesërmen do ta kujtosh klasën. 🤍',
+    'Strength, with control.': 'Forcë, por me kontroll.',
+    'Spring resistance lets you build strength gradually, without loading your body with movements it does not need.':
+      'Rezistenca me susta të lejon të ndërtosh forcë gradualisht, pa e ngarkuar trupin me lëvizje të panevojshme.',
+    'With attention.': 'Me vëmendje.',
+    'Every exercise is done calmly and with attention, so you genuinely feel the muscles that are working.':
+      'Çdo ushtrim bëhet me qetësi dhe me vëmendje, që ta ndiesh vërtet muskujt që po punojnë.',
     'Posture.': 'Qëndrim.',
-    'Deep core and back work that undoes eight hours at a desk, one class at a time.':
-      'Punë e thellë për bërthamën dhe shpinën, që zhbën tetë orë në tavolinë, një klasë pas tjetrës.',
-    'Confidence.': 'Vetëbesim.',
-    'You will never be the one quietly copying everybody else. We show you the machine first.':
-      'Nuk do të jesh kurrë ajo që kopjon të tjerat në heshtje. Së pari të tregojmë makinerinë.',
-    'Movement.': 'Lëvizje.',
-    'Mobility you keep — in the way you walk, lift, sit and carry yourself through Tirana.':
-      'Lëvizshmëri që të mbetet — te mënyra si ecën, ngre, ulesh dhe mbahesh nëpër Tiranë.',
+    'There is a lot of work for the trunk and the back too — especially if your day goes by in hours at a desk.':
+      'Punohet shumë edhe me trungun dhe shpinën — sidomos nëse dita jote kalon me orë në tavolinë.',
+    'First time?': 'Hera e parë?',
+    'Before the class starts we show you how the reformer works and help you through every movement. After that you simply take your own pace.':
+      'Para se të fillojë klasa, të tregojmë si funksionon reformeri dhe të ndihmojmë me çdo lëvizje. Pastaj thjesht merr ritmin tënd.',
+    'In the end.': 'Në fund.',
+    'What we are after is simple: that you feel stronger, more mobile and better in your own body.':
+      'Ajo që kërkojmë është e thjeshtë: të ndihesh më e fortë, më e lëvizshme dhe më mirë në trupin tënd.',
     'Small groups': 'Grupe të vogla',
     'Maximum eight women, six reformers, one instructor who watches all of you.':
       'Maksimumi tetë gra, gjashtë reformerë, një instruktore që ju sheh të gjithave.',

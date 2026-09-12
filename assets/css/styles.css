@@ -402,6 +402,7 @@ fieldset{border:0}
 .reformer__intro .eyebrow{grid-column:1/6}
 .reformer__intro h2{grid-column:1/8;margin-top:18px}
 .reformer__intro .lede{grid-column:8/13;color:var(--ink-soft);padding-bottom:10px}
+.reformer__intro .lede p+p{margin-top:.7em}
 
 .sticky{
   max-width:var(--maxw);margin:clamp(56px,8vw,130px) auto 0;padding:0 var(--gut);
