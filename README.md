@@ -1,10 +1,12 @@
-# DRITA — boutique movement & recovery studio, Tiranë
+# Beci — movement & recovery studio, Tiranë
 
-A production-ready homepage mockup for a women-focused boutique wellness studio on
-**Sheshi Wilson, Tiranë** — Reformer Pilates, barre, yoga and massage under one roof.
+A production-ready homepage mockup for a women-focused studio on
+**Sheshi Wilson, Tiranë** — Reformer Pilates, barre, yoga and massage.
 
-`drita` is Albanian for *the light*. The whole design is built around that: warm ivory,
-deep windows, architectural shadow, and a lot of quiet.
+**Beci** is short, lowercase and a little familiar — named the way people actually
+refer to the places they go every week, not the way a wellness brand names itself.
+The tone follows: confident, specific, occasionally funny, never reverent. Nobody
+here is going to call anything a journey.
 
 Open `index.html` in a browser. No build step, no dependencies, no network required —
 fonts and photography are served from `assets/`.
@@ -26,26 +28,30 @@ assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 
 
 | # | Section | Idea |
 |---|---------|------|
-| 1 | Hero | *Make space for yourself.* Full-bleed, parallax, minimal nav |
-| 2 | The experience | *More than a workout.* Asymmetric editorial grid + studio facts |
+| 1 | Hero | *Move like you mean it.* Full-bleed, parallax, minimal nav |
+| 2 | The experience | *The best hour of your week.* Asymmetric editorial grid + studio facts |
 | — | Four rituals | Vertical scroll drives a horizontal reveal: Reformer → Barre → Yoga → Massage |
 | 3 | Reformer | The signature service: oversized drifting type, sticky image, scrolling words |
 | 4 | Barre + Yoga | Offset split with an atmospheric full-bleed band |
-| 5 | Recovery | Mood shift — dark, warm, intimate; treatments and prices |
+| 5 | Recovery | *You've earned the dark room.* Mood shift — plum, warm, intimate |
 | 6 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
 | 7 | The studio | Draggable cinematic gallery with a progress bar |
 | 8 | In their words | Lifestyle testimonials, sticky lead quote |
-| 9 | Community | `@drita.studio` feed grid |
-| 10 | Final CTA | *Your new ritual starts here.* |
+| 9 | Community | `@beci.studio` feed grid |
+| 10 | Final CTA | *See you Thursday.* |
 
 A full-screen booking panel opens from every CTA — service preselected from whichever
 button you pressed, time slots, validation and a confirmation state.
 
 ## Design system
 
-**Palette** — warm ivory `#F7F3EE`, soft stone `#EAE2D8`, taupe `#B4A392`,
-espresso `#2A2320` / `#191411`, dusty rose accent `#C9A79C`.
-Ink colours are set so small uppercase labels clear 4.5:1 on their backgrounds.
+**Palette** — pink, but grown up. Blush `#F6E9E6` is the base surface, petal `#F0D9D4`
+carries the two pink blocks (memberships and testimonials), and the dark sections are
+plum-black `#2E2124` / `#1D1417` rather than coffee brown, so the shadows stay warm and
+pink-leaning. Accents run rose `#D9A79E` through deep dusty rose `#8E5E57`, which is also
+the label ink — checked at 4.55:1 on blush, so the small uppercase type is genuinely
+readable rather than decorative. A soft-light rose veil sits over the hero and the dark
+carousel so the photography lives inside the palette instead of next to it.
 
 **Type** — Bodoni Moda for display (a true Didone: high contrast, fashion-editorial),
 Jost 200–500 for navigation, labels and body. Everything scales with `clamp()`,

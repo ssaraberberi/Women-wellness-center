@@ -1,5 +1,5 @@
 /* ============================================================
-   DRITA — interaction layer
+   Beci — interaction layer
    Vanilla JS. No dependencies. Motion is opt-out aware.
    ============================================================ */
 (function () {
