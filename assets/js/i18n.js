@@ -213,8 +213,12 @@
 
     /* ---- the space ---- */
     'The space': 'Hapësira',
-    'Top floor of a 1930s building a minute off the square — high ceilings, deep windows, and the kind of afternoon light you cannot install. Lime plaster, oak, linen, and a shower room stocked properly, so you can come straight from the office and go straight out afterwards.':
-      'Kati i fundit i një ndërtese të viteve ’30, një minutë nga sheshi — tavane të larta, dritare të thella dhe ajo drita e pasdites që nuk instalohet dot. Suva gëlqereje, lis, liri dhe një dhomë dushi e pajisur si duhet, që të vish direkt nga zyra dhe të dalësh direkt pas klase.',
+    'Second floor of a building across from Posta Shqiptare, one minute from Sheshi Wilson.':
+      'Kati i dytë i një godine, përballë Postës Shqiptare dhe vetëm një minutë nga Sheshi Wilson.',
+    'High ceilings, deep windows and the kind of afternoon light that makes the room feel exactly the way it should. A complete studio — thoughtfully laid out, soft props, and a shower room stocked properly, so you can come straight from the office and leave ready for the rest of your day.':
+      'Tavane të larta, dritare të thella dhe ajo drita e pasdites që e bën hapësirën të ndihet tamam siç duhet. Një studio e plotë, me hapësirë të menduar mirë, aksesorë të butë dhe një dhomë dushi të pajisur siç duhet — që të vish direkt nga zyra dhe të dalësh gati pas klase.',
+    'In the heart of Tiranë, but with the feeling of a place where you can finally catch your breath.':
+      'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
     'The mat studio': 'Salla e dyshekëve',

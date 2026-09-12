@@ -613,11 +613,11 @@ fieldset{border:0}
   max-width:var(--maxw);margin:0 auto;padding:0 var(--gut) clamp(40px,5vw,80px);
   display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(24px,3vw,60px);align-items:end;
 }
-.studio__head>div:first-child{grid-column:1/9}
+.studio__head>div:first-child{grid-column:1/8}
 .studio__head h2{margin-top:18px}
-.studio__note{grid-column:9/13;display:flex;flex-direction:column;gap:26px}
+.studio__note{grid-column:8/13;display:flex;flex-direction:column;gap:16px}
 .studio__note p{color:var(--ink-soft);font-size:.96rem}
-.studio__nav{display:flex;gap:10px}
+.studio__nav{display:flex;gap:10px;margin-top:10px}
 .gallery{
   display:flex;gap:clamp(12px,1.4vw,24px);padding:0 var(--gut);
   overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-left:var(--gut);-webkit-overflow-scrolling:touch;
