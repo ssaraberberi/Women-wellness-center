@@ -249,6 +249,13 @@
     'Book your first class': 'Rezervo klasën tënde të parë',
     'First class 990 ALL · Sheshi Wilson, Tiranë': 'Klasa e parë 990 ALL · Sheshi Wilson, Tiranë',
 
+    /* ---- whatsapp ---- */
+    'Usually replies within the hour': 'Zakonisht përgjigjemi brenda një ore',
+    'Questions about memberships, the timetable or your first class? Message us and we will get back to you.':
+      'Pyetje për abonimet, oraret apo klasën e parë? Na shkruani dhe ju kthejmë përgjigje.',
+    'Message on WhatsApp': 'Shkruaj në WhatsApp',
+    'Message us on WhatsApp': 'Na shkruani në WhatsApp',
+
     /* ---- booking ---- */
     'Your first class is 990 ALL.': 'Klasa jote e parë është 990 ALL.',
     'Make space for yourself.': 'Bëj vend për veten.',

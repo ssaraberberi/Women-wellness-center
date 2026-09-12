@@ -27,6 +27,7 @@ assets/img/                 photographs, sized and compressed per slot.
                             kept, but not currently placed on the page.
 assets/js/main.js           scroll motion, gallery, booking, menu (vanilla)
 assets/js/i18n.js           English / Albanian, dictionary and switch
+assets/js/whatsapp.js       floating WhatsApp contact card
 ```
 
 ## Page structure
@@ -90,6 +91,20 @@ discipline names Albanian studios already use in English — Reformer, Barre, Yo
 
 **The Albanian is mine, not a native speaker's.** It reads naturally to me and keeps the
 voice of the English, but it should be read by someone from Tirana before this goes live.
+
+## WhatsApp
+
+A floating button appears once the hero is behind you and opens a small card with a
+single action. The card also opens itself **once**, when the memberships section comes
+into view — the point where someone is actually weighing it up rather than browsing.
+Dismiss it and it stays dismissed for the session; it hides entirely while the booking
+dialog or the mobile menu is open.
+
+The link is `wa.me/355673803802` with the message prefilled, and the prefill follows the
+page language, built at open and again at click so switching mid-visit is picked up:
+
+- Shqip — *Përshëndetje! Dua të di më shumë për abonimet tuaja.*
+- English — *Hello! I'd like to know more about your memberships.*
 
 ## Design system
 

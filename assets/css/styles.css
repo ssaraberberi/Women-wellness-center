@@ -743,6 +743,41 @@ fieldset{border:0}
 .booking__done{grid-column:2;align-items:flex-start;justify-content:center;gap:18px}
 .booking__doneText{color:var(--ink-soft);max-width:38ch}
 
+/* ---------- 22b. WhatsApp ---------- */
+.wa{position:fixed;right:clamp(16px,2.2vw,32px);bottom:clamp(16px,2.2vw,32px);z-index:100;
+  display:flex;flex-direction:column;align-items:flex-end;gap:12px;pointer-events:none}
+.wa.is-on{pointer-events:auto}
+.wa__fab{
+  width:56px;height:56px;border-radius:50%;display:grid;place-items:center;
+  background:var(--plum);color:var(--blush);box-shadow:0 14px 34px -14px rgba(46,33,36,.7);
+  opacity:0;transform:translateY(14px) scale(.9);pointer-events:none;
+  transition:opacity .5s var(--ease),transform .5s var(--ease-out),background .4s var(--ease);
+}
+.wa.is-on .wa__fab{opacity:1;transform:none;pointer-events:auto}
+.wa__fab:hover{background:var(--rose-ink)}
+.wa__fab svg{width:25px;height:25px}
+.wa__card{
+  width:min(310px,calc(100vw - 32px));background:var(--blush-lift);border-radius:var(--r);
+  border:1px solid rgba(46,33,36,.12);box-shadow:0 26px 60px -30px rgba(46,33,36,.55);
+  padding:20px 20px 18px;position:relative;
+  opacity:0;transform:translateY(10px) scale(.97);transform-origin:100% 100%;
+  transition:opacity .4s var(--ease),transform .45s var(--ease-out);
+}
+.wa.is-open .wa__card{opacity:1;transform:none}
+.wa__close{position:absolute;top:8px;right:10px;width:28px;height:28px;border-radius:50%;font-size:12px;
+  color:var(--rose-ink);transition:background .35s var(--ease)}
+.wa__close:hover{background:rgba(46,33,36,.07)}
+.wa__head{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.wa__avatar{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:var(--plum);color:var(--blush);font-family:var(--display);font-size:1.05rem;line-height:1}
+.wa__who{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wa__who b{font-weight:400;font-size:.9rem}
+.wa__who i{font-style:normal;font-size:11px;color:var(--rose-ink)}
+.wa__msg{font-size:.9rem;line-height:1.55;color:var(--ink-soft);margin-bottom:16px}
+.wa__go{padding:13px 20px}
+/* never sit on top of an open dialog or the full-screen menu */
+.is-modal .wa,.is-menu .wa{opacity:0;pointer-events:none;transition:opacity .3s var(--ease)}
+
 /* ---------- 23. Locks ---------- */
 .is-menu,.is-modal{overflow:hidden}
 
@@ -814,6 +849,8 @@ fieldset{border:0}
 
 @media (max-width:640px){
   html{scroll-padding-top:64px}
+  .wa__fab{width:52px;height:52px}
+  .wa__fab svg{width:23px;height:23px}
   body{line-height:1.66}
   .hero{min-height:560px}
   .hero__media img{object-position:50% 46%}
@@ -848,6 +885,7 @@ fieldset{border:0}
 
 /* ---------- 25. Reduced motion ---------- */
 @media (prefers-reduced-motion:reduce){
+  .wa__fab,.wa__card{transition:none}
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .js [data-reveal],.js [data-reveal-lines] .line>span{opacity:1!important;transform:none!important}
