@@ -201,6 +201,13 @@ fieldset{border:0}
 .nav__links a::after{content:"";position:absolute;left:0;bottom:0;height:1px;width:100%;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .5s var(--ease-out)}
 .nav__links a:hover::after{transform:scaleX(1)}
 .nav__right{display:flex;align-items:center;gap:16px}
+.lang{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:inherit}
+.lang span{opacity:.35}
+.lang__btn{padding:2px 1px;opacity:.5;transition:opacity .4s var(--ease),border-color .4s var(--ease);border-bottom:1px solid transparent}
+.lang__btn:hover{opacity:.85}
+.lang__btn.is-active{opacity:1;border-bottom-color:currentColor}
+.lang--menu{gap:10px;font-size:12px;letter-spacing:0.08em;text-transform:none;color:var(--ink-soft)}
+.lang--menu .lang__btn{padding:4px 2px}
 
 /* over-hero light state */
 .nav.is-light{color:var(--blush)}
@@ -755,7 +762,7 @@ fieldset{border:0}
 @media (max-width:980px){
   html{scroll-padding-top:70px}
   .nav__links{display:none}
-  .nav__right .btn{display:none}
+  .nav__right .btn,.nav .lang{display:none}
   .burger{display:block}
   .exp__grid{grid-template-columns:1fr;gap:clamp(28px,6vw,54px)}
   .exp__fig--a,.exp__fig--b,.exp__fig--c,.exp__text{grid-column:1/-1;grid-row:auto;margin-top:0}

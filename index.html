@@ -50,6 +50,11 @@
     </nav>
 
     <div class="nav__right">
+      <div class="lang" role="group" aria-label="Language">
+        <button class="lang__btn is-active" data-lang="en" type="button" aria-pressed="true">EN</button>
+        <span aria-hidden="true">/</span>
+        <button class="lang__btn" data-lang="sq" type="button" aria-pressed="false">AL</button>
+      </div>
       <button class="btn btn--sm js-book" type="button">Book now</button>
       <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu">
         <span></span><span></span>
@@ -72,6 +77,11 @@
       <a href="#community"><em>07</em> Community</a>
     </nav>
     <div class="menu__foot">
+      <div class="lang lang--menu" role="group" aria-label="Language">
+        <button class="lang__btn is-active" data-lang="en" type="button" aria-pressed="true">English</button>
+        <span aria-hidden="true">/</span>
+        <button class="lang__btn" data-lang="sq" type="button" aria-pressed="false">Shqip</button>
+      </div>
       <button class="btn btn--block js-book" type="button">Book a class</button>
       <div class="menu__meta">
         <p>Sheshi Wilson<br>1001 Tiranë, Albania</p>
@@ -316,7 +326,7 @@
       <p class="eyebrow eyebrow--light" data-reveal><span>Recovery</span></p>
       <h2 class="display display--lg" data-reveal-lines>
         <span class="line"><span>You&rsquo;ve earned</span></span>
-        <span class="line"><span>the <em>dark room.</em></span></span>
+        <span class="line"><span>the <em data-sq="dhomën e errët.">dark room.</em></span></span>
       </h2>
       <p class="lede" data-reveal>Two rooms at the back, kept deliberately dark and a little too warm. Book one on its own, or tack it onto a class and leave the building a genuinely different person.</p>
 
@@ -738,7 +748,7 @@
     </article>
 
     <article class="plan" data-reveal>
-      <span class="plan__tag">Movement</span>
+      <span class="plan__tag" data-sq="Movement">Movement</span>
       <p class="plan__price"><span class="plan__num">9,900</span> <span class="plan__cur">ALL</span></p>
       <p class="plan__per">unlimited / month</p>
       <ul class="plan__list">
@@ -929,11 +939,11 @@
       <label class="field">
         <span>What would you like to book?</span>
         <select name="service" id="booking-service">
-          <option>Reformer Pilates</option>
-          <option>Barre</option>
-          <option>Yoga</option>
-          <option>Massage</option>
-          <option>Wellness membership</option>
+          <option value="Reformer Pilates">Reformer Pilates</option>
+          <option value="Barre">Barre</option>
+          <option value="Yoga">Yoga</option>
+          <option value="Massage">Massage</option>
+          <option value="Wellness membership">Wellness membership</option>
         </select>
       </label>
 
@@ -963,5 +973,6 @@
 </div>
 
 <script src="assets/js/main.js"></script>
+<script src="assets/js/i18n.js"></script>
 </body>
 </html>

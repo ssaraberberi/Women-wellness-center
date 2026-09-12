@@ -25,7 +25,8 @@ assets/img/                 photographs, sized and compressed per slot.
                             opening-studio-*.jpg is the studio's own photograph,
                             supplied for a landing treatment that was removed —
                             kept, but not currently placed on the page.
-assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 KB)
+assets/js/main.js           scroll motion, gallery, booking, menu (vanilla)
+assets/js/i18n.js           English / Albanian, dictionary and switch
 ```
 
 ## Page structure
@@ -62,6 +63,29 @@ behind a control that is not there.
 
 A full-screen booking panel opens from every CTA — service preselected from whichever
 button you pressed, time slots, validation and a confirmation state.
+
+## Two languages
+
+A switch in the bar (and in the mobile menu) moves the whole page between English
+and Albanian; the choice is remembered. Translations are keyed by the **English source
+string** rather than by invented ids, so there are no keys to keep in sync and nothing
+can quietly fall back to a placeholder — an untranslated string simply stays in English
+and is visible as such. A `data-sq` attribute on an element overrides the dictionary,
+for the handful of words that mean different things in different places (*Movement* is a
+section heading in one spot and a membership name in another).
+
+Text that arrives after load — the class panel, the membership tier switcher, the booking
+confirmation — is translated on its way into the DOM by a `MutationObserver`, so the
+schedule's data attributes stay in English and keep working as keys. The booking
+`<option>` elements carry explicit English `value`s for the same reason: only their labels
+translate. Dates and availability counts are handled by pattern rather than by listing
+thirty-one near-identical strings.
+
+Proper nouns stay put: *Beci*, *Sheshi Wilson*, *Tiranë*, instructor names, prices, and the
+discipline names Albanian studios already use in English — Reformer, Barre, Yoga, Vinyasa.
+
+**The Albanian is mine, not a native speaker's.** It reads naturally to me and keeps the
+voice of the English, but it should be read by someone from Tirana before this goes live.
 
 ## Design system
 
