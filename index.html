@@ -12,10 +12,10 @@
 <!-- Once the domain is live, make this absolute (https://your-domain/assets/...).
      Several link scrapers will not resolve a relative og:image, and the share
      card is the first thing anyone sees when this gets sent around. -->
-<meta property="og:image" content="assets/img/hero-reformer-reach-1200.jpg">
+<meta property="og:image" content="assets/img/hero-reformer-1400.jpg">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%232E2124'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='21' fill='%23F6E9E6' text-anchor='middle'%3Eb%3C/text%3E%3C/svg%3E">
-<link rel="preload" href="assets/fonts/bodoni-moda-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/jost-normal-200-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/fraunces-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/dm-sans-normal-300-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css">
 <link rel="stylesheet" href="assets/css/styles.css">
 <script>document.documentElement.className=document.documentElement.className.replace('no-js','js');</script>
@@ -88,11 +88,15 @@
 <!-- ───────────────────────────── 1. HERO ───────────────────────────── -->
 <section class="hero" id="hero">
   <div class="hero__media">
-    <img src="assets/img/hero-reformer-reach-2200.jpg"
-         srcset="assets/img/hero-reformer-reach-900.jpg 900w,
-                 assets/img/hero-reformer-reach-1600.jpg 1600w,
-                 assets/img/hero-reformer-reach-2200.jpg 2200w"
-         sizes="100vw" alt="A woman reaching overhead in a side position on a reformer inside a warm, arched studio" fetchpriority="high">
+    <picture>
+      <!-- A landscape band fills a wide screen; a phone gets the upright frame,
+           because cropping the band to a portrait viewport loses both figures. -->
+      <source media="(max-width: 760px)" srcset="assets/img/hero-reformer-mobile-1200.jpg">
+      <img src="assets/img/hero-reformer-2400.jpg"
+           srcset="assets/img/hero-reformer-1400.jpg 1400w,
+                   assets/img/hero-reformer-2400.jpg 2400w"
+           sizes="100vw" alt="Two women kneeling on reformers, arms overhead in the straps, in front of sheer curtains" fetchpriority="high">
+    </picture>
   </div>
   <div class="hero__scrim" aria-hidden="true"></div>
 
@@ -124,7 +128,7 @@
 <!-- ───────────────────────────── 2. THE EXPERIENCE ───────────────────────────── -->
 <section class="exp" id="experience">
   <div class="exp__head">
-    <p class="eyebrow" data-reveal><span>01 — The idea</span></p>
+    <p class="eyebrow" data-reveal><span>The idea</span></p>
     <h2 class="display display--xl exp__title" data-reveal-lines>
       <span class="line"><span>The best hour</span></span>
       <span class="line"><span>of your <em>week.</em></span></span>
@@ -153,11 +157,6 @@
       <figcaption>Corrections, every class</figcaption>
     </figure>
 
-    <figure class="exp__fig exp__fig--c" data-reveal-img>
-      <div class="mask">
-        <img loading="lazy" decoding="async" src="assets/img/wall-light-900.jpg" alt="Afternoon light falling across a warm plaster wall">
-      </div>
-    </figure>
   </div>
 
   <ul class="facts">
@@ -188,7 +187,7 @@
       </article>
 
       <article class="ritual">
-        <div class="ritual__img"><img loading="lazy" decoding="async" src="assets/img/barre-portrait-1200.jpg" alt="A woman lifting her arms overhead against a warm studio wall"></div>
+        <div class="ritual__img"><img loading="lazy" decoding="async" src="assets/img/class-barre-legs-1000.jpg" alt="Legs extended along the barre during class"></div>
         <div class="ritual__body">
           <span class="ritual__num">02</span>
           <h3 class="display">Barre</h3>
@@ -232,7 +231,7 @@
   </div>
 
   <div class="reformer__intro">
-    <p class="eyebrow" data-reveal><span>02 — The signature</span></p>
+    <p class="eyebrow" data-reveal><span>The signature</span></p>
     <h2 class="display display--lg" data-reveal-lines>
       <span class="line"><span>Strong.</span></span>
       <span class="line"><span><em>On purpose.</em></span></span>
@@ -243,7 +242,7 @@
   <div class="sticky">
     <div class="sticky__media">
       <div class="sticky__frame">
-        <img loading="lazy" decoding="async" src="assets/img/reformer-line-1200.jpg" alt="A woman extending into a long line on the reformer carriage">
+        <img loading="lazy" decoding="async" src="assets/img/hero-reformer-reach-1600.jpg" alt="A woman reaching overhead in a side position on the reformer">
       </div>
     </div>
     <div class="sticky__words" data-words>
@@ -271,14 +270,15 @@
 
 <!-- ───────────────────────────── 4. BARRE + YOGA ───────────────────────────── -->
 <section class="split" id="movement">
+  <div class="split__inner">
   <div class="split__head">
-    <p class="eyebrow" data-reveal><span>03 — Movement</span></p>
+    <p class="eyebrow" data-reveal><span>Movement</span></p>
   </div>
 
   <div class="split__grid">
     <article class="panel" data-reveal-img>
       <div class="panel__img mask">
-        <img loading="lazy" decoding="async" src="assets/img/barre-arch-1200.jpg" alt="A woman arching back through a slow, controlled barre shape">
+        <img loading="lazy" decoding="async" src="assets/img/class-barre-1200.jpg" alt="A barre class working through leg extensions at the bar">
       </div>
       <div class="panel__body">
         <span class="panel__tag">Barre</span>
@@ -291,7 +291,7 @@
 
     <article class="panel panel--offset" data-reveal-img>
       <div class="panel__img mask">
-        <img loading="lazy" decoding="async" src="assets/img/yoga-lunge-1200.jpg" alt="A woman moving through a low lunge in a warm, softly lit room">
+        <img loading="lazy" decoding="async" src="assets/img/class-yoga-1200.jpg" alt="A yoga class moving through a standing side bend">
       </div>
       <div class="panel__body">
         <span class="panel__tag">Yoga</span>
@@ -302,10 +302,7 @@
       </div>
     </article>
   </div>
-
-  <figure class="split__strip" data-reveal-img>
-    <div class="mask"><img loading="lazy" decoding="async" src="assets/img/light-band-1600.jpg" alt="Late afternoon light falling in a soft rectangle across the studio wall"></div>
-  </figure>
+  </div>
 </section>
 
 <!-- ───────────────────────────── 5. MASSAGE ───────────────────────────── -->
@@ -316,7 +313,7 @@
 
   <div class="recovery__inner">
     <div class="recovery__text">
-      <p class="eyebrow eyebrow--light" data-reveal><span>04 — Recovery</span></p>
+      <p class="eyebrow eyebrow--light" data-reveal><span>Recovery</span></p>
       <h2 class="display display--lg" data-reveal-lines>
         <span class="line"><span>You&rsquo;ve earned</span></span>
         <span class="line"><span>the <em>dark room.</em></span></span>
@@ -351,7 +348,7 @@
   <div class="sched__inner">
     <div class="sched__head">
       <div>
-        <p class="eyebrow" data-reveal><span>05 — The week</span></p>
+        <p class="eyebrow" data-reveal><span>The week</span></p>
         <h2 class="display display--lg" data-reveal-lines>
           <span class="line"><span>This week</span></span>
           <span class="line"><span>at <em>Beci.</em></span></span>
@@ -700,7 +697,7 @@
 <section class="plans" id="memberships">
   <div class="plans__inner">
   <div class="plans__head">
-    <p class="eyebrow" data-reveal><span>06 — Memberships</span></p>
+    <p class="eyebrow" data-reveal><span>Memberships</span></p>
     <h2 class="display display--xl" data-reveal-lines>
       <span class="line"><span>Find your</span></span>
       <span class="line"><span><em>membership.</em></span></span>
@@ -764,7 +761,7 @@
 <section class="studio" id="studio">
   <div class="studio__head">
     <div>
-      <p class="eyebrow" data-reveal><span>07 — The space</span></p>
+      <p class="eyebrow" data-reveal><span>The space</span></p>
       <h2 class="display display--lg" data-reveal-lines>
         <span class="line"><span>Sheshi Wilson,</span></span>
         <span class="line"><span><em>Tiranë.</em></span></span>
@@ -780,12 +777,11 @@
   </div>
 
   <div class="gallery" data-gallery>
-    <figure class="shot"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-floor-1200.jpg" alt="The reformer floor with arched alcoves"></div><figcaption><b>01</b> The floor</figcaption></figure>
+    <figure class="shot"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-props-room-1200.jpg" alt="The studio floor, with the pink props wall and reformers"></div><figcaption><b>01</b> The floor</figcaption></figure>
     <figure class="shot shot--tall"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-props-wall-900.jpg" alt="Rings, weights and props arranged on a wooden wall"></div><figcaption><b>02</b> Props wall</figcaption></figure>
-    <figure class="shot"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-shadow-1000.jpg" alt="Window light across a textured plaster wall"></div><figcaption><b>03</b> 16:20, west wall</figcaption></figure>
-    <figure class="shot shot--tall"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/detail-linen-stack-900.jpg" alt="Folded linen towels stacked on a wooden bench"></div><figcaption><b>04</b> Linen, changing room</figcaption></figure>
-    <figure class="shot"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-mats-1100.jpg" alt="Mats and cork blocks laid out for an evening class"></div><figcaption><b>05</b> Evening slow flow</figcaption></figure>
-    <figure class="shot shot--tall"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/treatment-corridor-900.jpg" alt="The corridor to the treatment rooms"></div><figcaption><b>06</b> Treatment rooms</figcaption></figure>
+    <figure class="shot shot--tall"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/detail-linen-stack-900.jpg" alt="Folded linen towels stacked on a wooden bench"></div><figcaption><b>03</b> Linen, changing room</figcaption></figure>
+    <figure class="shot"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/studio-mats-1100.jpg" alt="Mats and cork blocks laid out for an evening class"></div><figcaption><b>04</b> Evening slow flow</figcaption></figure>
+    <figure class="shot shot--tall"><div class="mask"><img loading="lazy" decoding="async" src="assets/img/treatment-corridor-900.jpg" alt="The corridor to the treatment rooms"></div><figcaption><b>05</b> Treatment rooms</figcaption></figure>
   </div>
 
   <div class="studio__bar" aria-hidden="true"><i data-gal-bar></i></div>
@@ -794,7 +790,7 @@
 <!-- ───────────────────────────── 8. TESTIMONIALS ───────────────────────────── -->
 <section class="voices">
   <div class="voices__inner">
-  <p class="eyebrow" data-reveal><span>08 — In their words</span></p>
+  <p class="eyebrow" data-reveal><span>In their words</span></p>
   <div class="voices__grid">
     <blockquote class="voice voice--lead" data-reveal>
       <p class="display display--md">“I have cancelled dinner for this. Twice. I would do it again.”</p>
@@ -822,7 +818,7 @@
 <section class="community" id="community">
   <div class="community__head">
     <div>
-      <p class="eyebrow" data-reveal><span>09 — Community</span></p>
+      <p class="eyebrow" data-reveal><span>Community</span></p>
       <h2 class="display display--lg" data-reveal-lines><span class="line"><span>@beci.studio</span></span></h2>
     </div>
     <a class="link" href="https://instagram.com" rel="noopener" data-reveal>Follow along</a>
@@ -832,7 +828,7 @@
     <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/reformer-side-800.jpg" alt="Side plank on the reformer"></div><span>Thursday, 19:00</span></a>
     <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/ig-coffee-linen-800.jpg" alt="A cup of coffee resting in soft cream linen"></div><span>Coffee, downstairs</span></a>
     <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/detail-grip-socks-1100.jpg" alt="Grip socks braced against the reformer footbar"></div><span>New socks, new set</span></a>
-    <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/ig-teacup-800.jpg" alt="A teacup on a wooden tray in low afternoon light"></div><span>Sunday, slow</span></a>
+    <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/class-barre-legs-1000.jpg" alt="Legs along the barre in Sunday class"></div><span>Sunday, slow</span></a>
     <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/ig-candle-800.jpg" alt="Candle and ceramic cup in the studio lounge"></div><span>Candlelit flow</span></a>
     <a class="ig__item" href="https://instagram.com" rel="noopener" data-reveal-img><div class="mask"><img loading="lazy" decoding="async" src="assets/img/massage-linen-800.jpg" alt="Hands and white linen in the treatment room"></div><span>Recovery day</span></a>
   </div>

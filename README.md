@@ -65,17 +65,27 @@ button you pressed, time slots, validation and a confirmation state.
 
 ## Design system
 
-**Palette** — pink, but grown up. Blush `#F6E9E6` is the base surface, petal `#F0D9D4`
-carries the two pink blocks (memberships and testimonials), and the dark sections are
+**Palette** — pink, but grown up. Blush `#F8E9E6` is the base surface; petal `#F0D9D4`
+carries the pink blocks (barre + yoga, memberships, testimonials); the dark sections are
 plum-black `#2E2124` / `#1D1417` rather than coffee brown, so the shadows stay warm and
 pink-leaning. Accents run rose `#D9A79E` through deep dusty rose `#8E5E57`, which is also
-the label ink — checked at 4.55:1 on blush, so the small uppercase type is genuinely
-readable rather than decorative. A soft-light rose veil sits over the hero and the dark
-carousel so the photography lives inside the palette instead of next to it.
+the label ink and the featured membership card — checked at 4.55:1 on blush, so the small
+uppercase type is genuinely readable rather than decorative.
 
-**Type** — Bodoni Moda for display (a true Didone: high contrast, fashion-editorial),
-Jost 200–500 for navigation, labels and body. Everything scales with `clamp()`,
-so there is one continuous type ramp rather than breakpoint jumps.
+**Type** — Fraunces for display and DM Sans for everything else. The previous pairing was
+a high-contrast Didone over a geometric sans, which is the exact combination that reads as
+machine-generated luxury; Fraunces is a soft serif with real warmth and DM Sans is friendly
+at small sizes. Everything scales with `clamp()`, so there is one continuous ramp rather
+than breakpoint jumps.
+
+**Restraint** — the small uppercase labels were tracked out to `.26em`, which is another
+tell. All of it is roughly halved, the section eyebrows lost their `01 —` numbering, and
+three purely abstract photographs (a lit wall, a shadow, a band of light) were cut because
+they carried no information. Corners are softened to 14px on cards and images, 9px on
+controls: enough to feel welcoming, not enough to look like a consumer app.
+
+**Photography** — the reformer, barre and yoga frames and the props-wall room are the
+studio's own photographs. Everything else is still stock standing in for a real shoot.
 
 **Prices** are in Albanian lek, at levels that make sense for Tirana:
 first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month.
