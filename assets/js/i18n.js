@@ -304,6 +304,11 @@
       'Beci — Reformer Pilates, Barre, Yoga & Masazh · Sheshi Wilson, Tiranë'
   };
 
+  var TITLES = {
+    en: 'Beci — Reformer Pilates, Barre, Yoga & Massage · Sheshi Wilson, Tiranë',
+    sq: 'Beci — Reformer Pilates, Barre, Yoga & Masazh · Sheshi Wilson, Tiranë'
+  };
+
   var DAYS = {
     Monday: 'E hënë', Tuesday: 'E martë', Wednesday: 'E mërkurë', Thursday: 'E enjte',
     Friday: 'E premte', Saturday: 'E shtunë', Sunday: 'E diel'
@@ -386,9 +391,7 @@
     busy = true;
     walk(document.body, next === 'sq');
     document.documentElement.lang = next === 'sq' ? 'sq' : 'en';
-    var t = translate(document.title);
-    if (next === 'sq' && t) document.title = t;
-    if (next === 'en' && titleEN) document.title = titleEN;
+    document.title = TITLES[next] || TITLES.en;
     document.querySelectorAll('[data-lang]').forEach(function (b) {
       var on = b.getAttribute('data-lang') === next;
       b.classList.toggle('is-active', on);
@@ -399,7 +402,6 @@
     busy = false;
   }
 
-  var titleEN = document.title;
 
   /* Text injected later — the class panel, the membership tier switcher, the
      booking confirmation — arrives in English and is translated on the way in. */
@@ -428,5 +430,5 @@
 
   var saved = null;
   try { saved = localStorage.getItem('beci-lang'); } catch (e) {}
-  apply(saved === 'sq' ? 'sq' : 'en');
+  apply(saved === 'en' ? 'en' : 'sq');   // Albanian is the default
 })();

@@ -66,8 +66,12 @@ button you pressed, time slots, validation and a confirmation state.
 
 ## Two languages
 
-A switch in the bar (and in the mobile menu) moves the whole page between English
-and Albanian; the choice is remembered. Translations are keyed by the **English source
+**Albanian is the default.** A switch in the bar (and in the mobile menu) moves the whole
+page between the two, and the choice is remembered — a visitor who picks English keeps
+English on the next visit. With JavaScript off, or before the script runs, the served HTML
+is the English source, so that is what a crawler and a link preview see; if Albanian link
+previews matter, the `<title>`, `description` and `og:` tags in the head are the things to
+translate. Translations are keyed by the **English source
 string** rather than by invented ids, so there are no keys to keep in sync and nothing
 can quietly fall back to a placeholder — an untranslated string simply stays in English
 and is visible as such. A `data-sq` attribute on an element overrides the dictionary,
