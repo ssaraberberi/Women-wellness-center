@@ -18,6 +18,7 @@ fonts and photography are served from `assets/`.
 ```
 index.html                  the full homepage
 tools/generate-schedule.py  regenerates the timetable section from a data table
+tools/build-map.py          rebuilds the static map behind the location section
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
 assets/fonts/               Bodoni Moda + Jost (woff2, latin + latin-ext)
@@ -197,3 +198,19 @@ vercel --prod   # production
 One thing to change after the domain is live: `og:image` in `index.html` is a relative
 path. Make it absolute (`https://your-domain/assets/img/hero-reformer-reach-1200.jpg`)
 so the link preview renders when the site gets shared.
+
+## The location map
+
+The "find us" section pins the studio at Sheshi Wilson (41.3185, 19.8145 —
+the Woodrow Wilson memorial on Rruga Sulejman Delvina).
+
+It is drawn twice, deliberately. `assets/img/map-sheshi-wilson-1280.jpg` is a
+static map built from OpenStreetMap tiles by `tools/build-map.py`, set as the
+frame's background; the interactive OpenStreetMap embed sits on top of it. The
+static image paints immediately and stays visible if the embed is slow, blocked
+or unavailable, so the section never renders as an empty box. To move the pin or
+change the zoom, edit the constants at the top of the script and re-run it.
+
+Map data is © OpenStreetMap contributors, credited under the frame. If the
+studio ever wants a house-styled map, this is the seam to replace — swap the
+static image and the embed for a provider with a custom style.

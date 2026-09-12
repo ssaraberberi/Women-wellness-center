@@ -219,6 +219,17 @@
       'Tavane të larta, dritare të thella dhe ajo drita e pasdites që e bën hapësirën të ndihet tamam siç duhet. Një studio e plotë, me hapësirë të menduar mirë, aksesorë të butë dhe një dhomë dushi të pajisur siç duhet — që të vish direkt nga zyra dhe të dalësh gati pas klase.',
     'In the heart of Tiranë, but with the feeling of a place where you can finally catch your breath.':
       'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
+
+    /* ---- find us ---- */
+    'Find us': 'Na gjeni',
+    'Two minutes': 'Dy minuta',
+    'on foot.': 'në këmbë.',
+    '1001 Tiranë, Albania': '1001 Tiranë, Shqipëri',
+    'Second floor, across from Posta Shqiptare. Ring the bell marked Beci — we will buzz you up.':
+      'Kati i dytë, përballë Postës Shqiptare. Bjeri ziles me emrin Beci — ta hapim ne.',
+    'Get directions': 'Merr drejtimet',
+    'Map data © OpenStreetMap contributors': 'Të dhënat e hartës © kontribuuesit e OpenStreetMap',
+    'Map showing Beci on Sheshi Wilson, Tiranë': 'Harta me Beci-n te Sheshi Wilson, Tiranë',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
     'The mat studio': 'Salla e ushtrimeve të tokës',
