@@ -40,7 +40,7 @@ assets/js/main.js           scroll motion, gallery, booking, menu (vanilla, ~16 
 | 5 | Recovery | *You've earned the dark room.* Mood shift — plum, warm, intimate |
 | 6 | Schedule | The full week, 31 classes; tap any one for instructor, level and availability |
 | 7 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
-| 8 | The studio | Draggable cinematic gallery with a progress bar |
+| 8 | The space | A room-by-room tour — reformer room, changing rooms, mat studio, lockers, washroom — as a draggable gallery |
 | 9 | In their words | Lifestyle testimonials, sticky lead quote |
 | 10 | Community | `@beci.studio` feed grid |
 | 11 | Final CTA | *See you Thursday.* |
@@ -84,8 +84,9 @@ three purely abstract photographs (a lit wall, a shadow, a band of light) were c
 they carried no information. Corners are softened to 14px on cards and images, 9px on
 controls: enough to feel welcoming, not enough to look like a consumer app.
 
-**Photography** — the reformer, barre and yoga frames and the props-wall room are the
-studio's own photographs. Everything else is still stock standing in for a real shoot.
+**Photography** — the hero, the reformer, barre and yoga frames, and every room in the
+space section are the studio's own photographs. The remaining stock is down to a handful
+of details and the massage section.
 
 **Prices** are in Albanian lek, at levels that make sense for Tirana:
 first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month.
