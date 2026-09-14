@@ -1,5 +1,5 @@
 /* ============================================================
-   Beci — Movement & Recovery Studio, Sheshi Wilson, Tiranë
+   DUA Wellness Studio — Sheshi Wilson, Tiranë
    Editorial design system
    ============================================================ */
 
@@ -710,6 +710,7 @@ fieldset{border:0}
   gap:clamp(28px,3vw,56px);padding-bottom:clamp(38px,4vw,66px);border-bottom:1px solid rgba(246,233,230,.14);
 }
 .foot__logo{font-family:var(--display);font-size:clamp(1.9rem,2.8vw,2.8rem);letter-spacing:0.10em;text-indent:.18em;color:var(--blush);display:block;margin-bottom:14px}
+.foot__tag{font-family:var(--display);font-size:1.06rem;font-style:italic;color:var(--blush);margin-bottom:10px}
 .foot h4{font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:400;color:var(--blush);margin-bottom:14px}
 .foot p{font-size:.92rem;line-height:1.8}
 .foot a:hover{color:var(--blush)}

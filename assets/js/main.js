@@ -1,5 +1,5 @@
 /* ============================================================
-   Beci — interaction layer
+   DUA — interaction layer
    Vanilla JS. No dependencies. Motion is opt-out aware.
    ============================================================ */
 (function () {

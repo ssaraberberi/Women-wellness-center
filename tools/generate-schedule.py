@@ -96,7 +96,7 @@ SECTION = f'''
         <p class="eyebrow" data-reveal><span>05 — The week</span></p>
         <h2 class="display display--lg" data-reveal-lines>
           <span class="line"><span>This week</span></span>
-          <span class="line"><span>at <em>Beci.</em></span></span>
+          <span class="line"><span>at <em>DUA.</em></span></span>
         </h2>
       </div>
       <div class="sched__note">

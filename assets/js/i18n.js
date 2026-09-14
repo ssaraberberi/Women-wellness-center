@@ -1,5 +1,5 @@
 /* ============================================================
-   Beci — English / Albanian
+   DUA — English / Albanian
    ------------------------------------------------------------
    Translations are keyed by the English source string rather than by
    invented ids, so there are no keys to keep in sync and nothing silently
@@ -20,9 +20,9 @@
     'Community': 'Komuniteti',
     'Book now': 'Rezervo',
     'Book a class': 'Rezervo një klasë',
-    'Explore the studio': 'Zbulo studion',
+    'Inside the studio': 'Brenda studios',
     'Scroll': 'Zbrit',
-    'Beci, home': 'Beci, faqja kryesore',
+    'DUA, home': 'DUA, faqja kryesore',
     'Open menu': 'Hap menynë',
     'Close menu': 'Mbyll menynë',
     'Scroll to content': 'Zbrit te përmbajtja',
@@ -36,8 +36,8 @@
     'Hours': 'Orari',
     'Contact': 'Kontakt',
     'Back to top': 'Kthehu lart',
-    'Movement & recovery studio': 'Studio lëvizjeje & rikuperimi',
-    'Reformer · Barre · Yoga · Massage': 'Reformer · Barre · Yoga · Masazh',
+    'A ritual for yourself.': 'Një ritual për veten.',
+    'Reformer · Mat Pilates · Barre · Yoga · Recovery': 'Reformer · Mat Pilates · Barre · Yoga · Rikuperim',
     'Mon–Fri 07:00–21:30': 'Hën–Pre 07:00–21:30',
     'Sat 08:30–15:00': 'Sht 08:30–15:00',
     'Sun 09:00–19:00': 'Die 09:00–19:00',
@@ -46,21 +46,21 @@
     'Sun 09:00 – 19:00': 'Die 09:00 – 19:00',
 
     /* ---- hero ---- */
-    'Move like': 'Lëvize trupin',
-    'you mean it.': 'me bindje.',
-    'Move like you mean it': 'Lëvize trupin me bindje',
+    'Because': 'Sepse',
+    'I want to.': 'dua.',
+    'Because I want to': 'Sepse dua',
     'Eight women per class': 'Tetë gra për klasë',
 
     /* ---- the idea ---- */
     'The idea': 'Ideja',
-    'The best hour': 'Ora më e mirë',
-    'of your': 'e javës',
-    'week.': 'sate.',
+    'The hour': 'Ora',
+    'you': 'që',
+    'chose.': 'zgjodhe.',
     'The main floor, 17:40': 'Salla kryesore, 17:40',
-    'Beci is small on purpose. Only eight women in a class, one instructor who knows you, and a room where you never feel like just a number.':
-      'Beci është i vogël me qëllim. Vetëm tetë gra në klasë, një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
-    'We have reformer, barre, yoga and massage, all in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
-      'Kemi reformer, barre, yoga dhe masazh, të gjitha në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
+    'DUA is small on purpose. Only eight women in a class, one instructor who knows you, and a room where you never feel like just a number.':
+      'DUA është e vogël me qëllim. Vetëm tetë gra në klasë, një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
+    'Reformer and mat Pilates, barre, yoga and recovery — all in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
+      'Reformer dhe mat Pilates, barre, yoga dhe rikuperim — të gjitha në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
     'And then there is the part outside the class: the bench by the window, a coffee afterwards and a little time to sit and talk. No rush.':
       'Dhe pastaj është ajo pjesa jashtë klasës: stoli pranë dritares, një kafe pas orës dhe pak kohë për të ndejtur e për të folur. Pa nxitim.',
     'See what a month looks like': 'Shih si duket një muaj',
@@ -76,7 +76,7 @@
     'Strength you can feel in the way you stand.': 'Forcë që e ndien te mënyra si qëndron.',
     'Small moves. Serious shake.': 'Lëvizje të vogla. Dridhje serioze.',
     'The part of the day that belongs to you.': 'Pjesa e ditës që të takon ty.',
-    "Recovery isn't a reward. It's the work.": 'Rikuperimi s’është shpërblim. Është pjesë e punës.',
+    'Rest is part of the practice.': 'Pushimi është pjesë e praktikës.',
 
     /* ---- reformer ---- */
     'The signature': 'Klasika jonë',
@@ -120,26 +120,25 @@
     'Movement': 'Lëvizja',
     'Small moves.': 'Lëvizje të vogla.',
     'Serious shake.': 'Dridhje serioze.',
-    'Ballet-adjacent, low impact, genuinely evil. Forty-five minutes of movements about one centimetre wide. Your legs will shake. That is the point, and everyone else is shaking too.':
-      'Afër baletit, me ndikim të ulët, vërtet e pamëshirshme. Dyzet e pesë minuta lëvizjesh rreth një centimetër të gjera. Këmbët do të dridhen. Pikërisht kjo është poenta — dhe po dridhen edhe të gjitha të tjerat.',
+    'Ballet-adjacent and low impact, and harder than it looks. Forty-five minutes of movements about a centimetre wide. Your legs will shake. That is the point — and so is everyone else’s.':
+      'Afër baletit, me ndikim të ulët dhe më e vështirë nga ç’duket. Dyzet e pesë minuta lëvizjesh rreth një centimetër të gjera. Këmbët do të dridhen. Pikërisht kjo është poenta — dhe po dridhen edhe të gjitha të tjerat.',
     'All levels': 'Të gjitha nivelet',
     'Mon · Wed · Fri': 'Hën · Mër · Pre',
     'Book barre': 'Rezervo barre',
     'Your phone': 'Telefoni',
     'stays outside.': 'mbetet jashtë.',
-    'Vinyasa at 07:30 while the light is still low. Slow flow and restorative in the evening, when the city is loud and you would rather not be. Candlelit on Sundays, and nobody will make you chant.':
-      'Vinyasa në 07:30, sa kohë drita është ende e ulët. Slow flow dhe restorative në mbrëmje, kur qyteti bën zhurmë dhe ti jo. Me qirinj të dielave — dhe askush nuk do të të vërë të këndosh mantra.',
+    'Vinyasa at 07:30, while the light is still low. Slow flow and restorative in the evening, when the city is loud and you would rather not be. Candlelit on Sundays.':
+      'Vinyasa në 07:30, sa kohë drita është ende e ulët. Slow flow dhe restorative në mbrëmje, kur qyteti bën zhurmë dhe ti jo. Me qirinj të dielave.',
     'Vinyasa · Slow · Restorative': 'Vinyasa · Slow · Restorative',
     'Daily': 'Çdo ditë',
     'Book yoga': 'Rezervo yoga',
 
     /* ---- recovery ---- */
     'Recovery': 'Rikuperimi',
-    'You’ve earned': 'E ke merituar',
-    'the': '',
-    'dark room.': 'dhomën e errët.',
-    'Two rooms at the back, kept deliberately dark and a little too warm. Book one on its own, or tack it onto a class and leave the building a genuinely different person.':
-      'Dy dhoma në fund, me qëllim të errëta dhe pak më të ngrohta se ç’duhet. Rezervo vetëm masazhin, ose shtoje pas një klase dhe dil nga ndërtesa vërtet një njeri tjetër.',
+    'Where the': 'Ku dita',
+    'day stops.': 'ndalon.',
+    'Two rooms at the back, kept deliberately dark and a little too warm. Book one on its own, or add it to a class and leave a different person.':
+      'Dy dhoma në fund, me qëllim të errëta dhe pak më të ngrohta se ç’duhet. Rezervo vetëm masazhin, ose shtoje pas një klase dhe dil vërtet një njeri tjetër.',
     'Deep tissue': 'Masazh i thellë',
     'Sports & post-training recovery': 'Sportiv & rikuperim pas stërvitjes',
     'Lymphatic drainage': 'Drenazh limfatik',
@@ -150,7 +149,7 @@
     'The week': 'Java',
     'This week': 'Këtë javë',
     'at': 'te',
-    'Beci.': 'Beci.',
+    'DUA.': 'DUA.',
     'Tap any class for the instructor, the level and what is left. Booking opens seven days ahead, and the 18:00 reformer always goes first.':
       'Prek një klasë për instruktoren, nivelin dhe vendet e lira. Rezervimet hapen shtatë ditë përpara, dhe reformeri i orës 18:00 mbaron gjithmonë i pari.',
     'Mon': 'Hën', 'Tue': 'Mar', 'Wed': 'Mër', 'Thu': 'Enj', 'Fri': 'Pre', 'Sat': 'Sht', 'Sun': 'Die',
@@ -189,8 +188,8 @@
       'Të dielën në mbrëmje, dritat fikur, qirinjtë ndezur. Ora më e qetë e javës — dhe e para që mbushet.',
 
     /* ---- memberships ---- */
-    'Find your': 'Gjej abonimin',
-    'membership.': 'tënd.',
+    'Choose': 'Zgjidh',
+    'yourself.': 'veten.',
     'No contracts, no joining fee.': 'Pa kontrata, pa tarifë anëtarësimi.',
     '8 classes / month': '8 klasa / muaj',
     '12 classes / month': '12 klasa / muaj',
@@ -225,11 +224,11 @@
     'Two minutes': 'Dy minuta',
     'on foot.': 'në këmbë.',
     '1001 Tiranë, Albania': '1001 Tiranë, Shqipëri',
-    'Second floor, across from Posta Shqiptare. Ring the bell marked Beci — we will buzz you up.':
-      'Kati i dytë, përballë Postës Shqiptare. Bjeri ziles me emrin Beci — ta hapim ne.',
+    'Second floor, across from Posta Shqiptare. Ring the bell marked DUA — we will buzz you up.':
+      'Kati i dytë, përballë Postës Shqiptare. Bjeri ziles me emrin DUA — ta hapim ne.',
     'Get directions': 'Merr drejtimet',
     'Map data © OpenStreetMap contributors': 'Të dhënat e hartës © kontribuuesit e OpenStreetMap',
-    'Map showing Beci on Sheshi Wilson, Tiranë': 'Harta me Beci-n te Sheshi Wilson, Tiranë',
+    'Map showing DUA on Sheshi Wilson, Tiranë': 'Harta me DUA-n te Sheshi Wilson, Tiranë',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
     'The mat studio': 'Salla e ushtrimeve të tokës',
@@ -259,8 +258,8 @@
     'Sunday, slow': 'E diel, ngadalë',
     'Candlelit flow': 'Flow me qirinj',
     'Recovery day': 'Ditë rikuperimi',
-    'Come and': 'Eja',
-    'visit us.': 'na vizito.',
+    'When you': 'Kur',
+    'want to.': 'të duash.',
     'Book your first class': 'Rezervo klasën tënde të parë',
 
     /* ---- whatsapp ---- */
@@ -321,13 +320,13 @@
     'Hands and white linen in the treatment room': 'Duar dhe liri e bardhë në dhomën e trajtimit',
 
     /* ---- document ---- */
-    'Beci — Reformer Pilates, Barre, Yoga & Massage · Sheshi Wilson, Tiranë':
-      'Beci — Reformer Pilates, Barre, Yoga & Masazh · Sheshi Wilson, Tiranë'
+    'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë':
+      'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
   };
 
   var TITLES = {
-    en: 'Beci — Reformer Pilates, Barre, Yoga & Massage · Sheshi Wilson, Tiranë',
-    sq: 'Beci — Reformer Pilates, Barre, Yoga & Masazh · Sheshi Wilson, Tiranë'
+    en: 'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë',
+    sq: 'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
   };
 
   var DAYS = {
@@ -418,7 +417,7 @@
       b.classList.toggle('is-active', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    try { localStorage.setItem('beci-lang', next); } catch (e) {}
+    try { localStorage.setItem('dua-lang', next); } catch (e) {}
     if (mo) mo.takeRecords();          // discard the records we just caused
     busy = false;
   }
@@ -450,6 +449,6 @@
   });
 
   var saved = null;
-  try { saved = localStorage.getItem('beci-lang'); } catch (e) {}
+  try { saved = localStorage.getItem('dua-lang'); } catch (e) {}
   apply(saved === 'en' ? 'en' : 'sq');   // Albanian is the default
 })();

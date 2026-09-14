@@ -1,5 +1,5 @@
 /* ============================================================
-   Beci — WhatsApp
+   DUA — WhatsApp
    The button appears once the hero is behind you, and the card opens itself
    once, at the memberships section, where intent is highest. Dismiss it and
    it stays dismissed for the session.
@@ -45,10 +45,10 @@
   }
 
   function dismissed() {
-    try { return sessionStorage.getItem('beci-wa') === 'off'; } catch (e) { return false; }
+    try { return sessionStorage.getItem('dua-wa') === 'off'; } catch (e) { return false; }
   }
   function dismiss() {
-    try { sessionStorage.setItem('beci-wa', 'off'); } catch (e) {}
+    try { sessionStorage.setItem('dua-wa', 'off'); } catch (e) {}
   }
 
   fab.addEventListener('click', function () {

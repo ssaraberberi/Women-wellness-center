@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageEnhance
 LAT, LON, ZOOM = 41.3185, 19.8145, 17
 OUT_W, OUT_H = 1280, 880                      # 16:11, matches .findus__frame
 DEST = 'assets/img/map-sheshi-wilson-1280.jpg'
-UA = 'beci-studio-site/1.0 (static map asset; contact hello@beci.al)'
+UA = 'dua-studio-site/1.0 (static map asset; contact hello@dua.al)'
 
 
 def deg2tile(lat, lon, z):

@@ -1,9 +1,9 @@
-# Beci — movement & recovery studio, Tiranë
+# DUA — movement & recovery studio, Tiranë
 
 A production-ready homepage mockup for a women-focused studio on
 **Sheshi Wilson, Tiranë** — Reformer Pilates, barre, yoga and massage.
 
-**Beci** is short, lowercase and a little familiar — named the way people actually
+**DUA** is short, lowercase and a little familiar — named the way people actually
 refer to the places they go every week, not the way a wellness brand names itself.
 The tone follows: confident, specific, occasionally funny, never reverent. Nobody
 here is going to call anything a journey.
@@ -45,7 +45,7 @@ assets/js/whatsapp.js       floating WhatsApp contact card
 | 7 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
 | 8 | The space | A room-by-room tour — reformer room, changing rooms, mat studio, lockers, washroom — as a draggable gallery |
 | 9 | In their words | Lifestyle testimonials, sticky lead quote |
-| 10 | Community | `@beci.studio` feed grid |
+| 10 | Community | `@dua.studio` feed grid |
 | 11 | Final CTA | *See you Thursday.* |
 
 **The schedule** is a seven-column timetable of the real week — Monday to Sunday, 31
@@ -87,7 +87,7 @@ schedule's data attributes stay in English and keep working as keys. The booking
 translate. Dates and availability counts are handled by pattern rather than by listing
 thirty-one near-identical strings.
 
-Proper nouns stay put: *Beci*, *Sheshi Wilson*, *Tiranë*, instructor names, prices, and the
+Proper nouns stay put: *DUA*, *Sheshi Wilson*, *Tiranë*, instructor names, prices, and the
 discipline names Albanian studios already use in English — Reformer, Barre, Yoga, Vinyasa.
 
 **The Albanian is mine, not a native speaker's.** It reads naturally to me and keeps the
