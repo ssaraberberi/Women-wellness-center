@@ -32,38 +32,22 @@ assets/js/whatsapp.js       floating WhatsApp contact card
 
 ## Page structure
 
-| # | Section | Idea |
+| # | Section | Note |
 |---|---------|------|
-| 1 | Hero | *Move like you mean it.* Full-bleed, minimal nav |
-| 2 | The experience | *The best hour of your week.* Asymmetric editorial grid + studio facts |
-| — | Four rituals | Vertical scroll drives a horizontal reveal: Reformer → Barre → Yoga → Massage |
-| 3 | Reformer | The signature service: oversized drifting type, sticky image, scrolling words |
-| 4 | Barre + Yoga | Offset split with an atmospheric full-bleed band |
-| 5 | Recovery | *You've earned the dark room.* Mood shift — plum, warm, intimate |
-| 6 | Schedule | The full week, 31 classes; tap any one for instructor, level and availability |
-| 7 | Memberships | Three tiers, Reformer switchable 8 / 12 / 16, Wellness featured |
-| 8 | The space | A room-by-room tour — reformer room, changing rooms, mat studio, lockers, washroom — as a draggable gallery |
-| 9 | In their words | Lifestyle testimonials, sticky lead quote |
-| 10 | Community | `@dua.studio` feed grid |
-| 11 | Final CTA | *See you Thursday.* |
+| 1 | Hero | *Because I want to.* Full-bleed, minimal nav |
+| 2 | Opening soon | Full-width wine band, the largest type on the page |
+| 3 | The idea | *The hour you chose.* Asymmetric editorial grid |
+| — | Two rituals | Reformer and Spa, side by side |
+| 4 | Reformer | The signature service: drifting type, sticky image, scrolling words |
+| 5 | Spa | *Where the day stops.* Mood shift — dark, warm, intimate |
+| 6 | Schedule | Coming soon |
+| 7 | Memberships | Coming soon |
+| 8 | The space | Coming soon |
+| 9 | Final CTA | *When you want to.* |
 
-**The schedule** is a seven-column timetable of the real week — Monday to Sunday, 31
-classes, instructor named on every one, with a discipline marker down the left edge
-(rose for reformer, plum for barre, deep rose for yoga). Tapping a class opens a panel
-with the description, instructor and their role, duration, level and how many places are
-left; full classes are dimmed and marked. *Book this class* hands straight over to the
-booking panel with the discipline already selected.
-
-To edit the timetable, change the `WEEK` and `CLASSES` tables in
-`tools/generate-schedule.py` and re-run it — it rewrites the section in place, so the
-markup cannot drift out of sync with itself.
-
-On phones the seven columns collapse to a day picker showing one day at a time. Without
-JavaScript the picker never appears and all seven days stay visible, so nothing is hidden
-behind a control that is not there.
-
-A full-screen booking panel opens from every CTA — service preselected from whichever
-button you pressed, time slots, validation and a confirmation state.
+The reformer section pins its image while the words scroll past it, and the hero,
+the spa backdrop and the marquee all drift at their own rates — one throttled
+`requestAnimationFrame` loop writes nothing but `transform` and `opacity`.
 
 ## Two languages
 
