@@ -383,20 +383,12 @@ fieldset{border:0}
   width:100%;max-width:var(--maxw);margin:0 auto;padding:0 var(--gut) clamp(28px,4vw,52px);
   display:flex;justify-content:space-between;align-items:baseline;gap:20px;
 }
-.rituals__count{font-size:11px;letter-spacing:0.11em;color:rgba(255,251,234,.55)}
-.rituals__count b{font-weight:400;color:var(--blush)}
-.rituals__count i{font-style:normal;margin:0 4px;opacity:.4}
 .rituals__track{
-  display:flex;gap:clamp(14px,2vw,32px);padding:0 var(--gut);
-  overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-left:var(--gut);-webkit-overflow-scrolling:touch;
-  scrollbar-width:none;
+  max-width:var(--maxw);margin:0 auto;padding:0 var(--gut);
+  display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(20px,3vw,56px);
 }
-.rituals__track::-webkit-scrollbar{display:none}
-.ritual{
-  position:relative;flex:none;width:min(80vw,460px);scroll-snap-align:center;
-  display:flex;flex-direction:column;
-}
-.ritual__img{overflow:hidden;aspect-ratio:3/4;background:#2A0E18;position:relative;border-radius:var(--r)}
+.ritual{position:relative;display:flex;flex-direction:column}
+.ritual__img{overflow:hidden;aspect-ratio:1/1;background:#2A0E18;position:relative;border-radius:var(--r)}
 .ritual__img::after{content:"";position:absolute;inset:0;background:rgba(217,167,158,.16);mix-blend-mode:soft-light;pointer-events:none}
 .ritual__img img{width:100%;height:100%;object-fit:cover;transition:transform 1.6s var(--ease-out);opacity:.92}
 .ritual:hover .ritual__img img{transform:scale(1.05);opacity:1}
@@ -405,22 +397,6 @@ fieldset{border:0}
 .ritual__body h3{font-size:clamp(1.8rem,3vw,2.9rem)}
 .ritual__body p{color:rgba(255,251,234,.72);max-width:26ch;font-size:.95rem}
 .ritual__body .link{margin-top:6px}
-.rituals__bar{width:100%;max-width:var(--maxw);margin:clamp(24px,3vw,44px) auto 0;padding:0 var(--gut)}
-.rituals__bar::after{content:"";display:block;height:1px;background:rgba(255,251,234,.18);position:relative}
-.rituals__bar i{display:block;height:1px;background:var(--blush);width:25%;transform-origin:left;position:relative;top:1px;z-index:2;transition:transform .2s linear}
-
-/* desktop: pinned horizontal scroll */
-@media (min-width:900px){
-  .rituals.is-pinned{height:var(--h-height,400vh)}
-  .rituals.is-pinned .rituals__sticky{
-    position:sticky;top:0;height:100vh;padding:clamp(28px,3.4vw,54px) 0;
-    display:flex;flex-direction:column;justify-content:center;overflow:hidden;
-  }
-  .rituals.is-pinned .rituals__track{overflow:visible;padding-left:var(--gut);padding-right:var(--gut);will-change:transform}
-  .rituals.is-pinned .ritual{width:clamp(380px,34vw,720px)}
-  .rituals.is-pinned .ritual__img{aspect-ratio:auto;height:clamp(230px,40vh,460px)}
-  .rituals.is-pinned .ritual__body{padding-top:20px;gap:8px}
-}
 
 /* ---------- 13. Reformer ---------- */
 .reformer{padding:var(--sec) 0;position:relative}
@@ -465,26 +441,6 @@ fieldset{border:0}
 .ticks b{font-weight:400;font-size:11px;letter-spacing:0.11em;text-transform:uppercase}
 .ticks span{color:var(--ink-soft);font-size:.95rem;max-width:32ch}
 .reformer__cta{grid-column:10/13;display:flex;flex-direction:column;gap:18px;align-items:flex-start}
-
-/* ---------- 14. Barre + Yoga ---------- */
-.split{background:var(--petal)}
-.split__inner{max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut)}
-.split__head{margin-bottom:clamp(22px,2.4vw,38px)}
-.split__grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,110px)}
-.panel__img{aspect-ratio:4/5}
-.panel:hover .mask img{transform:scale(1.04)}
-.panel--offset{margin-top:clamp(40px,10vw,190px)}
-.panel__body{padding-top:clamp(22px,2.4vw,38px);display:flex;flex-direction:column;gap:16px;align-items:flex-start}
-.panel__tag{font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--rose-ink)}
-.panel__body p{color:var(--ink-soft);max-width:40ch}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips li{
-  border-radius:99px;
-  font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--rose-ink);
-  border:1px solid rgba(59,21,34,.18);padding:7px 13px;
-}
-.split__strip{margin-top:clamp(48px,7vw,120px)}
-.split__strip .mask{aspect-ratio:21/8}
 
 /* ---------- 15. Recovery ---------- */
 .recovery{position:relative;background:var(--plum-deep);color:var(--blush);overflow:hidden;padding:var(--sec) 0}
@@ -572,30 +528,6 @@ fieldset{border:0}
 .cls.is-full .cls__who::after{content:" · full"}
 
 /* ---------- 15c. Class detail ---------- */
-.cinfo{position:fixed;inset:0;z-index:110;display:flex;align-items:center;justify-content:center;padding:clamp(16px,3vw,40px)}
-.cinfo__scrim{position:absolute;inset:0;background:rgba(29,20,23,.6);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);opacity:0;transition:opacity .5s var(--ease)}
-.cinfo.is-open .cinfo__scrim{opacity:1}
-.cinfo__panel{
-  position:relative;z-index:2;width:min(500px,100%);max-height:100%;overflow:auto;
-  background:var(--blush);border-radius:var(--r);padding:clamp(28px,3vw,48px);
-  display:flex;flex-direction:column;gap:16px;align-items:flex-start;
-  transform:translateY(22px);opacity:0;transition:transform .7s var(--ease-out),opacity .5s var(--ease);
-}
-.cinfo.is-open .cinfo__panel{transform:none;opacity:1}
-.cinfo__close{position:absolute;top:14px;right:16px;font-size:14px;width:36px;height:36px;border-radius:50%;transition:background .4s var(--ease)}
-.cinfo__close:hover{background:rgba(59,21,34,.08)}
-.cinfo__note{color:var(--ink-soft);font-size:.97rem}
-.cinfo__meta{width:100%;display:flex;flex-direction:column;margin-top:4px}
-.cinfo__meta>div{
-  display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:baseline;
-  padding:13px 0;border-top:1px solid rgba(59,21,34,.14);
-}
-.cinfo__meta>div:last-child{border-bottom:1px solid rgba(59,21,34,.14)}
-.cinfo__meta dt{font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;color:var(--rose-ink)}
-.cinfo__meta dd{margin:0;text-align:right;font-size:.97rem}
-.cinfo__meta dd b{font-weight:300}
-.cinfo__meta dd i{display:block;font-style:normal;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--rose-ink);margin-top:3px}
-.cinfo .btn{margin-top:8px}
 
 /* ---------- 16. Memberships ---------- */
 .plans{background:var(--petal)}
@@ -645,27 +577,17 @@ fieldset{border:0}
 }
 .plans__foot b{font-weight:400;color:var(--plum)}
 
-/* ---------- 17b. Location ---------- */
-.findus{padding:0 0 var(--sec);background:var(--blush-lift)}
-.findus__inner{
-  max-width:var(--maxw);margin:0 auto;padding:clamp(40px,5vw,80px) var(--gut) 0;
-  display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(24px,3vw,60px);align-items:center;
+/* ---------- 16b. Coming soon ----------
+   The timetable and the membership tiers are not live yet. The sections keep
+   their place and their grounds, so the rhythm of the scroll is unchanged when
+   the real content lands. */
+.soon__inner{
+  max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut);
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:clamp(14px,1.6vw,22px);
 }
-.findus__map{grid-column:1/8}
-.findus__frame{
-  aspect-ratio:16/11;
-  background:var(--petal) url("../img/map-sheshi-wilson-1280.jpg") center/cover no-repeat;
-}
-.findus__frame iframe{
-  display:block;width:100%;height:100%;border:0;position:relative;z-index:1;
-  filter:saturate(.34) sepia(.10) brightness(1.04);
-}
-.findus__credit{margin-top:10px;font-size:10.5px;letter-spacing:.06em;color:var(--rose-ink);opacity:.75}
-.findus__text{grid-column:8/13;display:flex;flex-direction:column;align-items:flex-start;gap:14px}
-.findus__text h2{margin:4px 0 6px}
-.findus__addr{font-size:1.02rem;line-height:1.7;color:var(--plum)}
-.findus__hint{color:var(--ink-soft);font-size:.94rem;max-width:34ch}
-.findus__text .btn{margin-top:10px}
+.soon__inner h2{margin-top:4px}
+.soon__inner .lede{max-width:46ch;color:var(--ink-soft)}
 
 /* ---------- 17. Studio gallery ---------- */
 .studio{padding:var(--sec) 0;background:var(--blush-lift)}
@@ -880,8 +802,6 @@ fieldset{border:0}
   .word{min-height:auto;opacity:1;gap:12px;padding:26px 0;border-top:1px solid rgba(59,21,34,.14)}
   .word h3{font-size:clamp(2.1rem,9vw,3rem)}
   .ticks{grid-template-columns:1fr}
-  .split__grid{grid-template-columns:1fr;gap:clamp(42px,9vw,70px)}
-  .panel--offset{margin-top:0}
   .recovery__inner{grid-template-columns:1fr}
   .recovery__text,.recovery__media{grid-column:1/-1}
   .recovery__media{margin-top:20px}
@@ -891,9 +811,8 @@ fieldset{border:0}
   .plan--feature{margin:0}
   .plans__head .eyebrow,.plans__head h2,.plans__head .lede{grid-column:1/-1}
   .studio__head>div:first-child,.studio__note{grid-column:1/-1}
-  .findus__inner{grid-template-columns:1fr;gap:clamp(22px,4vw,34px)}
-  .findus__map,.findus__text{grid-column:1/-1}
-  .findus__frame{aspect-ratio:1/1}
+  .rituals__track{grid-template-columns:1fr;gap:clamp(34px,7vw,52px)}
+  .ritual__img{aspect-ratio:4/5}
   .sched__head{grid-template-columns:1fr}
   .sched__head>div:first-child,.sched__note{grid-column:1/-1}
   .sched__grid{grid-template-columns:1fr;gap:clamp(26px,5vw,40px)}
@@ -937,7 +856,6 @@ fieldset{border:0}
   .ritual__img{aspect-ratio:4/5}
   .xtype__track span{-webkit-text-stroke-width:.75px}
   .sticky__media{height:52vh}
-  .split__strip .mask{aspect-ratio:16/10}
   .treatments li{grid-template-columns:1fr auto}
   .treatments i{grid-column:1;margin-top:-6px}
   .shot{width:80vw}

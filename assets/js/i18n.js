@@ -49,6 +49,9 @@
     'Because': 'Sepse',
     'I want to.': 'dua.',
     'Because I want to': 'Sepse dua',
+    'Tirana, Albania': 'Tiranë, Shqipëri',
+    'Spa': 'Spa',
+    'Reformer Pilates · Spa': 'Reformer Pilates · Spa',
     'Eight women per class': 'Tetë gra për klasë',
 
     /* ---- the idea ---- */
@@ -59,8 +62,8 @@
     'The main floor, 17:40': 'Salla kryesore, 17:40',
     'DUA is small on purpose. Only eight women in a class, one instructor who knows you, and a room where you never feel like just a number.':
       'DUA është e vogël me qëllim. Vetëm tetë gra në klasë, një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
-    'Reformer and mat Pilates, barre, yoga and recovery — all in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
-      'Reformer dhe mat Pilates, barre, yoga dhe rikuperim — të gjitha në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
+    'Reformer Pilates and the spa, in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
+      'Reformer Pilates dhe spa, në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
     'And then there is the part outside the class: the bench by the window, a coffee afterwards and a little time to sit and talk. No rush.':
       'Dhe pastaj është ajo pjesa jashtë klasës: stoli pranë dritares, një kafe pas orës dhe pak kohë për të ndejtur e për të folur. Pa nxitim.',
     'See what a month looks like': 'Shih si duket një muaj',
@@ -68,10 +71,10 @@
     'women per class': 'gra për klasë',
     'reformers': 'reformerë',
     'first class of the day': 'klasa e parë e ditës',
-    'from Sheshi Wilson': 'nga Sheshi Wilson',
+    'a class start to finish': 'një klasë nga fillimi në fund',
 
     /* ---- four rituals ---- */
-    'Four rituals': 'Katër ritualet',
+    'Two rituals': 'Dy ritualet',
     'Explore': 'Zbulo',
     'Strength you can feel in the way you stand.': 'Forcë që e ndien te mënyra si qëndron.',
     'Small moves. Serious shake.': 'Lëvizje të vogla. Dridhje serioze.',
@@ -116,23 +119,6 @@
     'Explore Reformer': 'Zbulo Reformer',
     'Free foundations session for every new member': 'Seancë bazë falas për çdo anëtare të re',
 
-    /* ---- barre + yoga ---- */
-    'Movement': 'Lëvizja',
-    'Small moves.': 'Lëvizje të vogla.',
-    'Serious shake.': 'Dridhje serioze.',
-    'Ballet-adjacent and low impact, and harder than it looks. Forty-five minutes of movements about a centimetre wide. Your legs will shake. That is the point — and so is everyone else’s.':
-      'Afër baletit, me ndikim të ulët dhe më e vështirë nga ç’duket. Dyzet e pesë minuta lëvizjesh rreth një centimetër të gjera. Këmbët do të dridhen. Pikërisht kjo është poenta — dhe po dridhen edhe të gjitha të tjerat.',
-    'All levels': 'Të gjitha nivelet',
-    'Mon · Wed · Fri': 'Hën · Mër · Pre',
-    'Book barre': 'Rezervo barre',
-    'Your phone': 'Telefoni',
-    'stays outside.': 'mbetet jashtë.',
-    'Vinyasa at 07:30, while the light is still low. Slow flow and restorative in the evening, when the city is loud and you would rather not be. Candlelit on Sundays.':
-      'Vinyasa në 07:30, sa kohë drita është ende e ulët. Slow flow dhe restorative në mbrëmje, kur qyteti bën zhurmë dhe ti jo. Me qirinj të dielave.',
-    'Vinyasa · Slow · Restorative': 'Vinyasa · Slow · Restorative',
-    'Daily': 'Çdo ditë',
-    'Book yoga': 'Rezervo yoga',
-
     /* ---- recovery ---- */
     'Recovery': 'Rikuperimi',
     'Where the': 'Ku dita',
@@ -144,6 +130,14 @@
     'Lymphatic drainage': 'Drenazh limfatik',
     'Aromatherapy & deep rest': 'Aromaterapi & pushim i thellë',
     'Explore treatments': 'Zbulo trajtimet',
+
+    /* ---- coming soon ---- */
+    'Timetable': 'Orari',
+    'coming soon.': 'së shpejti.',
+    'We are setting the first weeks of classes now. Message us and we will send you the times before they go up.':
+      'Po caktojmë javët e para të klasave. Na shkruaj dhe të dërgojmë oraret para se të publikohen.',
+    'Packages and prices are being finalised. Tell us what you are looking for and you will hear first.':
+      'Paketat dhe çmimet po finalizohen. Na thuaj çfarë kërkon dhe do të jesh e para që merr vesh.',
 
     /* ---- schedule ---- */
     'The week': 'Java',
@@ -212,28 +206,17 @@
 
     /* ---- the space ---- */
     'The space': 'Hapësira',
-    'Second floor of a building across from Posta Shqiptare, one minute from Sheshi Wilson.':
-      'Kati i dytë i një godine, përballë Postës Shqiptare dhe vetëm një minutë nga Sheshi Wilson.',
-    'High ceilings, deep windows and the kind of afternoon light that makes the room feel exactly the way it should. A complete studio — thoughtfully laid out, soft props, and a shower room stocked properly, so you can come straight from the office and leave ready for the rest of your day.':
-      'Tavane të larta, dritare të thella dhe ajo drita e pasdites që e bën hapësirën të ndihet tamam siç duhet. Një studio e plotë, me hapësirë të menduar mirë, aksesorë të butë dhe një dhomë dushi të pajisur siç duhet — që të vish direkt nga zyra dhe të dalësh gati pas klase.',
-    'In the heart of Tiranë, but with the feeling of a place where you can finally catch your breath.':
-      'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
-
-    /* ---- find us ---- */
-    'Find us': 'Na gjeni',
-    'Two minutes': 'Dy minuta',
-    'on foot.': 'në këmbë.',
-    '1001 Tiranë, Albania': '1001 Tiranë, Shqipëri',
-    'Second floor, across from Posta Shqiptare. Ring the bell marked DUA — we will buzz you up.':
-      'Kati i dytë, përballë Postës Shqiptare. Bjeri ziles me emrin DUA — ta hapim ne.',
-    'Get directions': 'Merr drejtimet',
-    'Map data © OpenStreetMap contributors': 'Të dhënat e hartës © kontribuuesit e OpenStreetMap',
-    'Map showing DUA on Sheshi Wilson, Tiranë': 'Harta me DUA-n te Sheshi Wilson, Tiranë',
+    'Tirana,': 'Tirana,',
+    'Albania.': 'Shqipëri.',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
     'The mat studio': 'Salla e ushtrimeve të tokës',
     'Your locker': 'Dollapi yt',
     'The washroom': 'Lavamanët',
+    'High ceilings, deep windows and the kind of afternoon light that makes the room feel exactly the way it should. A complete studio — thoughtfully laid out, soft props, and a shower room stocked properly, so you can come straight from the office and leave ready for the rest of your day.':
+      'Tavane të larta, dritare të thella dhe ajo drita e pasdites që e bën hapësirën të ndihet tamam siç duhet. Një studio e plotë, me hapësirë të menduar mirë, aksesorë të butë dhe një dhomë dushi të pajisur siç duhet — që të vish direkt nga zyra dhe të dalësh gati pas klase.',
+    'In the heart of Tiranë, but with the feeling of a place where you can finally catch your breath.':
+      'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
 
     /* ---- voices ---- */
     'In their words': 'Me fjalët e tyre',

@@ -17,8 +17,6 @@ fonts and photography are served from `assets/`.
 
 ```
 index.html                  the full homepage
-tools/generate-schedule.py  regenerates the timetable section from a data table
-tools/build-map.py          rebuilds the static map behind the location section
 tools/build-logo.py         cuts the logo artwork into the alpha masks the CSS paints
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
@@ -211,18 +209,23 @@ One thing to change after the domain is live: `og:image` in `index.html` is a re
 path. Make it absolute (`https://your-domain/assets/img/hero-reformer-reach-1200.jpg`)
 so the link preview renders when the site gets shared.
 
-## The location map
 
-The "find us" section pins the studio at Sheshi Wilson (41.3185, 19.8145 —
-the Woodrow Wilson memorial on Rruga Sulejman Delvina).
+## What is live, and what is parked
 
-It is drawn twice, deliberately. `assets/img/map-sheshi-wilson-1280.jpg` is a
-static map built from OpenStreetMap tiles by `tools/build-map.py`, set as the
-frame's background; the interactive OpenStreetMap embed sits on top of it. The
-static image paints immediately and stays visible if the embed is slow, blocked
-or unavailable, so the section never renders as an empty box. To move the pin or
-change the zoom, edit the constants at the top of the script and re-run it.
+The studio currently offers **reformer Pilates** and the **spa**. Barre, yoga and
+mat Pilates are gone from the site entirely, along with the location block — the
+address is not public, so the site says only *Tirana, Albania*.
 
-Map data is © OpenStreetMap contributors, credited under the frame. If the
-studio ever wants a house-styled map, this is the seam to replace — swap the
-static image and the embed for a provider with a custom style.
+The **timetable** and the **memberships** are not live yet. Both sections keep their
+place in the page and their background, but carry a short "coming soon" line
+instead of content, so the rhythm of the scroll is unchanged when the real thing
+lands. The schedule's JavaScript is still in `main.js` and is inert by design —
+every branch is guarded, so it finds nothing and does nothing.
+
+Two things were deleted rather than parked, and are recoverable from git at
+`9dd2a9c` if they are wanted again: `tools/generate-schedule.py`, which built the
+timetable markup and would otherwise overwrite the coming-soon block on its next
+run, and `tools/build-map.py` with its map asset. The CSS for the barre + yoga
+panels, the class-detail overlay and the location block is gone for the same
+reason; the schedule and membership rules are still there, since those are coming
+back.
