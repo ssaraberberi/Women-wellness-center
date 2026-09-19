@@ -212,20 +212,29 @@ so the link preview renders when the site gets shared.
 
 ## What is live, and what is parked
 
-The studio currently offers **reformer Pilates** and the **spa**. Barre, yoga and
-mat Pilates are gone from the site entirely, along with the location block — the
-address is not public, so the site says only *Tirana, Albania*.
+The studio offers **reformer Pilates** and the **spa**, and has not opened yet, so
+the page says so at full scale in the band under the hero. Barre, yoga and mat
+Pilates are gone from the site entirely, as is the location block — the address
+is not public, so the site says only *Tirana, Albania*.
 
-The **timetable** and the **memberships** are not live yet. Both sections keep their
-place in the page and their background, but carry a short "coming soon" line
-instead of content, so the rhythm of the scroll is unchanged when the real thing
-lands. The schedule's JavaScript is still in `main.js` and is inert by design —
-every branch is guarded, so it finds nothing and does nothing.
+Nothing on the page states a price, a class size, a piece of equipment count or
+anything offered free of charge, and there is no way to book: the timetable, the
+memberships and the booking form are all pre-launch. The **timetable** and
+**memberships** sections keep their place and their ground and carry a short
+"coming soon" line, so the rhythm of the scroll is unchanged when the real
+content lands. The one action on the page is the WhatsApp card.
 
-Two things were deleted rather than parked, and are recoverable from git at
-`9dd2a9c` if they are wanted again: `tools/generate-schedule.py`, which built the
-timetable markup and would otherwise overwrite the coming-soon block on its next
-run, and `tools/build-map.py` with its map asset. The CSS for the barre + yoga
-panels, the class-detail overlay and the location block is gone for the same
-reason; the schedule and membership rules are still there, since those are coming
-back.
+The schedule and booking JavaScript is still in `main.js` and inert by design —
+every branch was already guarded, so it finds nothing and does nothing, and their
+CSS is untouched. Both come back by restoring markup alone.
+
+Deleted rather than parked, and recoverable from git: the community grid and its
+photographs, the massage price list, the barre and yoga section, the class-detail
+overlay, the location block, `tools/generate-schedule.py` (which would otherwise
+put the timetable back over the coming-soon block on its next run) and
+`tools/build-map.py`.
+
+When editing this stylesheet, note that removing a rule means removing its whole
+block, opening brace to closing brace. Dropping only the line that opens a
+multi-line rule leaves its declarations orphaned, and every rule after that point
+silently stops applying. `grep -c '{' / '}'` should stay balanced.

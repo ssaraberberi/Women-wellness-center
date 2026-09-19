@@ -52,7 +52,7 @@
     'Tirana, Albania': 'Tiranë, Shqipëri',
     'Spa': 'Spa',
     'Reformer Pilates · Spa': 'Reformer Pilates · Spa',
-    'Eight women per class': 'Tetë gra për klasë',
+    'Reformer Pilates & Spa': 'Reformer Pilates & Spa',
 
     /* ---- the idea ---- */
     'The idea': 'Ideja',
@@ -60,16 +60,14 @@
     'you': 'që',
     'chose.': 'zgjodhe.',
     'The main floor, 17:40': 'Salla kryesore, 17:40',
-    'DUA is small on purpose. Only eight women in a class, one instructor who knows you, and a room where you never feel like just a number.':
-      'DUA është e vogël me qëllim. Vetëm tetë gra në klasë, një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
+    'DUA is small on purpose. One instructor who knows you, and a room where you never feel like just a number.':
+      'DUA është e vogël me qëllim. Një instruktore që të njeh dhe një atmosferë ku nuk ndihesh sikur je thjesht një numër.',
     'Reformer Pilates and the spa, in one place. You can come straight from work, take your class and have a shower before you carry on with your day.':
       'Reformer Pilates dhe spa, në një vend. Mund të vish direkt nga puna, të bësh klasën tënde dhe të bësh një dush para se të vazhdosh ditën.',
     'And then there is the part outside the class: the bench by the window, a coffee afterwards and a little time to sit and talk. No rush.':
       'Dhe pastaj është ajo pjesa jashtë klasës: stoli pranë dritares, një kafe pas orës dhe pak kohë për të ndejtur e për të folur. Pa nxitim.',
     'See what a month looks like': 'Shih si duket një muaj',
     'Corrections, every class': 'Korrigjime, në çdo klasë',
-    'women per class': 'gra për klasë',
-    'reformers': 'reformerë',
     'first class of the day': 'klasa e parë e ditës',
     'a class start to finish': 'një klasë nga fillimi në fund',
 
@@ -85,8 +83,8 @@
     'The signature': 'Klasika jonë',
     'Strong, but in': 'E fortë, por në',
     'the right way.': 'mënyrën e duhur.',
-    'Six reformers, a maximum of eight women and forty-five minutes that are only yours. Controlled movements, a calm tempo, and a class where the instructor has time to give you attention.':
-      'Gjashtë reformerë, maksimumi tetë gra dhe 45 minuta vetëm për ty. Lëvizje të kontrolluara, një ritëm i qetë dhe një klasë ku instruktori ka kohë të të kushtojë vëmendje.',
+    'Forty-five minutes that are only yours. Controlled movements, a calm tempo, and a class where the instructor has time to give you attention.':
+      'Dyzet e pesë minuta vetëm për ty. Lëvizje të kontrolluara, një ritëm i qetë dhe një klasë ku instruktori ka kohë të të kushtojë vëmendje.',
     'It makes no difference whether you are starting now or have been doing reformer for a while. You come, you move, you breathe, and you leave feeling good — even if tomorrow you will remember the class. 🤍':
       'Nuk ka rëndësi nëse je duke filluar tani apo ke kohë që bën reformer. Vjen, lëviz, merr frymë dhe del duke u ndjerë mirë — edhe pse të nesërmen do ta kujtosh klasën. 🤍',
     'Strength, with control.': 'Forcë, por me kontroll.',
@@ -105,26 +103,21 @@
     'What we are after is simple: that you feel stronger, more mobile and better in your own body.':
       'Ajo që kërkojmë është e thjeshtë: të ndihesh më e fortë, më e lëvizshme dhe më mirë në trupin tënd.',
     'Small groups': 'Grupe të vogla',
-    'Maximum eight women, six reformers, one instructor who watches all of you.':
-      'Maksimumi tetë gra, gjashtë reformerë, një instruktore që ju sheh të gjithave.',
-    'Beginner-friendly': 'Mikpritëse për fillestaret',
-    'A free 30-minute foundations session before your first group class.':
-      'Një seancë bazë 30-minutëshe falas para klasës sate të parë në grup.',
+    'One instructor, and enough time in the room for every one of you.':
+      'Një instruktore, dhe kohë e mjaftueshme në sallë për secilën prej jush.',
     'Hands-on': 'Korrigjime në vend',
     "Personal corrections in every single class. That's the whole point.":
       'Korrigjime personale në çdo klasë. Pikërisht kjo është poenta.',
     'Built for life': 'Për jetën e përditshme',
     'Posture, mobility, control and a back that stops complaining.':
       'Qëndrim, lëvizshmëri, kontroll dhe një shpinë që pushon së ankuari.',
-    'Explore Reformer': 'Zbulo Reformer',
-    'Free foundations session for every new member': 'Seancë bazë falas për çdo anëtare të re',
 
     /* ---- recovery ---- */
     'Recovery': 'Rikuperimi',
     'Where the': 'Ku dita',
     'day stops.': 'ndalon.',
-    'Two rooms at the back, kept deliberately dark and a little too warm. Book one on its own, or add it to a class and leave a different person.':
-      'Dy dhoma në fund, me qëllim të errëta dhe pak më të ngrohta se ç’duhet. Rezervo vetëm masazhin, ose shtoje pas një klase dhe dil vërtet një njeri tjetër.',
+    'Two rooms at the back, kept deliberately dark and a little too warm — the part of the visit where the day finally lets go of you.':
+      'Dy dhoma në fund, me qëllim të errëta dhe pak më të ngrohta se ç’duhet — pjesa e vizitës ku dita më në fund të lëshon.',
     'Deep tissue': 'Masazh i thellë',
     'Sports & post-training recovery': 'Sportiv & rikuperim pas stërvitjes',
     'Lymphatic drainage': 'Drenazh limfatik',
@@ -203,6 +196,12 @@
     'Choose Movement': 'Zgjidh Movement',
     'First class 990 ALL': 'Klasa e parë 990 ALL',
     '· Drop-in 1,800 ALL · Student rates available': '· Një klasë 1,800 ALL · Çmime për studentet',
+
+    /* ---- opening soon ---- */
+    'Opening': 'Hapemi',
+    'soon.': 'së shpejti.',
+    'Reformer Pilates and the spa, in Tirana. Message us and you will be the first to know when we open.':
+      'Reformer Pilates dhe spa, në Tiranë. Na shkruaj dhe do të jesh e para që merr vesh kur të hapim.',
 
     /* ---- the space ---- */
     'The space': 'Hapësira',

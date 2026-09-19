@@ -346,6 +346,17 @@ fieldset{border:0}
 .marquee__track span{font-family:var(--display);font-size:clamp(1.2rem,2.8vw,2.3rem);letter-spacing:-.008em}
 .marquee__track i{font-style:normal;font-size:clamp(.6rem,1.2vw,1rem);color:var(--rose)}
 
+/* ---------- 10b. Opening soon ----------
+   The studio has not opened yet, so this says so once, at full scale, in the
+   logo's own colourway — before the page goes on to describe the place. */
+.opening{background:var(--rose-ink);color:var(--blush);padding:clamp(88px,14vw,210px) var(--gut)}
+.opening__inner{
+  max-width:var(--maxw);margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:clamp(22px,3vw,42px);
+}
+.opening__title{font-size:clamp(3.4rem,13vw,12rem);line-height:.96;letter-spacing:-.02em}
+.opening__note{max-width:40ch;color:rgba(255,251,234,.78);font-size:clamp(1rem,1.3vw,1.22rem);line-height:1.6}
+
 /* ---------- 11. The experience ---------- */
 .exp{max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut)}
 .exp__head{margin-bottom:clamp(48px,7vw,110px)}
@@ -369,7 +380,7 @@ fieldset{border:0}
 .exp__fig--c .mask{aspect-ratio:1/1}
 
 .facts{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(20px,2.6vw,44px);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,max-content));gap:clamp(24px,5vw,80px);
   margin-top:clamp(64px,9vw,150px);padding-top:clamp(28px,3vw,46px);border-top:1px solid rgba(59,21,34,.14);
 }
 .facts li{display:flex;flex-direction:column;gap:6px}
@@ -436,11 +447,10 @@ fieldset{border:0}
   max-width:var(--maxw);margin:clamp(40px,6vw,110px) auto 0;padding:0 var(--gut);
   display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(24px,3vw,60px);align-items:start;
 }
-.ticks{grid-column:1/9;display:grid;grid-template-columns:1fr 1fr;gap:clamp(22px,2.6vw,48px)}
+.ticks{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(22px,2.6vw,48px)}
 .ticks li{border-top:1px solid rgba(59,21,34,.16);padding-top:18px;display:flex;flex-direction:column;gap:8px}
 .ticks b{font-weight:400;font-size:11px;letter-spacing:0.11em;text-transform:uppercase}
 .ticks span{color:var(--ink-soft);font-size:.95rem;max-width:32ch}
-.reformer__cta{grid-column:10/13;display:flex;flex-direction:column;gap:18px;align-items:flex-start}
 
 /* ---------- 15. Recovery ---------- */
 .recovery{position:relative;background:var(--plum-deep);color:var(--blush);overflow:hidden;padding:var(--sec) 0}
@@ -457,16 +467,6 @@ fieldset{border:0}
 .recovery__text{grid-column:1/7;display:flex;flex-direction:column;gap:clamp(20px,2.4vw,34px);align-items:flex-start}
 .recovery__text .lede{color:rgba(255,251,234,.76)}
 .recovery__text h2{margin-top:-6px}
-.treatments{width:100%;display:flex;flex-direction:column}
-.treatments li{
-  display:grid;grid-template-columns:1fr auto auto;gap:10px 22px;align-items:baseline;
-  padding:16px 0;border-top:1px solid rgba(255,251,234,.16);
-}
-.treatments li:last-child{border-bottom:1px solid rgba(255,251,234,.16)}
-.treatments b{font-weight:300;font-size:1.02rem}
-.treatments i{font-style:normal;font-size:10.5px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(255,251,234,.5)}
-.treatments span{font-family:var(--display);font-size:1.04rem;color:var(--rose-soft)}
-
 .recovery__media{grid-column:8/13;position:relative}
 .recovery__fig--1 .mask{aspect-ratio:3/4}
 .recovery__fig--2{position:absolute;right:-6%;bottom:-16%;width:48%}
@@ -633,24 +633,6 @@ fieldset{border:0}
 .voice--lead{grid-column:1/7;position:sticky;top:18vh}
 .voice--lead p{max-width:18ch;text-wrap:balance}
 
-/* ---------- 19. Community ---------- */
-.community{max-width:var(--maxw);margin:0 auto;padding:0 var(--gut) var(--sec)}
-.community__head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:clamp(28px,3.4vw,54px)}
-.community__head h2{margin-top:16px}
-.ig{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.2vw,20px)}
-.ig__item{position:relative;display:block}
-.ig__item .mask{aspect-ratio:4/5}
-.ig__item span{
-  position:absolute;left:14px;bottom:14px;z-index:3;color:var(--blush);
-  font-size:10px;letter-spacing:0.11em;text-transform:uppercase;
-  opacity:0;transform:translateY(8px);transition:opacity .5s var(--ease),transform .5s var(--ease-out);
-}
-.ig__item::before{
-  content:"";position:absolute;inset:0;z-index:2;background:linear-gradient(to top,rgba(29,20,23,.55),rgba(29,20,23,0) 52%);
-  opacity:0;transition:opacity .5s var(--ease);
-}
-.ig__item:hover::before,.ig__item:hover span{opacity:1;transform:none}
-.ig__item:hover .mask img{transform:scale(1.05)}
 
 /* ---------- 20. Final ---------- */
 .final{
@@ -776,8 +758,7 @@ fieldset{border:0}
   .exp__text{grid-column:8/13}
   .reformer__intro h2{grid-column:1/9}
   .reformer__intro .lede{grid-column:1/9;padding-top:26px}
-  .ticks{grid-column:1/10}
-  .reformer__cta{grid-column:1/10;margin-top:30px;flex-direction:row;align-items:center;gap:24px}
+  .ticks{grid-template-columns:1fr 1fr}
   .plans__head .lede{grid-column:1/9;padding-top:22px}
   .studio__note{grid-column:1/9;margin-top:10px}
 }
@@ -794,7 +775,7 @@ fieldset{border:0}
   .facts{grid-template-columns:1fr 1fr;gap:28px}
   .reformer__intro,.reformer__out{grid-template-columns:1fr;gap:clamp(18px,3vw,30px)}
   .reformer__intro .eyebrow,.reformer__intro h2,.reformer__intro .lede,
-  .ticks,.reformer__cta{grid-column:1/-1}
+  .ticks{grid-template-columns:1fr}
   .reformer__intro .lede{padding-top:0}
   .sticky{grid-template-columns:1fr;gap:0}
   .sticky__media{grid-column:1/-1;position:relative;top:auto;height:58vh;margin-bottom:40px}
@@ -856,13 +837,8 @@ fieldset{border:0}
   .ritual__img{aspect-ratio:4/5}
   .xtype__track span{-webkit-text-stroke-width:.75px}
   .sticky__media{height:52vh}
-  .treatments li{grid-template-columns:1fr auto}
-  .treatments i{grid-column:1;margin-top:-6px}
   .shot{width:80vw}
   .shot--tall{width:66vw}
-  .ig{grid-template-columns:1fr 1fr;gap:8px}
-  .ig__item span{opacity:1;transform:none;font-size:9px}
-  .ig__item::before{opacity:1}
   .foot__grid{grid-template-columns:1fr;gap:30px}
   .foot__base{flex-direction:column;gap:10px}
   .field__row{grid-template-columns:1fr}
