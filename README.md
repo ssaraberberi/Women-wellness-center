@@ -19,6 +19,7 @@ fonts and photography are served from `assets/`.
 index.html                  the full homepage
 tools/generate-schedule.py  regenerates the timetable section from a data table
 tools/build-map.py          rebuilds the static map behind the location section
+tools/build-logo.py         cuts the logo artwork into the alpha masks the CSS paints
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
 assets/fonts/               Bodoni Moda + Jost (woff2, latin + latin-ext)
@@ -109,12 +110,23 @@ page language, built at open and again at click so switching mid-visit is picked
 
 ## Design system
 
-**Palette** — pink, but grown up. Blush `#F8E9E6` is the base surface; petal `#F0D9D4`
-carries the pink blocks (barre + yoga, memberships, testimonials); the dark sections are
-plum-black `#2E2124` / `#1D1417` rather than coffee brown, so the shadows stay warm and
-pink-leaning. Accents run rose `#D9A79E` through deep dusty rose `#8E5E57`, which is also
-the label ink and the featured membership card — checked at 4.55:1 on blush, so the small
-uppercase type is genuinely readable rather than decorative.
+**Palette** — the two colours the logo ships in. Cream `#FFFBEA` is the base surface and
+the ink on every dark ground; wine `#7D2F49` is the label ink, the featured membership card
+and the closing block, so the brand colour appears at three different scales rather than
+once. Between them, `#F5E9DC` carries the alternating sections (barre + yoga, memberships,
+testimonials), and the same wine driven to near-black — `#3B1522` / `#2A0E18` — is the body
+ink and the deepest grounds, which keeps the shadows in the brand's own hue instead of
+falling back to a neutral black. Every text pair clears WCAG AA: body 15.4:1, labels 8.5:1,
+cream on wine 8.5:1. Only `--rose-mid`, the 1px dash before a plan bullet, sits below that,
+and it carries no text.
+
+**Logo** — `assets/img/logo-dua-{mark,lockup}.png` are alpha masks cut from the supplied
+artwork by `tools/build-logo.py`, not coloured images. The stylesheet paints them with
+`mask-image` plus `currentColor`, so one asset renders the mark in whatever colour its
+context calls for — which the navigation needs, since it flips from cream over the hero to
+wine once it sticks. The rule is wrapped in `@supports`, so a browser without mask support
+falls back to the typeset wordmark underneath. Re-run the script against new artwork to
+regenerate both files.
 
 **Type** — Fraunces for display and DM Sans for everything else. The previous pairing was
 a high-contrast Didone over a geometric sans, which is the exact combination that reads as

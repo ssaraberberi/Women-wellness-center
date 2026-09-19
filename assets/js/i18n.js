@@ -320,13 +320,13 @@
     'Hands and white linen in the treatment room': 'Duar dhe liri e bardhë në dhomën e trajtimit',
 
     /* ---- document ---- */
-    'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë':
-      'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
+    'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë':
+      'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
   };
 
   var TITLES = {
-    en: 'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë',
-    sq: 'DUA Wellness Studio — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
+    en: 'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë',
+    sq: 'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
   };
 
   var DAYS = {
