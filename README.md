@@ -212,29 +212,31 @@ so the link preview renders when the site gets shared.
 
 ## What is live, and what is parked
 
-The studio offers **reformer Pilates** and the **spa**, and has not opened yet, so
-the page says so at full scale in the band under the hero. Barre, yoga and mat
-Pilates are gone from the site entirely, as is the location block — the address
-is not public, so the site says only *Tirana, Albania*.
+The studio offers **reformer Pilates** and the **spa**, and has not opened, so the
+page is a pre-launch announcement: a full-width band under the hero says so at
+the largest type on the page, and the **timetable**, the **memberships** and the
+**space** each keep their place in the scroll behind a short "coming soon" line.
+The footer's opening hours say the same.
 
-Nothing on the page states a price, a class size, a piece of equipment count or
-anything offered free of charge, and there is no way to book: the timetable, the
-memberships and the booking form are all pre-launch. The **timetable** and
-**memberships** sections keep their place and their ground and carry a short
-"coming soon" line, so the rhythm of the scroll is unchanged when the real
-content lands. The one action on the page is the WhatsApp card.
+The page states no price, no class size, no equipment count, no address beyond
+*Tirana, Albania*, and nothing offered free of charge. There is no way to book.
+The one action is the WhatsApp card; the contact number is **069 710 4072**
+(`+355 69 710 4072` in the `tel:` and `wa.me` links) and there is no email
+address anywhere.
 
-The schedule and booking JavaScript is still in `main.js` and inert by design —
-every branch was already guarded, so it finds nothing and does nothing, and their
-CSS is untouched. Both come back by restoring markup alone.
+The schedule, gallery and booking JavaScript is still in `main.js` and inert by
+design — every branch was already guarded, so each finds nothing and does
+nothing — and their CSS is untouched. All three return by restoring markup
+alone. The five `room-*.jpg` photographs are unreferenced for the same reason:
+they are the studio's own, and the gallery is coming back.
 
-Deleted rather than parked, and recoverable from git: the community grid and its
-photographs, the massage price list, the barre and yoga section, the class-detail
-overlay, the location block, `tools/generate-schedule.py` (which would otherwise
-put the timetable back over the coming-soon block on its next run) and
-`tools/build-map.py`.
+Deleted rather than parked, and recoverable from git: the testimonials, the
+community grid and its photographs, the massage price list, the barre and yoga
+section, the class-detail overlay, the location block, the facts row,
+`tools/generate-schedule.py` (which would otherwise put the timetable back over
+the coming-soon block on its next run) and `tools/build-map.py`.
 
-When editing this stylesheet, note that removing a rule means removing its whole
-block, opening brace to closing brace. Dropping only the line that opens a
-multi-line rule leaves its declarations orphaned, and every rule after that point
-silently stops applying. `grep -c '{' / '}'` should stay balanced.
+When editing this stylesheet, remove a rule as a whole block — opening brace
+through its matching close. Dropping only the line that opens a multi-line rule
+leaves its declarations orphaned, and every rule after that point silently stops
+applying. `grep -c '{'` and `grep -c '}'` should stay equal.

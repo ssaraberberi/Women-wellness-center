@@ -379,14 +379,6 @@ fieldset{border:0}
 .exp__fig--c{grid-column:8/12;grid-row:2;margin-top:clamp(60px,11vw,200px)}
 .exp__fig--c .mask{aspect-ratio:1/1}
 
-.facts{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,max-content));gap:clamp(24px,5vw,80px);
-  margin-top:clamp(64px,9vw,150px);padding-top:clamp(28px,3vw,46px);border-top:1px solid rgba(59,21,34,.14);
-}
-.facts li{display:flex;flex-direction:column;gap:6px}
-.facts b{font-family:var(--display);font-weight:400;font-size:clamp(2rem,3.4vw,3.4rem);line-height:1}
-.facts span{font-size:11px;letter-spacing:0.09em;text-transform:uppercase;color:var(--rose-ink)}
-
 /* ---------- 12. Rituals · horizontal ---------- */
 .rituals{background:var(--plum);color:var(--blush);position:relative}
 .rituals__sticky{position:relative;padding:clamp(56px,7vw,96px) 0}
@@ -619,21 +611,6 @@ fieldset{border:0}
 .studio__bar i{display:block;height:1px;background:var(--plum);width:30%;transform-origin:left;position:relative;top:1px;z-index:2}
 
 /* ---------- 18. Voices ---------- */
-.voices{background:var(--petal)}
-.voices__inner{max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut)}
-.voices__grid{
-  display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(30px,4vw,72px);
-  margin-top:clamp(38px,4.6vw,76px);align-items:start;
-}
-.voices__col{grid-column:8/13;display:flex;flex-direction:column;gap:clamp(34px,4.4vw,66px);padding-top:clamp(4px,1.6vw,26px)}
-.voice{display:flex;flex-direction:column;gap:16px}
-.voice p{color:var(--plum)}
-.voice:not(.voice--lead) p{color:var(--ink-soft);font-size:1.06rem;line-height:1.6;max-width:34ch}
-.voice cite{font-style:normal;font-size:10.5px;letter-spacing:0.11em;text-transform:uppercase;color:var(--rose-ink)}
-.voice--lead{grid-column:1/7;position:sticky;top:18vh}
-.voice--lead p{max-width:18ch;text-wrap:balance}
-
-
 /* ---------- 20. Final ---------- */
 .final{
   background:var(--rose-ink);color:var(--blush);
@@ -772,8 +749,7 @@ fieldset{border:0}
   .exp__fig--a,.exp__fig--b,.exp__fig--c,.exp__text{grid-column:1/-1;grid-row:auto;margin-top:0}
   .exp__fig--b{width:76%}
   .exp__fig--c{width:58%;margin-left:auto;margin-top:-14%}
-  .facts{grid-template-columns:1fr 1fr;gap:28px}
-  .reformer__intro,.reformer__out{grid-template-columns:1fr;gap:clamp(18px,3vw,30px)}
+    .reformer__intro,.reformer__out{grid-template-columns:1fr;gap:clamp(18px,3vw,30px)}
   .reformer__intro .eyebrow,.reformer__intro h2,.reformer__intro .lede,
   .ticks{grid-template-columns:1fr}
   .reformer__intro .lede{padding-top:0}
@@ -805,10 +781,6 @@ fieldset{border:0}
   .cls__time{flex:none;width:56px}
   .cls__name{flex:1}
   .cls__who{flex:none}
-  .voices__grid{grid-template-columns:1fr;gap:40px}
-  .voice--lead{grid-column:1/-1;position:static}
-  .voices__col{grid-column:1/-1;padding-top:0;gap:38px}
-  .voice--lead p{max-width:22ch}
   .foot__grid{grid-template-columns:1fr 1fr;gap:34px}
   .booking__panel{grid-template-columns:1fr;max-height:100%}
   .booking__aside{min-height:190px}
@@ -832,8 +804,7 @@ fieldset{border:0}
   .marquee__track span{font-size:1.5rem}
   .exp__fig--b{width:100%}
   .exp__fig--c{width:68%;margin-top:-10%}
-  .facts{grid-template-columns:1fr 1fr;gap:24px 18px}
-  .ritual{width:80vw}
+    .ritual{width:80vw}
   .ritual__img{aspect-ratio:4/5}
   .xtype__track span{-webkit-text-stroke-width:.75px}
   .sticky__media{height:52vh}

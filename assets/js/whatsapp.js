@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var PHONE = '355673803802';                 // +355 67 380 3802
+  var PHONE = '355697104072';                 // 069 710 4072
   var GREETING = {
     sq: 'Përshëndetje! Dua të di më shumë për abonimet tuaja.',
     en: "Hello! I'd like to know more about your memberships."

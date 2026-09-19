@@ -38,12 +38,7 @@
     'Back to top': 'Kthehu lart',
     'A ritual for yourself.': 'Një ritual për veten.',
     'Reformer · Mat Pilates · Barre · Yoga · Recovery': 'Reformer · Mat Pilates · Barre · Yoga · Rikuperim',
-    'Mon–Fri 07:00–21:30': 'Hën–Pre 07:00–21:30',
-    'Sat 08:30–15:00': 'Sht 08:30–15:00',
-    'Sun 09:00–19:00': 'Die 09:00–19:00',
-    'Mon–Fri 07:00 – 21:30': 'Hën–Pre 07:00 – 21:30',
-    'Sat 08:30 – 15:00': 'Sht 08:30 – 15:00',
-    'Sun 09:00 – 19:00': 'Die 09:00 – 19:00',
+    'Coming soon': 'Së shpejti',
 
     /* ---- hero ---- */
     'Because': 'Sepse',
@@ -68,8 +63,6 @@
       'Dhe pastaj është ajo pjesa jashtë klasës: stoli pranë dritares, një kafe pas orës dhe pak kohë për të ndejtur e për të folur. Pa nxitim.',
     'See what a month looks like': 'Shih si duket një muaj',
     'Corrections, every class': 'Korrigjime, në çdo klasë',
-    'first class of the day': 'klasa e parë e ditës',
-    'a class start to finish': 'një klasë nga fillimi në fund',
 
     /* ---- four rituals ---- */
     'Two rituals': 'Dy ritualet',
@@ -106,8 +99,7 @@
     'One instructor, and enough time in the room for every one of you.':
       'Një instruktore, dhe kohë e mjaftueshme në sallë për secilën prej jush.',
     'Hands-on': 'Korrigjime në vend',
-    "Personal corrections in every single class. That's the whole point.":
-      'Korrigjime personale në çdo klasë. Pikërisht kjo është poenta.',
+    'Personal corrections in every single class.': 'Korrigjime personale në çdo klasë.',
     'Built for life': 'Për jetën e përditshme',
     'Posture, mobility, control and a back that stops complaining.':
       'Qëndrim, lëvizshmëri, kontroll dhe një shpinë që pushon së ankuari.',
@@ -127,6 +119,8 @@
     /* ---- coming soon ---- */
     'Timetable': 'Orari',
     'coming soon.': 'së shpejti.',
+    'We are still putting the rooms together. Photographs as soon as it is ready.':
+      'Ende po i rregullojmë dhomat. Fotot sapo të jetë gati.',
     'We are setting the first weeks of classes now. Message us and we will send you the times before they go up.':
       'Po caktojmë javët e para të klasave. Na shkruaj dhe të dërgojmë oraret para se të publikohen.',
     'Packages and prices are being finalised. Tell us what you are looking for and you will hear first.':
@@ -205,32 +199,12 @@
 
     /* ---- the space ---- */
     'The space': 'Hapësira',
-    'Tirana,': 'Tirana,',
-    'Albania.': 'Shqipëri.',
+    'The studio': 'Studioja',
     'The reformer room': 'Salla e reformerëve',
     'Changing rooms': 'Dhomat e zhveshjes',
     'The mat studio': 'Salla e ushtrimeve të tokës',
     'Your locker': 'Dollapi yt',
     'The washroom': 'Lavamanët',
-    'High ceilings, deep windows and the kind of afternoon light that makes the room feel exactly the way it should. A complete studio — thoughtfully laid out, soft props, and a shower room stocked properly, so you can come straight from the office and leave ready for the rest of your day.':
-      'Tavane të larta, dritare të thella dhe ajo drita e pasdites që e bën hapësirën të ndihet tamam siç duhet. Një studio e plotë, me hapësirë të menduar mirë, aksesorë të butë dhe një dhomë dushi të pajisur siç duhet — që të vish direkt nga zyra dhe të dalësh gati pas klase.',
-    'In the heart of Tiranë, but with the feeling of a place where you can finally catch your breath.':
-      'Në zemër të Tiranës, por me ndjesinë e një hapësire ku mund të marrësh pak rymë.',
-
-    /* ---- voices ---- */
-    'In their words': 'Me fjalët e tyre',
-    '“I have cancelled dinner for this. Twice. I would do it again.”':
-      '“Kam anuluar darkën për këtë. Dy herë. Do ta bëja sërish.”',
-    'Sara, 27 — architect': 'Sara, 27 — arkitekte',
-    '“I came for the reformer. I stayed for the forty-five minutes where nobody needs anything from me.”':
-      '“Erdha për reformerin. Mbeta për dyzet e pesë minutat ku askush nuk ka nevojë për asgjë prej meje.”',
-    'Enkelejda, 34 — dentist': 'Enkelejda, 34 — dentiste',
-    '“My posture changed before my body did. Then my body did too.”':
-      '“Qëndrimi më ndryshoi para trupit. Pastaj ndryshoi edhe trupi.”',
-    'Kejsi, 29 — product designer': 'Kejsi, 29 — dizajnere produkti',
-    '“Class, shower, coffee downstairs, home. The only part of my week that goes exactly to plan.”':
-      '“Klasë, dush, kafe poshtë, shtëpi. E vetmja pjesë e javës që shkon saktësisht sipas planit.”',
-    'Ana, 31 — works around the corner': 'Ana, 31 — punon aty pranë',
 
     /* ---- community + final ---- */
     'Follow along': 'Na ndiq',
