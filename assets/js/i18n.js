@@ -275,14 +275,14 @@
     'Candle and ceramic cup in the studio lounge': 'Qiri dhe filxhan qeramike në sallonin e studios',
     'Hands and white linen in the treatment room': 'Duar dhe liri e bardhë në dhomën e trajtimit',
 
-    /* ---- document ---- */
-    'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë':
-      'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
   };
 
+  /* The title is set per language rather than translated as a string, so the
+     brand name leads in both and the words people actually search for are in
+     front. Keep these in step with <title> in index.html. */
   var TITLES = {
-    en: 'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë',
-    sq: 'DUA Pilates Studio + Spa — Reformer, Mat Pilates, Barre & Yoga · Sheshi Wilson, Tiranë'
+    en: 'DUA Pilates and Spa — Reformer Pilates Studio in Tirana, Albania',
+    sq: 'DUA Pilates and Spa — Studio Reformer Pilates në Tiranë, Shqipëri'
   };
 
   var DAYS = {
