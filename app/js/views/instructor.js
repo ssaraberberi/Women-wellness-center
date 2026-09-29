@@ -1,16 +1,19 @@
 /* The instructor side: what am I teaching, and when can I teach. */
 import { el, frag, chip, dot, toast, typeName, typeShort, range, relDay, shortDate, startsAt } from '../ui.js';
 import * as store from '../store.js';
-import { CLASS_TYPES, DAYS, iso, addDays, startOfWeek, minutes } from '../data.js';
-import { spots, availabilityCovers } from '../rules.js';
+import { iso, addDays, startOfWeek, minutes, WEEK_ORDER } from '../../../shared/domain.js';
+import { spots, availabilityCovers } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
 const DAY_LABEL = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday',
                     fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
-const WEEK = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const WEEK = WEEK_ORDER;
 
 export function renderInstructor(ctx) {
-  const { user, route } = ctx;
+  const { state, route } = ctx;
+  /* `me` carries the qualifications and hours; the session user does not. */
+  const user = { ...ctx.user, ...(state.me || {}) };
+  ctx = { ...ctx, user };
   const nav = [['#/', 'My schedule'], ['#/teaching', 'What I teach'], ['#/availability', 'My availability']];
 
   let title = 'My schedule', sub = '', body;
@@ -18,14 +21,14 @@ export function renderInstructor(ctx) {
   else if (route === 'availability') { title = 'My availability'; sub = 'The studio only offers you classes inside these hours'; body = availability(ctx); }
   else { sub = 'Your assigned classes'; body = schedule(ctx); }
 
-  return shell({ user, route, nav, title, sub, body, notices: store.noticesFor(user.id) });
+  return shell({ user, route, nav, title, sub, body, notices: state.notices });
 }
 
 /* ---------- schedule ---------- */
 function schedule(ctx) {
   const { state, user, now } = ctx;
   const today = iso(now);
-  const mine = state.sessions.filter(s => s.instructorId === user.id && !s.cancelled && s.date >= today)
+  const mine = state.classes.filter(s => s.instructorId === user.id && !s.cancelled && s.date >= today)
     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
 
   const thisWeek = mine.filter(s => s.date <= iso(addDays(startOfWeek(now), 6)));
@@ -36,8 +39,8 @@ function schedule(ctx) {
     el('div.tiles', { style: 'margin-bottom:22px' }, [
       tile(String(thisWeek.length), 'Classes this week'),
       tile(String(mine.filter(s => s.date === today).length), 'Today'),
-      tile(user.qualifications.map(typeShort).join(', ') || '—', 'Qualified for'),
-      tile(WEEK.filter(d => (user.availability[d] || []).length).length + ' days', 'Available')
+      tile((user.qualifications || []).map(typeShort).join(', ') || '—', 'Qualified for'),
+      tile(WEEK.filter(d => ((user.availability || {})[d] || []).length).length + ' days', 'Available')
     ]),
     Object.keys(byDay).length
       ? el('div.grid', { style: 'gap:20px' }, Object.keys(byDay).map(d => el('section', null, [
@@ -64,7 +67,8 @@ const tile = (big, label, note) => el('div.tile', null, [
 
 /* ---------- qualifications ---------- */
 function teaching(ctx) {
-  const { user } = ctx;
+  const { state, user } = ctx;
+  const CLASS_TYPES = state.classTypes;
   return el('div.card', { style: 'max-width:560px' }, [
     el('p.muted', { style: 'margin-bottom:16px',
       text: 'Tick what you are happy to teach. The studio can only place you in these classes.' }),
@@ -75,8 +79,9 @@ function teaching(ctx) {
           const next = e.target.checked
             ? user.qualifications.concat(t.id)
             : user.qualifications.filter(x => x !== t.id);
-          store.updateInstructor(user.id, { qualifications: next });
-          toast(e.target.checked ? 'Added ' + t.short : 'Removed ' + t.short);
+          store.setQualifications(next)
+            .then(() => toast(e.target.checked ? 'Added ' + t.short : 'Removed ' + t.short))
+            .catch(ex => toast(ex.message));
         } }),
         dot(t.id),
         el('span', { style: 'flex:1', text: t.name })
@@ -90,23 +95,23 @@ function availability(ctx) {
   const { user } = ctx;
 
   function setBand(day, which, value) {
-    const bands = (user.availability[day] || []).slice();
+    const bands = ((user.availability || {})[day] || []).slice();
     if (!bands.length) bands.push({ from: '09:00', to: '17:00' });
     bands[0] = { ...bands[0], [which]: value };
     if (minutes(bands[0].from) >= minutes(bands[0].to)) { toast('Start must be before end'); return; }
-    store.updateInstructor(user.id, { availability: { ...user.availability, [day]: bands } });
+    store.setAvailability({ ...user.availability, [day]: bands }).catch(ex => toast(ex.message));
   }
 
   function toggleDay(day, on) {
     const next = { ...user.availability, [day]: on ? [{ from: '09:00', to: '17:00' }] : [] };
-    store.updateInstructor(user.id, { availability: next });
+    store.setAvailability(next).catch(ex => toast(ex.message));
   }
 
   return el('div.card', { style: 'max-width:640px' }, [
     el('p.muted', { style: 'margin-bottom:16px',
       text: 'A class is only offered to you if it fits entirely inside one of these windows.' }),
     el('div.grid', null, WEEK.map(day => {
-      const bands = user.availability[day] || [];
+      const bands = (user.availability || {})[day] || [];
       const on = bands.length > 0;
       const b = bands[0] || { from: '09:00', to: '17:00' };
       return el('div', { style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 0;border-top:1px solid var(--line-soft)' }, [

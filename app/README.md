@@ -1,12 +1,19 @@
-# DUA — studio platform (prototype)
+# DUA — studio platform
 
-A working prototype of the booking platform: three roles, real scheduling
-logic, and no backend. It runs as static files next to the marketing site,
-at `/app`.
+The booking system: administrator, instructor and client, on Postgres.
+The browser talks to an API; nothing is decided in the browser.
 
-## Trying it
+## Running it locally
 
-Demo accounts, all with the password `demo1234`:
+    cp .env.example .env          # fill in DATABASE_URL
+    npm install
+    npm run migrate               # create the schema
+    npm run reset                 # wipe and fill with demo data
+    npm start                     # http://localhost:3000/app/
+
+`npm run check` says whether the database is reachable, migrated and seeded.
+
+Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
 
 | Role | Email | What to look at |
 |---|---|---|
@@ -15,51 +22,70 @@ Demo accounts, all with the password `demo1234`:
 | Client | `sara@example.com` | Signature membership, booking, cancelling |
 | Client | `enke@example.com` | Essential — shows what a plan does *not* include |
 
-The administrator registration code is **not** in the interface, by design.
-It lives in `js/data.js` as `ADMIN_CODE`. In production it belongs on a
-server: anything shipped to the browser can be read by whoever receives it,
-so this is a prototype arrangement and not a security boundary.
+The administrator registration code is never sent to the browser. It lives in
+the `settings` table, put there by the seed from `ADMIN_REGISTRATION_CODE`, and
+is compared on the server. Change it before going live.
 
-`window.duaReset()` in the console puts the demo back to its opening state.
+## Shape
 
-## How it is put together
+    shared/domain.js       dates and periods, used by both sides
+    shared/rules.js        every decision, and the only copy of it
+    server/migrations/     schema, applied in order, once each
+    server/scripts/        migrate · seed · check
+    server/src/db.js       pool, and the transaction helper
+    server/src/auth.js     scrypt passwords, hashed session tokens
+    server/src/load.js     rows → the object the rules expect
+    server/src/api.js      the endpoints
+    server/src/index.js    http, routing, static files
+    app/                   the browser app
 
-    js/data.js     class types, membership plans, and the seed
-    js/rules.js    every decision: eligibility, availability, cancellation
-    js/store.js    state, persistence, and the actions that change it
-    js/ui.js       small rendering helpers
-    js/views/      one file per role, plus the signed-in frame
+**One copy of the rules.** `shared/rules.js` is imported by the browser so the
+interface can answer instantly, and by the server, which reaches the same
+verdict again before it writes. The client's answer is a prediction; the
+server's is the decision. That is why a booking the server refuses can never
+look taken.
 
-No framework and no build step. State lives in `localStorage`, so a
-refresh keeps your place and two browsers see two separate studios.
+**Capacity is settled in the database.** Booking locks the class row, recounts
+under the lock, and re-checks the membership allowance there too. Six requests
+for one seat return one `ok` and five `Class is full` — tested, not assumed.
+A partial unique index on `(class_id, client_id)` for live bookings means a
+double-click cannot produce two places even if the lock is somehow bypassed.
 
-**The rules are the point.** `rules.js` answers the questions and the views
-render the answer — no screen works out for itself whether a client may
-book. That is what keeps the client's "1 class left this week" and the
-admin's "8 / 10 booked" from ever disagreeing.
+**Nothing trusts the client.** Roles are checked per endpoint, passwords are
+scrypt with a per-user salt, session tokens are random and stored only as a
+SHA-256 digest, and the sign-in cookie is `HttpOnly` (`Secure` in production).
+A wrong password and an unknown email return the same message, so the form
+cannot be used to find out who has an account.
 
-Class types and plans are data. Add a type to `CLASS_TYPES` and it appears
-in the schedule editor, the qualification list, the plan builder and the
-eligibility checks without touching logic.
+## Deploying to Railway
 
-## What the brief asked for, and where it is
+1. **New Project → Deploy from GitHub repo**, pick this repository and the
+   branch you want.
+2. **+ New → Database → Add PostgreSQL** in the same project.
+3. In the app service, **Variables**:
 
-- **Intelligent assignment** — `suggestInstructors()` ranks by qualified /
-  available for the *whole* class / free of clashes. The admin can only
-  pick someone the check passes; the rest are shown and disabled with the
-  reason, rather than hidden.
-- **Membership eligibility** — allowances are `{types, limit, per}`, so
-  weekly and monthly both work and the wording follows the plan.
-- **Cancellation** — free until an hour before; inside the window the
-  session returns and the first person on the waitlist is moved in.
-- **Drift** — the admin's *Attention* list carries anything that was valid
-  when it was set and is not now: a class outside its instructor's hours, a
-  class with nobody assigned, a membership that expired with classes still
-  booked. The seed ships with one, deliberately.
+       DATABASE_URL            ${{ Postgres.DATABASE_URL }}
+       ADMIN_REGISTRATION_CODE <choose one>
+       NODE_ENV                production
 
-## Known edges
+   Use the variable reference for `DATABASE_URL`, not a pasted string, so it
+   follows the database if it moves. `PORT` is injected; do not set it.
+4. `railway.json` already asks for `npm run migrate` before each deploy and
+   `/healthz` as the health check, so the schema is applied on every release.
+5. First deploy only, to create the demo studio:
 
-Payment is a form that takes no card. Notifications are in-app only.
-Everything is one browser's `localStorage`, so the roles do not see each
-other's changes across devices — a real deployment needs a server, and
-that is where the admin code, passwords and money would move to.
+       railway run npm run reset
+
+   On a real launch, run `npm run seed` instead — it fills the class types,
+   plans and the admin code without wiping anything.
+6. **Settings → Networking → Generate Domain**, or point a subdomain such as
+   `app.dua-pilates.com` at it. The marketing site stays on Vercel; this
+   service serves only `/app`, `/shared` and `/assets`, and redirects `/`
+   to the app.
+
+## Still to do before real money changes hands
+
+Checkout records a membership without taking a card. Wiring a processor means
+a webhook that creates the membership on payment, rather than the browser
+asking for one. Notices are in-app; email or SMS would be a sender behind the
+same `notices` table.

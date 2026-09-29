@@ -2,7 +2,12 @@
    DUA — small rendering helpers
    No framework: el() builds nodes, and the views compose them.
    ============================================================ */
-import { CLASS_TYPES, at, iso, addDays } from './data.js';
+import { at, iso, addDays } from '../../shared/domain.js';
+
+/* The class types come from the server at boot; the helpers below read
+   whatever was last handed over rather than a hard-coded list. */
+let CATALOGUE = [];
+export const setCatalogue = types => { CATALOGUE = types || []; };
 
 export function el(tag, props, kids) {
   const parts = tag.split('.');
@@ -32,8 +37,8 @@ export const clear = n => { while (n.firstChild) n.removeChild(n.firstChild); re
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const WD = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-export const typeName = id => (CLASS_TYPES.find(t => t.id === id) || {}).name || id;
-export const typeShort = id => (CLASS_TYPES.find(t => t.id === id) || {}).short || id;
+export const typeName = id => (CATALOGUE.find(t => t.id === id) || {}).name || id;
+export const typeShort = id => (CATALOGUE.find(t => t.id === id) || {}).short || id;
 export const range = s => s.start + '–' + s.end;
 
 export function niceDate(dateStr) {

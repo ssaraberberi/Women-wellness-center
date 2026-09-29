@@ -2,9 +2,9 @@
 import { el, frag, chip, dot, modal, closeModal, toast, meter, money,
          typeName, typeShort, range, niceDate, relDay, shortDate, startsAt } from '../ui.js';
 import * as store from '../store.js';
-import { PLANS, iso, addDays, startOfWeek } from '../data.js';
+import { iso, addDays } from '../../../shared/domain.js';
 import { balances, canBook, canCancel, cancelDeadline, spots, membershipOf, isExpired,
-         planOf, bookingOf, allowanceFor, BOOKING_HORIZON_DAYS } from '../rules.js';
+         planOf, bookingOf, BOOKING_HORIZON_DAYS } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
 export function renderClient(ctx) {
@@ -25,7 +25,14 @@ export function renderClient(ctx) {
   else if (route === 'memberships') { title = 'Membership'; sub = 'Choose what fits your week'; body = memberships(ctx, m, expired); }
   else { sub = relDay(iso(now), now) + ' at DUA'; body = home(ctx, m, expired); }
 
-  return shell({ user, route, nav, title, sub, body, notices: store.noticesFor(user.id) });
+  return shell({ user, route, nav, title, sub, body, notices: state.notices });
+}
+
+/* A button that goes to the server: disable it, say what happened. */
+async function run(btn, label, fn, good) {
+  btn.disabled = true; const was = btn.textContent; btn.textContent = 'One moment…';
+  try { await fn(); toast(good); }
+  catch (e) { toast(e.message); btn.disabled = false; btn.textContent = was || label; }
 }
 
 /* ---------- membership card ---------- */
@@ -38,7 +45,7 @@ function membershipCard(ctx, m, expired) {
       el('a.btn.btn--sm', { href: '#/memberships', text: 'View memberships' })
     ]);
   }
-  const plan = planOf(m.planId);
+  const plan = planOf(state, m.planId);
   const rows = balances(state, user.id, now);
   return el('div.card', null, [
     el('div', { style: 'display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-start' }, [
@@ -68,7 +75,7 @@ function home(ctx, m, expired) {
   const today = iso(now);
   const upcoming = state.bookings
     .filter(b => b.clientId === user.id && b.status === 'booked')
-    .map(b => ({ b, s: state.sessions.find(x => x.id === b.sessionId) }))
+    .map(b => ({ b, s: state.classes.find(x => x.id === b.classId) }))
     .filter(x => x.s && !x.s.cancelled && x.s.date >= today)
     .sort((a, z) => startsAt(a.s) - startsAt(z.s));
 
@@ -92,7 +99,7 @@ function home(ctx, m, expired) {
 
 function dayList(ctx, date, m, expired) {
   const { state } = ctx;
-  const list = state.sessions.filter(s => s.date === date && !s.cancelled)
+  const list = state.classes.filter(s => s.date === date && !s.cancelled)
     .sort((a, b) => a.start.localeCompare(b.start));
   if (!list.length) return [el('p.muted', { text: 'No classes scheduled.' })];
   return list.map(s => slotRow(ctx, s, { m, expired }));
@@ -122,10 +129,10 @@ function slotRow(ctx, s, opts) {
     const v = canBook(state, user.id, s, now);
     if (v.ok) {
       action = el('button.btn.btn--sm', { type: 'button', text: 'Book class',
-        onclick: () => { const r = store.book(user.id, s.id, now); toast(r.ok ? 'Booked — see you there' : r.message); } });
+        onclick: e => run(e.target, 'Book class', () => store.book(s.id), 'Booked — see you there') });
     } else if (v.code === 'full') {
       action = el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Join waitlist',
-        onclick: () => { store.joinWaitlist(user.id, s.id); toast('You are on the waitlist'); } });
+        onclick: e => run(e.target, 'Join waitlist', () => store.joinWaitlist(s.id), 'You are on the waitlist') });
     } else if (v.code === 'not-included' || v.code === 'no-membership' || v.code === 'expired') {
       action = el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
         el('span.muted', { style: 'font-size:12.5px', text: v.message }),
@@ -163,10 +170,13 @@ function confirmCancel(ctx, booking, s) {
         : 'The ' + hh + ' deadline has passed. This class will still count against your membership.' })
   ]), [
     el('button.btn.btn--ghost', { type: 'button', text: 'Keep it', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: cc.ok ? 'Cancel class' : 'Cancel anyway', onclick: () => {
-      const r = store.cancelBooking(booking.id, now);
-      closeModal();
-      toast(r.late ? 'Cancelled — the session stays deducted' : 'Cancelled — session returned');
+    el('button.btn', { type: 'button', text: cc.ok ? 'Cancel class' : 'Cancel anyway', onclick: async e => {
+      e.target.disabled = true;
+      try {
+        const r = await store.cancelBooking(booking.id);
+        closeModal();
+        toast(r.late ? 'Cancelled — the session stays deducted' : 'Cancelled — session returned');
+      } catch (ex) { closeModal(); toast(ex.message); }
     } })
   ]);
 }
@@ -176,7 +186,7 @@ function calendar(ctx, m, expired) {
   const { state, now } = ctx;
   const days = Array.from({ length: BOOKING_HORIZON_DAYS + 1 }, (_, i) => iso(addDays(now, i)));
   return el('div.grid', { style: 'gap:22px' }, days.map(d => {
-    const list = state.sessions.filter(s => s.date === d && !s.cancelled).sort((a, b) => a.start.localeCompare(b.start));
+    const list = state.classes.filter(s => s.date === d && !s.cancelled).sort((a, b) => a.start.localeCompare(b.start));
     if (!list.length) return null;
     return el('section', null, [
       el('h2.display', { style: 'font-size:1.15rem;margin-bottom:10px', text: relDay(d, now) }),
@@ -190,7 +200,7 @@ function mine(ctx) {
   const { state, user, now } = ctx;
   const today = iso(now);
   const rows = state.bookings.filter(b => b.clientId === user.id)
-    .map(b => ({ b, s: state.sessions.find(x => x.id === b.sessionId) }))
+    .map(b => ({ b, s: state.classes.find(x => x.id === b.classId) }))
     .filter(x => x.s)
     .sort((a, z) => startsAt(z.s) - startsAt(a.s));
 
@@ -227,7 +237,8 @@ function mine(ctx) {
 
 /* ---------- memberships ---------- */
 function memberships(ctx, m, expired) {
-  const { user, now } = ctx;
+  const { state, user, now } = ctx;
+  const PLANS = state.plans;
   const current = m && !expired ? m.planId : null;
 
   return frag([
@@ -272,11 +283,14 @@ function checkout(ctx, plan) {
 
   modal('Checkout', body, [
     el('button.btn.btn--ghost', { type: 'button', text: 'Back', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: 'Pay ' + money(plan.price), onclick: () => {
-      store.purchaseMembership(user.id, plan.id, now);
-      closeModal();
-      location.hash = '#/';
-      toast(plan.name + ' active — your calendar is unlocked');
+    el('button.btn', { type: 'button', text: 'Pay ' + money(plan.price), onclick: async e => {
+      e.target.disabled = true; e.target.textContent = 'One moment…';
+      try {
+        await store.purchase(plan.id);
+        closeModal();
+        location.hash = '#/';
+        toast(plan.name + ' active — your calendar is unlocked');
+      } catch (ex) { closeModal(); toast(ex.message); }
     } })
   ]);
 }

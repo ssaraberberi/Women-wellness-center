@@ -1,7 +1,7 @@
 /* ============================================================
    DUA — boot and routing
-   One hash route per screen, re-rendered from the store on
-   every change so no view can drift out of date.
+   The store holds the server's last word; every change re-renders,
+   so no screen can drift from what was actually recorded.
    ============================================================ */
 import * as store from './store.js';
 import { clear, el, closeModal } from './ui.js';
@@ -18,21 +18,36 @@ export function go(hash) {
 }
 
 function render() {
-  const user = store.currentUser();
-  const route = (location.hash || '').replace(/^#\/?/, '') || '';
+  const state = store.get();
   clear(root);
 
+  if (!state.ready) {
+    root.appendChild(el('div', { style: 'display:grid;place-items:center;min-height:100vh' },
+      el('p.muted', { text: 'Loading…' })));
+    return;
+  }
+  if (state.error && !state.user) {
+    root.appendChild(el('div', { style: 'display:grid;place-items:center;min-height:100vh;padding:24px' },
+      el('div.card', null, [
+        el('p.eyebrow', { text: 'Cannot reach the studio' }),
+        el('p', { style: 'margin-top:8px', text: state.error }),
+        el('button.btn.btn--sm', { type: 'button', style: 'margin-top:14px', text: 'Try again',
+          onclick: () => store.boot() })
+      ])));
+    return;
+  }
+
+  const user = state.user;
   if (!user) { root.appendChild(renderAuth({ go })); return; }
 
-  const ctx = { user, state: store.get(), now: new Date(), go, route };
+  const route = (location.hash || '').replace(/^#\/?/, '') || '';
+  const ctx = { user, state, now: new Date(), go, route };
   if (user.role === 'admin') root.appendChild(renderAdmin(ctx));
   else if (user.role === 'instructor') root.appendChild(renderInstructor(ctx));
   else root.appendChild(renderClient(ctx));
 }
 
 window.addEventListener('hashchange', () => { closeModal(); render(); });
-store.subscribe(() => render());
+store.subscribe(render);
 render();
-
-/* A way back to a clean demo without clearing site data by hand. */
-window.duaReset = () => { store.reset(); location.hash = ''; };
+store.boot();
