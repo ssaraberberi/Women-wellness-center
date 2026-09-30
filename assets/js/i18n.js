@@ -244,18 +244,17 @@
     'Close': 'Mbyll',
 
     /* ---- alt text ---- */
-    'Two women kneeling on reformers, arms overhead in the straps, in front of sheer curtains':
-      'Dy gra në gjunjë mbi reformerë, krahët lart në rripa, para perdeve të tejdukshme',
-    'Wide view of the studio: reformers, arched alcoves and warm ivory walls':
-      'Pamje e gjerë e studios: reformerë, harqe dhe mure të ngrohta ngjyrë fildishi',
-    'Close-up of hands adjusting a reformer strap': 'Afër: duart duke rregulluar rripin e reformerit',
-    'A woman holding a long plank on a reformer': 'Një grua duke mbajtur plank të gjatë mbi reformer',
-    'Legs extended along the barre during class': 'Këmbë të shtrira përgjatë barres gjatë klasës',
-    'A woman arching backwards in a slow yoga shape': 'Një grua duke u përkulur pas në një formë të ngadaltë yoga',
+    'The reformer room in afternoon light, the DUA wall above a long bed of cacti':
+      'Salla e reformerëve në dritën e pasdites, muri DUA mbi një shtrat të gjatë kaktusësh',
+    'Three reformers facing the arched mirrors, morning light across the floor':
+      'Tre reformerë përballë pasqyrave me hark, drita e mëngjesit mbi dysheme',
+    'An instructor correcting two clients on the reformers, the room lit low':
+      'Një instruktore duke korrigjuar dy kliente mbi reformerë, salla me dritë të ulët',
+    'Reformers and arched mirrors in the evening, lit by a single lamp':
+      'Reformerë dhe pasqyra me hark në mbrëmje, ndriçuar nga një llambë e vetme',
+    'A woman crossing the studio beneath the DUA wall, reformers waiting below':
+      'Një grua duke kaluar nëpër studio nën murin DUA, reformerët duke pritur poshtë',
     'Hands working across a back during a deep tissue massage': 'Duar që punojnë mbi shpinë gjatë një masazhi të thellë',
-    'A woman reaching overhead in a side position on the reformer': 'Një grua që shtrihet lart anash mbi reformer',
-    'A barre class working through leg extensions at the bar': 'Një klasë barre duke punuar shtrirjet e këmbëve te shufra',
-    'A yoga class moving through a standing side bend': 'Një klasë yoga duke kaluar në përkulje anësore në këmbë',
     'Hands working slowly across a back during a treatment': 'Duar që punojnë ngadalë mbi shpinë gjatë një trajtimi',
     'A quiet, warm treatment corridor': 'Një korridor i qetë dhe i ngrohtë trajtimesh',
     'The reformer room, with pink carriages along the arched windows':

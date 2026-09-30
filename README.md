@@ -18,13 +18,14 @@ fonts and photography are served from `assets/`.
 ```
 index.html                  the full homepage
 tools/build-logo.py         cuts the logo artwork into the alpha masks the CSS paints
+tools/build-photos.py       cuts the studio's photographs into the size each slot needs
 assets/css/styles.css       design system + every section
 assets/css/fonts.css        self-hosted @font-face declarations
 assets/fonts/               Bodoni Moda + Jost (woff2, latin + latin-ext)
 assets/img/                 photographs, sized and compressed per slot.
-                            opening-studio-*.jpg is the studio's own photograph,
-                            supplied for a landing treatment that was removed —
-                            kept, but not currently placed on the page.
+                            Every reformer frame is the studio's own, cut by
+                            tools/build-photos.py; room-*.jpg are the studio's
+                            too and wait unreferenced for the gallery's return.
 assets/js/main.js           scroll motion, gallery, booking, menu (vanilla)
 assets/js/i18n.js           English / Albanian, dictionary and switch
 assets/js/whatsapp.js       floating WhatsApp contact card
@@ -122,9 +123,14 @@ three purely abstract photographs (a lit wall, a shadow, a band of light) were c
 they carried no information. Corners are softened to 14px on cards and images, 9px on
 controls: enough to feel welcoming, not enough to look like a consumer app.
 
-**Photography** — the hero, the reformer, barre and yoga frames, and every room in the
-space section are the studio's own photographs. The remaining stock is down to a handful
-of details and the massage section.
+**Photography** — every Pilates frame on the page is the studio's own: the hero, both
+figures beside the idea, the reformer card and the image pinned beside the scrolling
+words. Five photographs cover six slots, so one is used twice, in two framings far apart
+in the scroll — the wide daylight room across the hero, and the same room squared, held
+high on the woman crossing it, beside the reformer copy. `tools/build-photos.py` cuts
+them: each slot is measured in the browser first, then filled by a Lanczos resize and a
+crop held at that slot's own focal point, never upscaled past the source. Stock remains
+only in the spa and recovery sections.
 
 **Prices** are in Albanian lek, at levels that make sense for Tirana:
 first class 990 ALL, drop-in 1,800 ALL, memberships 9,900 – 24,900 ALL / month.
@@ -162,9 +168,9 @@ and a reveal safety sweep so no content can be left invisible after a fast scrol
 ## Notes
 
 This is a design mockup. The booking form validates and confirms locally; it posts
-nowhere. Photography is from [Unsplash](https://unsplash.com) under the Unsplash
-License and stands in for a real brand shoot — a live build would replace it with
-studio photography of the actual space.
+nowhere. The Pilates photography is the studio's own. What is left of the stock — the
+spa and recovery frames — is from [Unsplash](https://unsplash.com) under the Unsplash
+License, and goes the same way once those rooms are shot.
 
 ---
 
@@ -189,9 +195,9 @@ vercel          # preview URL
 vercel --prod   # production
 ```
 
-One thing to change after the domain is live: `og:image` in `index.html` is a relative
-path. Make it absolute (`https://your-domain/assets/img/hero-reformer-reach-1200.jpg`)
-so the link preview renders when the site gets shared.
+`og:image` and the JSON-LD `image` are already absolute
+(`https://dua-pilates.com/assets/img/hero-reformer-1700.jpg`), so the link preview
+renders when the site gets shared. Change both if the domain ever changes.
 
 
 ## What is live, and what is parked
