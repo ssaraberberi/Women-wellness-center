@@ -243,6 +243,28 @@
       'Vendi yt është ruajtur. Eja dhjetë minuta më herët për klasën e parë — çorapet me kapje i kemi ne.',
     'Close': 'Mbyll',
 
+    /* ---- questions ---- */
+    'Questions': 'Pyetje',
+    'Before your': 'Para klasës',
+    'first class.': 'sate të parë.',
+    'What is reformer Pilates?': 'Çfarë është reformer Pilates?',
+    'A Pilates class on a sprung carriage. The springs carry part of your weight and give you something to work against, so the movement stays controlled and your joints are not taking the load. It is low impact, and it builds strength you can feel.':
+      'Një klasë Pilates mbi një karrocë me susta. Sustat mbajnë një pjesë të peshës sate dhe të japin diçka kundër së cilës të punosh, kështu që lëvizja mbetet e kontrolluar dhe nyjet nuk e marrin ngarkesën. Është me ndikim të ulët, dhe ndërton forcë që e ndien.',
+    'Do I need experience?': 'A më duhet përvojë?',
+    'No. Plenty of people come to a first class having never been on a reformer, and the class is built for exactly that. The groups are small enough that the instructor sets your springs, corrects your position and keeps an eye on you the whole time.':
+      'Jo. Shumë vajza vijnë në klasën e parë pa qenë kurrë mbi një reformer, dhe klasa është ndërtuar pikërisht për këtë. Grupet janë aq të vogla sa instruktorja t\'i vendos sustat, të korrigjon qëndrimin dhe të ka sytë mbi ty gjithë kohës.',
+    'How long is a class?': 'Sa zgjat një klasë?',
+    'Forty-five minutes.': 'Dyzet e pesë minuta.',
+    'Where in Tirana are you?': 'Ku ndodheni në Tiranë?',
+    'In Tirana. The address goes up here the moment the studio is ready — message us on 069 710 4072 or on Instagram and we will send it to you first.':
+      'Në Tiranë. Adresa ngjitet këtu në momentin që studioja të jetë gati — na shkruaj në 069 710 4072 ose në Instagram dhe ta dërgojmë ty të parës.',
+    'What does the spa offer?': 'Çfarë ofron spa-ja?',
+    'Treatments in the same place as the studio, so recovery sits inside your week instead of beside it. The full list comes with the opening.':
+      'Trajtime në të njëjtin vend me studion, që rikuperimi të rrijë brenda javës sate dhe jo anash saj. Lista e plotë vjen me hapjen.',
+    'When do you open?': 'Kur hapeni?',
+    'Soon. Message us and you will be among the first to know — the timetable and the memberships go to you before they go up here.':
+      'Së shpejti. Na shkruaj dhe do të jesh nga të parat që e di — orari dhe abonimet të vijnë ty para se të ngjiten këtu.',
+
     /* ---- alt text ---- */
     'The reformer room in afternoon light, the DUA wall above a long bed of cacti':
       'Salla e reformerëve në dritën e pasdites, muri DUA mbi një shtrat të gjatë kaktusësh',
@@ -280,9 +302,34 @@
      brand name leads in both and the words people actually search for are in
      front. Keep these in step with <title> in index.html. */
   var TITLES = {
-    en: 'DUA Pilates and Spa — Reformer Pilates Studio in Tirana, Albania',
-    sq: 'DUA Pilates and Spa — Studio Reformer Pilates në Tiranë, Shqipëri'
+    en: 'Reformer Pilates in Tirana — DUA Pilates and Spa',
+    sq: 'Reformer Pilates në Tiranë — DUA Pilates and Spa'
   };
+
+  /* The page is served in English and switched to Albanian on load, so the head
+     has to follow the body: a crawler that renders the page finds Albanian text
+     under an English description otherwise, and so does anyone sharing the link. */
+  var META = {
+    en: {
+      description: 'Reformer Pilates in Tirana. DUA is a boutique Pilates studio and spa opening in Tirana, Albania — small classes, one instructor who knows you, and the spa in the same place.',
+      ogTitle: 'DUA — Reformer Pilates and Spa in Tirana',
+      ogDescription: 'A boutique reformer Pilates studio and spa in Tirana, Albania. Opening soon.',
+      locale: 'en_GB',
+      altLocale: 'sq_AL'
+    },
+    sq: {
+      description: 'Reformer Pilates në Tiranë. DUA është një studio boutique Pilates dhe spa që hapet në Tiranë, Shqipëri — klasa të vogla, një instruktore që të njeh, dhe spa në të njëjtin vend.',
+      ogTitle: 'DUA — Reformer Pilates dhe Spa në Tiranë',
+      ogDescription: 'Një studio boutique e reformer Pilates dhe spa në Tiranë, Shqipëri. Hapemi së shpejti.',
+      locale: 'sq_AL',
+      altLocale: 'en_GB'
+    }
+  };
+
+  function meta(sel, value) {
+    var el = document.head.querySelector(sel);
+    if (el && el.getAttribute('content') !== value) el.setAttribute('content', value);
+  }
 
   var DAYS = {
     Monday: 'E hënë', Tuesday: 'E martë', Wednesday: 'E mërkurë', Thursday: 'E enjte',
@@ -367,6 +414,14 @@
     walk(document.body, next === 'sq');
     document.documentElement.lang = next === 'sq' ? 'sq' : 'en';
     document.title = TITLES[next] || TITLES.en;
+    var m = META[next] || META.en;
+    meta('meta[name="description"]', m.description);
+    meta('meta[property="og:title"]', m.ogTitle);
+    meta('meta[property="og:description"]', m.ogDescription);
+    meta('meta[name="twitter:title"]', m.ogTitle);
+    meta('meta[name="twitter:description"]', m.ogDescription);
+    meta('meta[property="og:locale"]', m.locale);
+    meta('meta[property="og:locale:alternate"]', m.altLocale);
     document.querySelectorAll('[data-lang]').forEach(function (b) {
       var on = b.getAttribute('data-lang') === next;
       b.classList.toggle('is-active', on);

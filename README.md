@@ -44,7 +44,8 @@ assets/js/whatsapp.js       floating WhatsApp contact card
 | 6 | Schedule | Coming soon |
 | 7 | Memberships | Coming soon |
 | 8 | The space | Coming soon |
-| 9 | Final CTA | *When you want to.* |
+| 9 | Questions | *Before your first class.* Six plain answers — see **Search** |
+| 10 | Final CTA | *When you want to.* |
 
 The reformer section pins its image while the words scroll past it, and the hero,
 the spa backdrop and the marquee all drift at their own rates — one throttled
@@ -173,6 +174,64 @@ spa and recovery frames — is from [Unsplash](https://unsplash.com) under the U
 License, and goes the same way once those rooms are shot.
 
 ---
+
+## Search
+
+The studio is new, so the page has to earn the words people type. What the repo can
+do, it does; the rest is off the site and only the studio can do it.
+
+**In here**
+
+- **Title and description lead with the phrase**, not the brand: *Reformer Pilates in
+  Tirana — DUA Pilates and Spa*, and its Albanian twin. A name nobody has searched for
+  yet is worth less at the front than the two words they did search for.
+- **The head follows the body.** The page is authored in English and switched to
+  Albanian on load, so `i18n.js` now moves `<title>`, the meta description, the
+  Open Graph and Twitter pairs and `og:locale` with it. Before, a crawler that
+  rendered the page found Albanian text filed under an English description, and so
+  did anyone sharing the link.
+- **The Questions section** exists for search. The rest of the page is written for
+  someone who already knows what a reformer is; this is for the person who typed
+  "pilates tirana" and does not. Six answers, no invented facts — no address, no
+  price, no opening date, because none of those are settled. It roughly doubled the
+  page's indexable text, from ~630 words to ~840.
+- **Structured data** is a `@graph`: a `WebSite` and the studio itself, typed as both
+  `HealthAndBeautyBusiness` and `SportsActivityLocation`, with the spellings people
+  actually type in `alternateName` and the two services as `Offer`s that name Tirana.
+  There is deliberately no `FAQPage` block: Google stopped showing those rich results
+  for sites like this one in 2023, and the schema would have to carry English answers
+  while the rendered page shows Albanian.
+- **`www` redirects permanently.** Vercel's own domain redirect answers 307, which
+  asks Google to keep both hosts; `vercel.json` now answers 308 so the apex keeps
+  whatever the `www` host is sent.
+- `robots.txt` allows everything and points at `sitemap.xml`, which carries `lastmod`.
+
+**Not in here — and this is the part that decides it**
+
+For a local query like *pilates tirana* the first screen is a map: three businesses,
+picked from Google Business Profiles, not from websites. No amount of HTML puts the
+studio there.
+
+1. **Create the Google Business Profile** (google.com/business) — free. It needs a
+   real address to verify, which is the one thing the site does not publish yet.
+   Category *Pilates studio*, then *Spa*. This is the single highest-value action,
+   and nothing else on this list comes close.
+2. **Google Search Console** (search.google.com/search-console) — verify
+   `dua-pilates.com` with the DNS TXT method in Cloudflare, submit the sitemap, then
+   request indexing for the homepage. The site is not in the index yet.
+3. **Put the link in the Instagram bio** — @dua_pilates_spa is the studio's only
+   public presence, and right now it points nowhere.
+4. **Get listed**: `pilatestirana.com` (a Tirana Pilates directory that owns the
+   exact-match domain), Tripadvisor, Facebook, and the Albanian lifestyle blogs that
+   already run "studios to try in Tirana" pieces.
+5. **Reviews, after opening.** Between two studios Google has equal reason to trust,
+   the one with more recent reviews wins the map pack.
+
+Two things to know. The competition for that phrase is established — Core Pilates,
+Animo Studio and a directory on the exact-match domain — so first place is a
+months-long job, not a deploy. And there is already a *DuaDua Studio* doing Pilates
+in Tirana, which is worth watching for name confusion.
+
 
 ## Deploying to Vercel
 

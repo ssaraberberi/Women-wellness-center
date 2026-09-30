@@ -611,6 +611,29 @@ fieldset{border:0}
 .studio__bar i{display:block;height:1px;background:var(--plum);width:30%;transform-origin:left;position:relative;top:1px;z-index:2}
 
 /* ---------- 18. Voices ---------- */
+/* ---------- 19. Questions ----------
+   A plain two-column list: the question in the display face, the answer in the
+   sans beside it. It carries the words someone searching would actually type,
+   so it is set to be read rather than tucked into an accordion. */
+.faq{background:var(--petal);color:var(--plum)}
+.faq__inner{max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut)}
+.faq__title{margin:10px 0 clamp(44px,5vw,88px)}
+.faq__list{display:flex;flex-direction:column}
+.faq__item{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);
+  gap:clamp(14px,3vw,64px);
+  padding:clamp(24px,2.6vw,38px) 0;border-top:1px solid rgba(59,21,34,.14);
+}
+.faq__item:last-child{border-bottom:1px solid rgba(59,21,34,.14)}
+.faq__item dt{
+  font-family:var(--display);font-size:clamp(1.15rem,1.9vw,1.75rem);
+  line-height:1.2;font-weight:400;
+}
+.faq__item dd{margin:0;font-size:clamp(.95rem,1.05vw,1.06rem);line-height:1.75;color:var(--ink-soft);max-width:56ch}
+@media (max-width:860px){
+  .faq__item{grid-template-columns:1fr;gap:10px}
+}
+
 /* ---------- 20. Final ---------- */
 .final{
   background:var(--rose-ink);color:var(--blush);
