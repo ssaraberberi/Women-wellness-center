@@ -11,7 +11,7 @@
    ============================================================ */
 import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
-import { pool } from './_lib/db.js';
+import { pool, connectionProblem } from './_lib/db.js';
 
 const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
@@ -111,12 +111,36 @@ function pathOf(req) {
   return given && given.startsWith('/') ? given.split('?')[0] : url.pathname;
 }
 
+/* The three ways this goes wrong on a fresh deployment, each with the thing
+   to do about it, because the Postgres message alone does not say. */
+function hintFor(e) {
+  const m = (e.message || '').toLowerCase();
+  if (e.code === '42P01' || m.includes('does not exist') && m.includes('relation'))
+    return 'The database is reachable but empty. Run scripts/schema.sql and then scripts/data.sql.';
+  if (m.includes('password') || m.includes('authentication'))
+    return 'The connection string was rejected. Reconnect the Postgres integration to this project.';
+  if (m.includes('timeout') || m.includes('enotfound') || m.includes('econnrefused'))
+    return 'The database did not answer. Check it is awake, and that DATABASE_URL is the pooled endpoint.';
+  return undefined;
+}
+
 export default async function handler(req, res) {
   const path = pathOf(req);
 
+  /* The one endpoint that has to answer even when nothing else can, because
+     it is the one you call to find out why. */
   if (path === '/healthz') {
-    try { await pool.query('select 1'); return send(res, 200, { ok: true }); }
-    catch (e) { return send(res, 503, { ok: false, error: e.message }); }
+    const problem = connectionProblem();
+    if (problem) return send(res, 503, { ok: false, error: problem });
+    try {
+      await pool.query('select 1');
+      const built = await pool.query(
+        `select to_regclass('public.users') is not null as schema,
+                (select count(*) from class_types) as class_types`);
+      return send(res, 200, { ok: true, ...built.rows[0] });
+    } catch (e) {
+      return send(res, 503, { ok: false, error: e.message, hint: hintFor(e) });
+    }
   }
 
   const token = readCookie(req, 'dua_session');
