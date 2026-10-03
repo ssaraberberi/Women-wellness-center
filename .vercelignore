@@ -2,10 +2,16 @@
 # the root, the app under /app, the shared rules the browser imports, and
 # one function in /api. These have no business being downloadable.
 #
-# server/ is the migration and seed scripts. They run against the database
-# from a checkout — `npm run migrate && npm run seed` — not from the
-# deployment, so they are left out rather than published.
+# server/ and scripts/ are how the database gets built. They run against it
+# from a checkout or a SQL editor, never from the deployment — and
+# scripts/data.sql carries the administrator registration code, which a
+# published copy would hand to anyone who guessed the path.
+#
+# app/README.md describes the internals and is for whoever works on this,
+# not for the internet.
 node_modules/
 server/
+scripts/
+app/README.md
 .env
 .env.example
