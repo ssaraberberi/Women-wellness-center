@@ -244,7 +244,7 @@
     'Close': 'Mbyll',
 
     /* ---- packages ---- */
-    'Price at opening': 'Çmimi në hapje',
+    'Price coming soon': 'Çmimi së shpejti',
     'Two friends join DUA ROUTINE together for the first time, and both pay less.':
       'Dy shoqe blejnë DUA ROUTINE së bashku për herë të parë, dhe të dyja paguajnë më pak.',
 
