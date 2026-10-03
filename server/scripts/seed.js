@@ -17,8 +17,8 @@
    Demo passwords come from SEED_PASSWORD (default demo1234) and are
    hashed like any other. The admin registration code comes from
    ADMIN_REGISTRATION_CODE and is stored server-side only. */
-import { pool, q, tx } from '../src/db.js';
-import { hashPassword } from '../src/auth.js';
+import { pool, q, tx } from '../../api/_lib/db.js';
+import { hashPassword } from '../../api/_lib/auth.js';
 import { iso, addDays, startOfWeek, DAY_KEYS } from '../../shared/domain.js';
 
 const PASSWORD = process.env.SEED_PASSWORD || 'demo1234';

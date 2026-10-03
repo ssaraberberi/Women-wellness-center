@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Is the database reachable, migrated, and populated? Prints what it finds. */
-import { pool, q, one } from '../src/db.js';
+import { pool, q, one } from '../../api/_lib/db.js';
 
 const counts = ['users', 'class_types', 'plans', 'plan_allowances', 'classes', 'memberships', 'bookings'];
 

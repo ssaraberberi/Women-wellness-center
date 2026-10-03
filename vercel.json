@@ -15,6 +15,16 @@
       "permanent": true
     }
   ],
+  "rewrites": [
+    {
+      "source": "/healthz",
+      "destination": "/api?__path=/healthz"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api?__path=/api/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

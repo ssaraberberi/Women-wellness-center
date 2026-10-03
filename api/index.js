@@ -1,34 +1,29 @@
 /* ============================================================
-   DUA — HTTP server
-   Serves the API and the app from one origin, so there is no CORS
-   and the sign-in cookie is simply first-party.
+   DUA — the API, as one Vercel Function
+   ------------------------------------------------------------
+   Everything under /api, plus /healthz, arrives here. Vercel serves the
+   marketing site, the app and the shared rules as static files itself,
+   so this file is only the routing table and the plumbing around it —
+   every decision still lives in _lib/api.js and shared/rules.js.
+
+   The library sits in _lib/ because Vercel turns each file in /api into
+   a route, and a leading underscore is how you say "not a route".
    ============================================================ */
-import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
-import { join, normalize, extname, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { userForToken, sweepTokens } from './auth.js';
-import * as api from './api.js';
-import { pool } from './db.js';
+import { userForToken } from './_lib/auth.js';
+import * as api from './_lib/api.js';
+import { pool } from './_lib/db.js';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const PORT = Number(process.env.PORT || 3000);
-const PROD = process.env.NODE_ENV === 'production';
+const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
-const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg',
-  '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8',
-  '.xml': 'application/xml; charset=utf-8'
-};
-
-const send = (res, status, body, headers) => {
-  res.writeHead(status, Object.assign({
-    'content-type': 'application/json; charset=utf-8',
-    'x-content-type-options': 'nosniff'
-  }, headers || {}));
-  res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
+const send = (res, status, payload, cookie) => {
+  res.statusCode = status;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.setHeader('x-content-type-options', 'nosniff');
+  /* Nothing here may be cached: every answer is specific to one signed-in
+     person, and Vercel's CDN would otherwise hand it to the next one. */
+  res.setHeader('cache-control', 'no-store');
+  if (cookie) res.setHeader('set-cookie', cookie);
+  res.end(JSON.stringify(payload));
 };
 
 function readCookie(req, name) {
@@ -43,7 +38,15 @@ const setCookie = (token, maxAge) =>
   'dua_session=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge + (PROD ? '; Secure' : '');
 const clearCookie = () => 'dua_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (PROD ? '; Secure' : '');
 
+/* Vercel parses a JSON body for us, but only when it is asked for, and the
+   stream is still there when it is not. Take whichever one we are given. */
 async function body(req) {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === 'string') {
+      try { return JSON.parse(req.body); } catch { throw Object.assign(new Error('Invalid JSON'), { status: 400 }); }
+    }
+    return req.body;
+  }
   const chunks = [];
   let size = 0;
   for await (const c of req) {
@@ -54,32 +57,6 @@ async function body(req) {
   if (!chunks.length) return {};
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw Object.assign(new Error('Invalid JSON'), { status: 400 }); }
-}
-
-/* ---------- static ----------
-   This service is the platform, not the public site: it serves the app,
-   the shared rules it imports, and the brand assets they reference, and
-   nothing else. dua-pilates.com is a separate deployment. */
-const SERVE = ['/app/', '/shared/', '/assets/'];
-
-async function serveStatic(req, res, pathname) {
-  let rel = decodeURIComponent(pathname);
-  if (rel === '/' || rel === '/app')
-    return send(res, 302, '', { location: '/app/', 'content-type': 'text/plain' });
-  if (rel === '/app/') rel = '/app/index.html';
-  if (!SERVE.some(p => rel.startsWith(p))) return send(res, 404, { error: 'Not found' });
-  const full = normalize(join(ROOT, rel));
-  if (!full.startsWith(ROOT)) return send(res, 403, { error: 'Nope' });   // no climbing out of the tree
-  try {
-    const info = await stat(full);
-    if (info.isDirectory()) return serveStatic(req, res, rel.replace(/\/?$/, '/index.html'));
-    const buf = await readFile(full);
-    const type = MIME[extname(full).toLowerCase()] || 'application/octet-stream';
-    const cache = /\.(woff2|png|jpg|svg)$/.test(full) ? 'public, max-age=86400' : 'no-cache';
-    return send(res, 200, buf, { 'content-type': type, 'cache-control': cache });
-  } catch {
-    return send(res, 404, { error: 'Not found' });
-  }
 }
 
 /* ---------- routing ---------- */
@@ -125,27 +102,34 @@ const routes = [
   ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))]
 ];
 
-const server = createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://x');
-  const path = url.pathname;
+/* The rewrite in vercel.json hands us the path it matched, because a
+   rewritten request no longer carries it in req.url. Locally there is no
+   rewrite and req.url is the whole truth, so take that when it is there. */
+function pathOf(req) {
+  const url = new URL(req.url || '/', 'http://x');
+  const given = url.searchParams.get('__path');
+  return given && given.startsWith('/') ? given.split('?')[0] : url.pathname;
+}
+
+export default async function handler(req, res) {
+  const path = pathOf(req);
 
   if (path === '/healthz') {
     try { await pool.query('select 1'); return send(res, 200, { ok: true }); }
     catch (e) { return send(res, 503, { ok: false, error: e.message }); }
   }
-  if (!path.startsWith('/api/')) return serveStatic(req, res, path);
 
   const token = readCookie(req, 'dua_session');
   const user = await userForToken(token).catch(() => null);
 
-  for (const [method, re, handler] of routes) {
+  for (const [method, re, handle] of routes) {
     const m = re.exec(path);
     if (!m) continue;
     if (req.method !== method) return send(res, 405, { error: 'Method not allowed' });
     const ctx = { req, res, user, token, m, cookie: null };
     try {
-      const out = await handler(ctx);
-      return send(res, 200, out == null ? { ok: true } : out, ctx.cookie ? { 'set-cookie': ctx.cookie } : undefined);
+      const out = await handle(ctx);
+      return send(res, 200, out == null ? { ok: true } : out, ctx.cookie);
     } catch (e) {
       const status = e.status || 500;
       if (status >= 500) console.error(req.method, path, e);
@@ -153,11 +137,4 @@ const server = createServer(async (req, res) => {
     }
   }
   return send(res, 404, { error: 'No such endpoint' });
-});
-
-server.listen(PORT, () => console.log('DUA platform on :' + PORT));
-
-setInterval(() => sweepTokens().catch(() => {}), 6 * 3600 * 1000).unref();
-
-for (const sig of ['SIGTERM', 'SIGINT'])
-  process.on(sig, () => server.close(() => pool.end().then(() => process.exit(0))));
+}

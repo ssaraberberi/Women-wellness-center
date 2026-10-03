@@ -8,14 +8,12 @@
     "node": ">=20"
   },
   "scripts": {
-    "start": "node server/src/index.js",
+    "start": "node server/local.js",
     "migrate": "node server/scripts/migrate.js",
     "seed": "node server/scripts/seed.js",
     "seed:demo": "node server/scripts/seed.js --demo",
     "reset": "node server/scripts/seed.js --demo --fresh",
-    "check": "node server/scripts/check.js",
-    "deploy": "npm run migrate && npm start",
-    "dev": "node --watch server/src/index.js"
+    "check": "node server/scripts/check.js"
   },
   "dependencies": {
     "pg": "^8.13.0"

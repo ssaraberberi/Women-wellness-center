@@ -3,13 +3,20 @@
 The booking system: administrator, instructor and client, on Postgres.
 The browser talks to an API; nothing is decided in the browser.
 
+It deploys to Vercel as static files plus one function. `api/index.js` is
+that function — the routing table and the plumbing — and `api/_lib/` holds
+everything it calls. The underscore is how Vercel is told those files are
+not routes of their own. `npm start` runs `server/local.js`, which serves the
+files and hands `/api` to the same function, so the thing you test is the
+thing that ships.
+
 ## Running it locally
 
     cp .env.example .env          # fill in DATABASE_URL
     npm install
     npm run migrate               # create the schema
     npm run reset                 # wipe and fill with demo data
-    npm start                     # http://localhost:3000/app/
+    npm start                     # http://localhost:3000/app/ (site at /)
 
 `npm run check` says whether the database is reachable, migrated and seeded.
 
@@ -74,41 +81,43 @@ SHA-256 digest, and the sign-in cookie is `HttpOnly` (`Secure` in production).
 A wrong password and an unknown email return the same message, so the form
 cannot be used to find out who has an account.
 
-## Deploying to Railway
+## Deploying to Vercel
 
-1. **New Project → Deploy from GitHub repo**, pick this repository and the
-   branch you want.
-2. **+ New → Database → Add PostgreSQL** in the same project.
-3. In the app service, **Variables**:
+The marketing site and the platform are one deployment: the site at the root,
+the app at `/app`, and the whole API as a single function at `/api`. There is
+no server process — `vercel.json` rewrites `/api/*` and `/healthz` into
+`api/index.js`, which carries the routing table.
 
-       DATABASE_URL            ${{ Postgres.DATABASE_URL }}
-       ADMIN_REGISTRATION_CODE <choose one>
-       NODE_ENV                production
+1. **Storage → Create Database → Neon (Postgres)**, in the Vercel dashboard,
+   connected to this project. Vercel injects `DATABASE_URL` itself. Pick the
+   **pooled** connection string if asked: a function is one request at a time,
+   and an unpooled one will run the database out of connections.
+2. **Settings → Environment Variables**, for Production:
 
-   Use the variable reference for `DATABASE_URL`, not a pasted string, so it
-   follows the database if it moves. `PORT` is injected; do not set it.
-4. `railway.json` runs `npm run migrate && npm run seed` before every release
-   and checks `/healthz`, so each deploy applies the schema and rewrites the
-   catalogue. Both are safe to repeat: `seed` creates no accounts and leaves
-   the people already in the database alone.
-5. Open `/app`, choose **Register**, enter the code from step 3. That is the
+       ADMIN_REGISTRATION_CODE  <choose one>
+
+   `NODE_ENV` is set by Vercel, and `DATABASE_URL` by the integration.
+   Do not add `PORT`.
+3. **Prepare the database**, once, from a checkout. The scripts are not part
+   of the deployment, so they run from here:
+
+       vercel env pull .env.local      # or paste the Neon URL into .env
+       DATABASE_URL="<the pooled URL>" npm run migrate
+       DATABASE_URL="<the pooled URL>" npm run seed
+
+   `seed` writes the admin code, the class types and the plans, and creates
+   no accounts. Re-run it any time; it leaves people alone.
+4. Deploy. Check `/healthz` — `{"ok":true}` means the function reached
+   Postgres.
+5. Open `/app`, choose **Register**, enter the code from step 2. That is the
    first administrator, and nothing else creates one.
 
-   Because the seed runs on every release, changing `ADMIN_REGISTRATION_CODE`
-   in Railway and redeploying is all it takes to change the code later.
+Changing `ADMIN_REGISTRATION_CODE` later is a variable change plus a re-run of
+`npm run seed`: the server reads the code from the `settings` table, not from
+the environment.
 
-   If this database is only for you to click around in, the demo studio needs
-   the CLI (`npm i -g @railway/cli`, `railway login`, `railway link`) and the
-   database's **public** URL, since `postgres.railway.internal` is not
-   reachable from outside Railway:
-
-       DATABASE_URL="<the proxy.rlwy.net URL>" npm run seed:demo
-
-   Every account it creates shares one published password.
-6. **Settings → Networking → Generate Domain**, or point a subdomain such as
-   `app.dua-pilates.com` at it. The marketing site stays on Vercel; this
-   service serves only `/app`, `/shared` and `/assets`, and redirects `/`
-   to the app.
+If this database is only for you to click around in, `npm run seed:demo` adds
+the demo studio, whose every account shares one published password.
 
 ## Still to do before real money changes hands
 
