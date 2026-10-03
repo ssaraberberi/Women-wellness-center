@@ -61,10 +61,20 @@ export const logout = token => revokeToken(token);
 
 /* ---------- shared reads ---------- */
 
-export const bootstrap = async () => ({
-  classTypes: await load.classTypes(),
-  plans: await load.plans()
-});
+/* The catalogue everyone reads, priced or not. While the switch is off the
+   figures are not merely hidden in the interface — they are left out of the
+   answer, so a client reading the response sees what the page shows. The
+   studio's own side always has them; it cannot price a package blind. */
+export async function bootstrap(user) {
+  const [classTypes, plans, { showPrices }] = await Promise.all([
+    load.classTypes(), load.plans(), publicSettings()
+  ]);
+  const priced = showPrices || (user && user.role === 'admin');
+  return {
+    classTypes,
+    plans: priced ? plans : plans.map(({ price, ...rest }) => ({ ...rest, price: null }))
+  };
+}
 
 export async function notices(user) {
   need(user, 'admin', 'instructor', 'client');
@@ -81,9 +91,13 @@ export async function readNotices(user) {
 export async function clientState(user) {
   need(user, 'client');
   const now = new Date();
-  const state = await load.clientState(user.id, now);
+  const [state, { showPrices }] = await Promise.all([load.clientState(user.id, now), publicSettings()]);
   return {
     ...state,
+    /* This answer carries the catalogue as well as the client's own things,
+       so it has to hold the prices back on the same terms as /bootstrap —
+       otherwise the figures come back by the side door. */
+    plans: showPrices ? state.plans : state.plans.map(({ price, ...rest }) => ({ ...rest, price: null })),
     instructors: state.instructors.map(i => ({ id: i.id, name: i.name })),   // clients need the name, nothing else
     balances: rules.balances(state, user.id, now),
     membership: rules.membershipOf(state, user.id)
@@ -170,15 +184,67 @@ export async function cancelBooking(user, body) {
   });
 }
 
-export async function purchaseMembership(user, body) {
+/* Asking for a package, not buying one. Money changes hands at the studio,
+   and the studio turns the request active when it has. Until then this row
+   grants nothing: every rule reads 'active', so a request books no class. */
+export async function requestMembership(user, body) {
   need(user, 'client');
-  const plan = await one('select id from plans where id=$1 and not archived', [body.planId]);
-  if (!plan) bad(404, 'No such membership');
+  const plan = await one('select id, name from plans where id=$1 and not archived', [body.planId]);
+  if (!plan) bad(404, 'No such package');
   const now = new Date();
   return tx(async c => {
-    await c.query(`update memberships set status='replaced' where client_id=$1 and status='active'`, [user.id]);
-    await c.query(`insert into memberships (client_id, plan_id, starts_on, ends_on, status)
-                   values ($1,$2,$3,$4,'active')`, [user.id, plan.id, iso(now), iso(addDays(now, 30))]);
+    const open = await c.query(
+      `select p.name from memberships m join plans p on p.id = m.plan_id
+        where m.client_id = $1 and m.status = 'requested'`, [user.id]);
+    if (open.rowCount) bad(409, 'You have already asked for ' + open.rows[0].name +
+      '. The studio will confirm it once you have paid.', 'pending');
+
+    /* The dates are provisional: the thirty days are counted from the day it
+       is confirmed, not from the day it was asked for. */
+    const m = await c.query(
+      `insert into memberships (client_id, plan_id, starts_on, ends_on, status)
+       values ($1,$2,$3,$4,'requested') returning id`,
+      [user.id, plan.id, iso(now), iso(addDays(now, 30))]);
+
+    const admins = await c.query(`select id from users where role='admin' and active`);
+    for (const a of admins.rows)
+      await notify(c, a.id, user.name + ' asked for ' + plan.name + ' — confirm it once she has paid', 'info');
+
+    return { ok: true, id: m.rows[0].id };
+  });
+}
+
+/* The studio's half of it: the client paid at the desk, so make it real.
+   The thirty days start now, and whatever she held before is replaced. */
+export async function confirmMembership(user, id) {
+  need(user, 'admin');
+  const now = new Date();
+  return tx(async c => {
+    const req = await c.query(
+      `select m.id, m.client_id, p.name from memberships m join plans p on p.id = m.plan_id
+        where m.id = $1 and m.status = 'requested' for update`, [id]);
+    if (!req.rowCount) bad(404, 'That request is not waiting any more');
+    const { client_id, name } = req.rows[0];
+
+    await c.query(`update memberships set status='replaced'
+                    where client_id=$1 and status='active'`, [client_id]);
+    await c.query(`update memberships set status='active', starts_on=$2, ends_on=$3 where id=$1`,
+                  [id, iso(now), iso(addDays(now, 30))]);
+    await notify(c, client_id, name + ' is active — thirty days from today. Your calendar is open.', 'good');
+    return { ok: true };
+  });
+}
+
+export async function declineMembership(user, id) {
+  need(user, 'admin');
+  return tx(async c => {
+    const req = await c.query(
+      `select m.client_id, p.name from memberships m join plans p on p.id = m.plan_id
+        where m.id = $1 and m.status = 'requested' for update`, [id]);
+    if (!req.rowCount) bad(404, 'That request is not waiting any more');
+    await c.query(`update memberships set status='cancelled' where id=$1`, [id]);
+    await notify(c, req.rows[0].client_id,
+      req.rows[0].name + ' was not confirmed. Ask at the studio and we will sort it out.', 'warn');
     return { ok: true };
   });
 }

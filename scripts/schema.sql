@@ -87,13 +87,18 @@ create table if not exists memberships (
   plan_id    text not null references plans(id),
   starts_on  date not null,
   ends_on    date not null,
-  status     text not null check (status in ('active', 'cancelled', 'replaced')),
+  -- 'requested' is a client asking for a package. It grants nothing: the
+  -- studio turns it active once the money has been handed over at the desk.
+  status     text not null check (status in ('requested', 'active', 'cancelled', 'replaced')),
   created_at timestamptz not null default now(),
   check (starts_on <= ends_on)
 );
 -- A client holds at most one active membership; the rest are history.
 create unique index if not exists memberships_one_active
   on memberships (client_id) where status = 'active';
+-- And asks for one package at a time, so a second tap cannot queue a second.
+create unique index if not exists memberships_one_requested
+  on memberships (client_id) where status = 'requested';
 
 create table if not exists bookings (
   id         uuid primary key default gen_random_uuid(),

@@ -391,9 +391,9 @@ function packagesView(ctx) {
     } catch (ex) { e.target.checked = !want; toast(ex.message); }
   } });
   const toggle = el('div.pricesw', null, [
-    el('label.check', null, [box, el('span', { text: 'Show prices on the website' })]),
+    el('label.check', null, [box, el('span', { text: 'Show prices to clients' })]),
     el('p.muted', { style: 'font-size:13px;margin-top:4px',
-      text: 'Off, dua-pilates.com lists every package and what it includes, and says the price comes at opening. The app always shows them.' })
+      text: 'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.' })
   ]);
 
   if (!plans.length)
@@ -519,7 +519,37 @@ function retirePlan(ctx, plan, on) {
 /* ---------- memberships ---------- */
 function membershipsView(ctx) {
   const { state, now } = ctx;
-  return el('div.tablewrap', null, el('table', null, [
+  const waiting = state.memberships.filter(m => m.status === 'requested');
+
+  /* The queue first, because it is the only part with something to do in it,
+     and because the one rule that matters is easy to get wrong in a hurry. */
+  const queue = el('div.queue', null, [
+    el('p.queue__title', { text: waiting.length
+      ? waiting.length + (waiting.length === 1 ? ' client is waiting' : ' clients are waiting')
+      : 'Nobody is waiting' }),
+    el('p.muted', { style: 'font-size:13px',
+      text: 'A client applies in the app and pays here at the studio. Confirm it only once she has paid — '
+          + 'confirming is what makes it active, for thirty days from that day. Until then she cannot book.' }),
+    waiting.length ? el('div.queue__list', null, waiting.map(m => {
+      const c = state.clients.find(x => x.id === m.clientId);
+      const plan = planOf(state, m.planId);
+      return el('div.queue__row', null, [
+        el('div', null, [
+          el('b', { text: c ? c.name : 'Unknown client' }),
+          el('div.muted', { style: 'font-size:13px',
+            text: (plan ? plan.name : m.planId) + ' · asked ' + shortDate(m.start) })
+        ]),
+        el('div.rowend', null, [
+          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Not paid',
+            onclick: () => decideMembership(ctx, m, c, plan, false) }),
+          el('button.btn.btn--sm', { type: 'button', text: 'Paid — confirm',
+            onclick: () => decideMembership(ctx, m, c, plan, true) })
+        ])
+      ]);
+    })) : null
+  ]);
+
+  return el('div', null, [queue, el('div.tablewrap', null, el('table', null, [
     el('thead', null, el('tr', null, [
       el('th', { text: 'Client' }), el('th', { text: 'Plan' }), el('th', { text: 'Usage this month' }),
       el('th', { text: 'Expires' }), el('th.right', { text: 'Status' }), el('th.right', { text: '' })
@@ -535,13 +565,37 @@ function membershipsView(ctx) {
         el('td.muted', { style: 'font-size:13px', text: rows.map(b =>
           b.label + ': ' + (b.unlimited ? '∞' : b.used + '/' + b.allowance.limit)).join(' · ') || '—' }),
         el('td.num', { text: shortDate(m.end) }),
-        el('td.right', null, chip(m.status === 'active' && !expired ? 'Active' : m.status === 'active' ? 'Expired' : m.status,
-          m.status === 'active' && !expired ? 'good' : 'warn')),
+        el('td.right', null, m.status === 'requested'
+          ? chip('Waiting to be paid', 'warn')
+          : chip(m.status === 'active' && !expired ? 'Active' : m.status === 'active' ? 'Expired' : m.status,
+                 m.status === 'active' && !expired ? 'good' : 'warn')),
         el('td.right', null, el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Adjust',
           onclick: () => membershipEditor(ctx, m, c) }))
       ]);
     }))
-  ]));
+  ]))]);
+}
+
+function decideMembership(ctx, m, c, plan, paid) {
+  const who = c ? c.name : 'this client';
+  const what = plan ? plan.name : 'the package';
+  const body = el('div', null, [
+    el('p', { text: paid
+      ? who + ' has paid for ' + what + ' at the studio. Confirming makes it active for thirty days from today, '
+        + 'and opens her calendar straight away.'
+      : who + ' has not paid for ' + what + '. The application is closed and she is told to ask at the studio. '
+        + 'She can apply again afterwards.' }),
+    paid ? el('p.muted', { style: 'font-size:13px;margin-top:10px',
+      text: 'Do not confirm before the money is in. This is the only step that checks it.' }) : null
+  ]);
+  modal(paid ? 'Confirm ' + what : 'Close the application', body,
+    el('button.btn', { type: 'button', text: paid ? 'She has paid — confirm' : 'Close it', onclick: async () => {
+      try {
+        await (paid ? store.confirmMembership(m.id) : store.declineMembership(m.id));
+        closeModal();
+        toast(paid ? what + ' is active for ' + who : 'Application closed');
+      } catch (ex) { closeModal(); toast(ex.message); }
+    } }));
 }
 
 function membershipEditor(ctx, m, c) {

@@ -4,7 +4,7 @@ import { el, frag, chip, dot, modal, closeModal, toast, meter, money,
 import * as store from '../store.js';
 import { iso, addDays } from '../../../shared/domain.js';
 import { balances, canBook, canCancel, cancelDeadline, spots, membershipOf, isExpired,
-         planOf, bookingOf, BOOKING_HORIZON_DAYS } from '../../../shared/rules.js';
+         planOf, bookingOf, pendingOf, BOOKING_HORIZON_DAYS } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
 export function renderClient(ctx) {
@@ -235,17 +235,31 @@ function mine(ctx) {
   ]);
 }
 
-/* ---------- memberships ---------- */
+/* ---------- memberships ----------
+   A package arrives without its price while the studio is holding them
+   back, so every place that would print one says so instead. */
+const priceText = p => p.price == null ? 'Price coming soon' : money(p.price);
+
 function memberships(ctx, m, expired) {
-  const { state, user, now } = ctx;
+  const { state, user } = ctx;
   const PLANS = state.plans;
-  const current = m && !expired ? m.planId : null;
+  const current = m && !expired && m.status === 'active' ? m.planId : null;
+  /* One request at a time, and while it is open every other package waits. */
+  const pending = pendingOf(state, user.id);
+  const pendingPlan = pending && PLANS.find(p => p.id === pending.planId);
 
   return frag([
+    pending ? el('div.pending', null, [
+      el('p.pending__title', { text: 'Waiting for the studio' }),
+      el('p', { text: 'You applied for ' + (pendingPlan ? pendingPlan.name : 'a package') +
+        '. Pay at the studio and we will confirm it — it becomes active for thirty days from the day we do, ' +
+        'and your calendar opens then. Nothing has been charged here.' })
+    ]) : null,
+
     el('div.plans', null, PLANS.map(p => el('div', { class: 'plan' + (p.id === current ? ' plan--on' : '') }, [
-      el('p.eyebrow', { text: p.featured && p.id !== current ? 'Most chosen' : p.id === current ? 'Your membership' : ' ' }),
+      el('p.eyebrow', { text: p.featured && p.id !== current ? 'Most chosen' : p.id === current ? 'Your membership' : ' ' }),
       el('h3.display', { style: 'font-size:1.5rem', text: p.name }),
-      el('p.plan__price', { text: money(p.price) }),
+      el('p.plan__price' + (p.price == null ? '.plan__price--soon' : ''), { text: priceText(p) }),
       el('p.muted', { style: 'font-size:13px', text: p.blurb }),
       el('ul', null, p.allowances.map(a => el('li', {
         text: (a.limit == null ? 'Unlimited ' : a.limit + ' ') +
@@ -253,43 +267,48 @@ function memberships(ctx, m, expired) {
       }))),
       p.id === current
         ? el('button.btn.btn--sm', { type: 'button', disabled: true, text: 'Current plan' })
-        : el('button.btn.btn--sm' + (p.featured ? '' : '.btn--ghost'), { type: 'button',
-            text: 'Choose ' + p.name, onclick: () => checkout(ctx, p) })
+        : pending
+          ? el('button.btn.btn--sm.btn--ghost', { type: 'button', disabled: true,
+              text: pending.planId === p.id ? 'Waiting for the studio' : 'Applied for another' })
+          : el('button.btn.btn--sm' + (p.featured ? '' : '.btn--ghost'), { type: 'button',
+              text: 'Apply for ' + p.name, onclick: () => applyFor(ctx, p) })
     ]))),
     el('p.muted', { style: 'margin-top:18px;font-size:13px',
-      text: 'Memberships run for 30 days from purchase. This is a mockup — no payment is taken.' })
+      text: 'You apply here and pay at the studio. We confirm it there, and it runs for thirty days from that day.' })
   ]);
 }
 
-function checkout(ctx, plan) {
-  const { user, now } = ctx;
+/* Applying, not buying. The studio takes the money at the desk and turns
+   the request active there, so this screen's whole job is to say so
+   before she taps, and to say what happens next after she has. */
+function applyFor(ctx, plan) {
   const body = el('div', null, [
-    el('p.eyebrow', { text: 'You are buying' }),
+    el('p.eyebrow', { text: 'You are applying for' }),
     el('h3.display', { style: 'font-size:1.6rem;margin:6px 0 4px', text: plan.name }),
-    el('p.muted', { text: plan.blurb }),
+    plan.blurb ? el('p.muted', { text: plan.blurb }) : null,
     el('ul', { class: 'plan', style: 'background:none;border:0;padding:14px 0 0' },
       plan.allowances.map(a => el('li', {
         text: (a.limit == null ? 'Unlimited ' : a.limit + ' ') + a.types.map(typeShort).join(' + ') +
               (a.limit == null ? '' : ' a ' + a.per) }))),
-    el('div', { style: 'display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:16px;padding-top:14px' }, [
-      el('span', { text: 'Due today' }), el('b', { class: 'num', style: 'font-weight:400', text: money(plan.price) })
-    ]),
-    el('div.row', { style: 'margin-top:16px' }, [
-      el('label.field', null, [el('span', { text: 'Card number' }), el('input', { value: '4242 4242 4242 4242', readonly: true })]),
-      el('label.field', null, [el('span', { text: 'Expiry' }), el('input', { value: '04 / 29', readonly: true })])
-    ]),
-    el('p.muted', { style: 'font-size:12.5px', text: 'Demo checkout — the card details are filled in for you and nothing is charged.' })
+    el('div.steps', null, [
+      el('p.steps__title', { text: 'How this works' }),
+      el('ol', null, [
+        el('li', { text: 'You apply here. Nothing is charged and nothing is booked yet.' }),
+        el('li', { text: 'You pay at the studio.' }),
+        el('li', { text: 'We confirm it, and it becomes active for thirty days from that day — not from today.' })
+      ])
+    ])
   ]);
 
-  modal('Checkout', body, [
+  modal('Apply for ' + plan.name, body, [
     el('button.btn.btn--ghost', { type: 'button', text: 'Back', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: 'Pay ' + money(plan.price), onclick: async e => {
+    el('button.btn', { type: 'button', text: 'Apply', onclick: async e => {
       e.target.disabled = true; e.target.textContent = 'One moment…';
       try {
-        await store.purchase(plan.id);
+        await store.applyForPlan(plan.id);
         closeModal();
         location.hash = '#/';
-        toast(plan.name + ' active — your calendar is unlocked');
+        toast('Applied for ' + plan.name + ' — pay at the studio and we will confirm it');
       } catch (ex) { closeModal(); toast(ex.message); }
     } })
   ]);

@@ -20,14 +20,25 @@ export const planOf = (state, id) => (state.plans || []).find(p => p.id === id) 
 
 /* ---------- membership ---------- */
 
+/* The membership someone actually holds. A 'requested' row is a client
+   asking for a package she has not paid for yet, so it is not one of these:
+   it grants nothing until the studio confirms it, and leaving it out here is
+   what makes every rule below agree about that. pendingOf is how a screen
+   asks about it on purpose. */
 export function membershipOf(state, clientId) {
-  const mine = (state.memberships || []).filter(m => m.clientId === clientId);
+  const mine = (state.memberships || [])
+    .filter(m => m.clientId === clientId && m.status !== 'requested');
   return mine.find(m => m.status === 'active') || mine[0] || null;
+}
+
+export function pendingOf(state, clientId) {
+  return (state.memberships || [])
+    .find(m => m.clientId === clientId && m.status === 'requested') || null;
 }
 
 export function isExpired(membership, now) {
   if (!membership) return true;
-  if (membership.status === 'cancelled' || membership.status === 'replaced') return true;
+  if (membership.status !== 'active') return true;
   return iso(now) > membership.end;
 }
 
@@ -105,7 +116,9 @@ export function canBook(state, clientId, klass, now) {
   if (bookingOf(state, clientId, klass.id)) return no('already', 'Already booked');
 
   const m = membershipOf(state, clientId);
-  if (!m || m.status === 'cancelled') return no('no-membership', 'No active membership');
+  if (!m) return pendingOf(state, clientId)
+    ? no('pending', 'Waiting for the studio to confirm your package')
+    : no('no-membership', 'No active membership');
   if (isExpired(m, now)) return no('expired', 'Your membership has expired');
 
   const a = allowanceFor(state, m.planId, klass.typeId);

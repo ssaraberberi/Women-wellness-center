@@ -77,7 +77,7 @@ const routes = [
     return { ok: true };
   }],
   ['GET',  /^\/api\/me$/,          ctx => ({ user: ctx.user })],
-  ['GET',  /^\/api\/bootstrap$/,   () => api.bootstrap()],
+  ['GET',  /^\/api\/bootstrap$/,   ctx => api.bootstrap(ctx.user)],
   /* No session needed: the marketing page asks this before anyone signs in. */
   ['GET',  /^\/api\/public\/settings$/, () => api.publicSettings()],
   ['GET',  /^\/api\/notices$/,     ctx => api.notices(ctx.user)],
@@ -87,7 +87,7 @@ const routes = [
   ['POST', /^\/api\/client\/book$/,       async ctx => api.book(ctx.user, await body(ctx.req))],
   ['POST', /^\/api\/client\/waitlist$/,   async ctx => api.joinWaitlist(ctx.user, await body(ctx.req))],
   ['POST', /^\/api\/client\/cancel$/,     async ctx => api.cancelBooking(ctx.user, await body(ctx.req))],
-  ['POST', /^\/api\/client\/membership$/, async ctx => api.purchaseMembership(ctx.user, await body(ctx.req))],
+  ['POST', /^\/api\/client\/membership$/, async ctx => api.requestMembership(ctx.user, await body(ctx.req))],
 
   ['GET',  /^\/api\/instructor\/state$/,          ctx => api.instructorState(ctx.user)],
   ['PUT',  /^\/api\/instructor\/qualifications$/, async ctx => api.setQualifications(ctx.user, await body(ctx.req))],
@@ -102,6 +102,8 @@ const routes = [
   ['POST', /^\/api\/admin\/instructors$/,               async ctx => api.addInstructor(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/instructors\/([\w-]+)$/,   ctx => api.removeInstructor(ctx.user, ctx.m[1])],
   ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/confirm$/, ctx => api.confirmMembership(ctx.user, ctx.m[1])],
+  ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/decline$/, ctx => api.declineMembership(ctx.user, ctx.m[1])],
   ['PUT',  /^\/api\/admin\/settings$/,                 async ctx => api.setSettings(ctx.user, await body(ctx.req))],
   ['POST', /^\/api\/admin\/plans$/,                    async ctx => api.savePlan(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/plans\/([\w-]+)$/,         ctx => api.archivePlan(ctx.user, ctx.m[1])]

@@ -150,9 +150,32 @@ JavaScript, an API that is down, a slow or unexpected answer — every one of
 those leaves the prices in. The only path that shows a price is the one where
 the studio said to.
 
+## Memberships are applied for, not bought
+
+A client picks a package in the app and **applies**. Nothing is charged there
+and nothing is booked: the row is written with status `requested`, and
+`membershipOf` in `shared/rules.js` leaves those out on purpose, so every rule
+that reads a membership agrees she does not have one yet. Trying to book
+answers "Waiting for the studio to confirm your package".
+
+She pays at the studio. An administrator sees the queue at the top of
+**Memberships**, confirms it, and that is the step that makes it real: status
+`active`, thirty days counted **from the day it is confirmed**, not from the
+day she asked. Whatever she held before is marked `replaced`. Both sides get a
+notice — the studio when she applies, the client when it is confirmed or
+closed.
+
+One open application per client, held by a partial unique index rather than by
+the interface, so a second tap cannot queue a second. Confirming twice answers
+that the request is not waiting any more.
+
+The screens say all of this in their own words: three numbered steps in the
+client's dialog before she applies, and the line in the studio's queue that
+matters most — confirm only once she has paid, because nothing else checks.
+
 ## Still to do before real money changes hands
 
-Checkout records a membership without taking a card. Wiring a processor means
-a webhook that creates the membership on payment, rather than the browser
-asking for one. Notices are in-app; email or SMS would be a sender behind the
+Payment happens at the studio and an administrator records it by confirming
+the application. Wiring a processor would mean a webhook confirming the same
+row, so the shape of this is already the shape it needs. Notices are in-app; email or SMS would be a sender behind the
 same `notices` table.

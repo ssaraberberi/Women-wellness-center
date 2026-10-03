@@ -22,11 +22,21 @@ function merge(patch) { state = { ...state, ...patch }; emit(); }
 
 /* ---------- session ---------- */
 
+/* The catalogue is read again after signing in, not only before: whether a
+   plan comes back with its price depends on who is asking, and at boot
+   nobody is. */
+async function catalogue() {
+  const cat = await api.get('/bootstrap');
+  setCatalogue(cat.classTypes);
+  merge({ classTypes: cat.classTypes, plans: cat.plans });
+}
+
 export async function boot() {
   try {
-    const [me, cat] = await Promise.all([api.get('/me').catch(() => ({ user: null })), api.get('/bootstrap')]);
-    setCatalogue(cat.classTypes);
-    merge({ user: me.user || null, classTypes: cat.classTypes, plans: cat.plans, ready: true });
+    const me = await api.get('/me').catch(() => ({ user: null }));
+    merge({ user: me.user || null });
+    await catalogue();
+    merge({ ready: true });
     if (state.user) await refresh();
   } catch (e) {
     merge({ ready: true, error: e.message });
@@ -52,6 +62,7 @@ export async function refresh() {
 export async function signIn(email, password) {
   const r = await api.post('/auth/login', { email, password });
   merge({ user: r.user });
+  await catalogue();
   await refresh();
   return r.user;
 }
@@ -59,6 +70,7 @@ export async function signIn(email, password) {
 export async function register(data) {
   const r = await api.post('/auth/register', data);
   merge({ user: r.user });
+  await catalogue();
   await refresh();
   return r.user;
 }
@@ -68,6 +80,8 @@ export async function signOut() {
   state = { ...state, user: null, classes: [], bookings: [], memberships: [], balances: [], membership: null, notices: [] };
   location.hash = '';
   emit();
+  /* An administrator was shown the prices; whoever sits down next may not be. */
+  await catalogue().catch(() => {});
 }
 
 /* ---------- writes ----------
@@ -79,7 +93,7 @@ const act = fn => async (...args) => { const out = await fn(...args); await refr
 export const book         = act(classId  => api.post('/client/book', { classId }));
 export const joinWaitlist = act(classId  => api.post('/client/waitlist', { classId }));
 export const cancelBooking= act(bookingId=> api.post('/client/cancel', { bookingId }));
-export const purchase     = act(planId   => api.post('/client/membership', { planId }));
+export const applyForPlan = act(planId   => api.post('/client/membership', { planId }));
 
 export const setQualifications = act(types => api.put('/instructor/qualifications', { types }));
 export const setAvailability   = act(availability => api.put('/instructor/availability', { availability }));
@@ -92,6 +106,8 @@ export const removeInstructor = act(id => api.del('/admin/instructors/' + id));
 export const savePlan         = act(data => api.post('/admin/plans', data));
 export const archivePlan      = act(id => api.del('/admin/plans/' + id));
 export const setShowPrices    = act(on => api.put('/admin/settings', { showPrices: !!on }));
+export const confirmMembership = act(id => api.post('/admin/memberships/' + id + '/confirm'));
+export const declineMembership = act(id => api.post('/admin/memberships/' + id + '/decline'));
 export const updateMembership = act((id, patch) => api.put('/admin/memberships/' + id, patch));
 export const markNoticesRead  = act(() => api.post('/notices/read'));
 
