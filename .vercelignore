@@ -1,0 +1,12 @@
+# Vercel builds this branch for dua-pilates.com, the marketing site, and
+# Railway builds the same branch for the booking platform. These are the
+# platform's files: they have no API behind them on the Vercel side, and
+# serving them there would publish the server's source to anyone who
+# guessed the path. Railway ignores this file.
+app/
+server/
+shared/
+package.json
+package-lock.json
+railway.json
+.env.example
