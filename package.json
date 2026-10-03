@@ -10,9 +10,8 @@
   "scripts": {
     "start": "node server/local.js",
     "migrate": "node server/scripts/migrate.js",
-    "seed": "node server/scripts/seed.js",
-    "seed:demo": "node server/scripts/seed.js --demo",
-    "reset": "node server/scripts/seed.js --demo --fresh",
+    "seed:demo": "node server/scripts/seed.js",
+    "reset": "node server/scripts/seed.js --fresh",
     "check": "node server/scripts/check.js"
   },
   "dependencies": {

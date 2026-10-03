@@ -1,39 +1,40 @@
 #!/usr/bin/env node
-/* Applies every .sql in migrations/ once, in filename order.
-   Safe to run on every deploy — Railway can call it as a release step. */
-import { readdir, readFile } from 'node:fs/promises';
+/* Applies scripts/schema.sql and then scripts/data.sql.
+
+   There is no ledger and nothing to keep in step: both files are written
+   to be run as often as you like, so this is the same thing as pasting
+   them into the Neon SQL editor, for people who would rather type a
+   command. Each file runs in one transaction — a file that fails leaves
+   the database as it was. */
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool, q } from '../../api/_lib/db.js';
+import { pool } from '../../api/_lib/db.js';
 
-const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scripts');
+const FILES = ['schema.sql', 'data.sql'];
 
 async function main() {
-  await q(`create table if not exists schema_migrations (
-             name text primary key, applied_at timestamptz not null default now())`);
-
-  const files = (await readdir(dir)).filter(f => f.endsWith('.sql')).sort();
-  const done = new Set((await q('select name from schema_migrations')).rows.map(r => r.name));
-
-  let applied = 0;
-  for (const file of files) {
-    if (done.has(file)) { console.log('  · ' + file + ' (already applied)'); continue; }
-    const sql = await readFile(join(dir, file), 'utf8');
+  for (const file of FILES) {
+    const sql = await readFile(join(DIR, file), 'utf8');
     const client = await pool.connect();
     try {
       await client.query('begin');
       await client.query(sql);
-      await client.query('insert into schema_migrations (name) values ($1)', [file]);
       await client.query('commit');
-      console.log('  ✓ ' + file);
-      applied++;
+      console.log('  ✓ scripts/' + file);
     } catch (e) {
-      await client.query('rollback');
-      console.error('  ✗ ' + file + '\n    ' + e.message);
-      process.exit(1);
-    } finally { client.release(); }
+      await client.query('rollback').catch(() => {});
+      console.error('  ✗ scripts/' + file + '\n    ' + e.message);
+      process.exitCode = 1;
+      return;
+    } finally {
+      client.release();
+    }
   }
-  console.log(applied ? applied + ' migration(s) applied.' : 'Database already up to date.');
-  await pool.end();
+  console.log('Schema and catalogue are in place. Register the first administrator\n' +
+              'at /app with the code in scripts/data.sql.');
 }
-main().catch(e => { console.error(e); process.exit(1); });
+
+main().catch(e => { console.error(e); process.exitCode = 1; })
+      .finally(() => pool.end());

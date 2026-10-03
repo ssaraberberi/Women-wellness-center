@@ -20,20 +20,32 @@ thing that ships.
 
 `npm run check` says whether the database is reachable, migrated and seeded.
 
-### The three seed commands
+### Filling the database
 
-`migrate` only builds tables. An empty database has no admin registration
-code, no class types and no plans, so nobody can sign in and the app has
-nothing to show. One of these fills that gap:
+`scripts/` holds two SQL files, and they are the source of truth. Run them in
+the Neon SQL Editor, in psql, or with `npm run migrate`, which applies both.
 
-| | What it writes | Where it belongs |
-|---|---|---|
-| `npm run seed` | the admin code, the class types, the plans — **no accounts** | the real studio. Safe to re-run; it leaves people alone |
-| `npm run seed:demo` | the same, plus the demo studio | a database only you sign in to |
-| `npm run reset` | wipes everything first, then `seed:demo` | starting the demo over |
+| File | What it writes |
+|---|---|
+| `scripts/schema.sql` | every table and index. All `if not exists` |
+| `scripts/data.sql` | the admin registration code, the class types, the plans. **No accounts** |
 
-`seed:demo` and `reset` give every account they create one published
-password. Never point them at a database real clients use.
+Both are written to be run again. `schema.sql` skips what exists, `data.sql`
+upserts its own rows and touches nothing else — so changing a price means
+editing the number in that file and running it again, on a live database,
+without disturbing a single account, class or booking.
+
+Nothing runs them for you. No build step, no deploy hook, no start-up check:
+the database is filled once, by hand, and stays filled.
+
+`npm run seed:demo` is separate and optional — four instructors, a month of
+timetable, clients mid-membership, classes filling up. It needs the catalogue
+to be in place first, and every account it creates shares one password, so
+never give it a database real people sign in to. `npm run reset` wipes and
+re-runs it.
+
+`npm run check` says what is in there and which file to run if something is
+missing.
 
 Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
 
@@ -45,10 +57,10 @@ Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
 | Client | `enke@example.com` | Essential — shows what a plan does *not* include |
 
 The administrator registration code is never sent to the browser. It lives in
-the `settings` table, put there by the seed from `ADMIN_REGISTRATION_CODE`, and
-is compared on the server. Change it before going live — and note that the
-server reads the table, not the variable: changing `ADMIN_REGISTRATION_CODE`
-in Railway does nothing until `npm run seed` runs again and rewrites the row.
+the `settings` table, put there by `scripts/data.sql`, and is compared on the
+server. It is not an environment variable and never was one worth being:
+change the line at the top of `data.sql`, run the file, and the new code is
+live without a deploy.
 
 ## Shape
 
@@ -92,32 +104,25 @@ no server process — `vercel.json` rewrites `/api/*` and `/healthz` into
    connected to this project. Vercel injects `DATABASE_URL` itself. Pick the
    **pooled** connection string if asked: a function is one request at a time,
    and an unpooled one will run the database out of connections.
-2. **Settings → Environment Variables**, for Production:
+2. **No environment variables to add.** `DATABASE_URL` comes from the
+   integration and `NODE_ENV` from Vercel. Do not add `PORT`. The admin
+   registration code is not a variable — it lives in `scripts/data.sql`.
+3. **Fill the database**, once. Open the Neon SQL Editor from Vercel's
+   Storage tab and paste in `scripts/schema.sql`, then `scripts/data.sql`.
+   Change the registration code at the top of `data.sql` first.
 
-       ADMIN_REGISTRATION_CODE  <choose one>
+   With a checkout and the connection string to hand, the same thing is:
 
-   `NODE_ENV` is set by Vercel, and `DATABASE_URL` by the integration.
-   Do not add `PORT`.
-3. **Prepare the database**, once, from a checkout. The scripts are not part
-   of the deployment, so they run from here:
-
-       vercel env pull .env.local      # or paste the Neon URL into .env
        DATABASE_URL="<the pooled URL>" npm run migrate
-       DATABASE_URL="<the pooled URL>" npm run seed
 
-   `seed` writes the admin code, the class types and the plans, and creates
-   no accounts. Re-run it any time; it leaves people alone.
 4. Deploy. Check `/healthz` — `{"ok":true}` means the function reached
    Postgres.
-5. Open `/app`, choose **Register**, enter the code from step 2. That is the
-   first administrator, and nothing else creates one.
+5. Open `/app`, choose **Register**, enter the code you set in `data.sql`.
+   That is the first administrator, and nothing else creates one.
 
-Changing `ADMIN_REGISTRATION_CODE` later is a variable change plus a re-run of
-`npm run seed`: the server reads the code from the `settings` table, not from
-the environment.
-
-If this database is only for you to click around in, `npm run seed:demo` adds
-the demo studio, whose every account shares one published password.
+Nothing in the deployment touches the database. No build step, no migration on
+start — the function connects and reads. Filling it is a thing you do once, by
+hand, and changing what is in it is the same two files run again.
 
 ## Still to do before real money changes hands
 

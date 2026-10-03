@@ -1,7 +1,12 @@
 -- ============================================================
--- DUA — initial schema
--- Postgres 13+ (gen_random_uuid is built in).
--- Written to be run more than once without complaining.
+-- DUA — the schema.  Run this first, once.
+--
+-- Paste it into the Neon SQL Editor, or psql, or run
+-- `npm run migrate`, which applies this file and then data.sql.
+--
+-- Postgres 13+ (gen_random_uuid is built in).  Every statement is
+-- `if not exists`, so running it again changes nothing and is the
+-- normal way to pick up a later addition to the file.
 -- ============================================================
 
 create table if not exists users (
