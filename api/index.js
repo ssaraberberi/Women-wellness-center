@@ -78,6 +78,8 @@ const routes = [
   }],
   ['GET',  /^\/api\/me$/,          ctx => ({ user: ctx.user })],
   ['GET',  /^\/api\/bootstrap$/,   () => api.bootstrap()],
+  /* No session needed: the marketing page asks this before anyone signs in. */
+  ['GET',  /^\/api\/public\/settings$/, () => api.publicSettings()],
   ['GET',  /^\/api\/notices$/,     ctx => api.notices(ctx.user)],
   ['POST', /^\/api\/notices\/read$/, ctx => api.readNotices(ctx.user)],
 
@@ -99,7 +101,10 @@ const routes = [
   ['DELETE', /^\/api\/admin\/classes\/([\w-]+)$/,       ctx => api.deleteClass(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/instructors$/,               async ctx => api.addInstructor(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/instructors\/([\w-]+)$/,   ctx => api.removeInstructor(ctx.user, ctx.m[1])],
-  ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))]
+  ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['PUT',  /^\/api\/admin\/settings$/,                 async ctx => api.setSettings(ctx.user, await body(ctx.req))],
+  ['POST', /^\/api\/admin\/plans$/,                    async ctx => api.savePlan(ctx.user, await body(ctx.req))],
+  ['DELETE', /^\/api\/admin\/plans\/([\w-]+)$/,         ctx => api.archivePlan(ctx.user, ctx.m[1])]
 ];
 
 /* The rewrite in vercel.json hands us the path it matched, because a

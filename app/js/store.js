@@ -89,6 +89,9 @@ export const assignInstructor = act((classId, instructorId) => api.post('/admin/
 export const cancelClass      = act(classId => api.post('/admin/classes/' + classId + '/cancel'));
 export const addInstructor    = act(data => api.post('/admin/instructors', data));
 export const removeInstructor = act(id => api.del('/admin/instructors/' + id));
+export const savePlan         = act(data => api.post('/admin/plans', data));
+export const archivePlan      = act(id => api.del('/admin/plans/' + id));
+export const setShowPrices    = act(on => api.put('/admin/settings', { showPrices: !!on }));
 export const updateMembership = act((id, patch) => api.put('/admin/memberships/' + id, patch));
 export const markNoticesRead  = act(() => api.post('/notices/read'));
 

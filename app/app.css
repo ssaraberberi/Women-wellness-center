@@ -226,6 +226,32 @@ td.right,th.right{text-align:right}
   .auth{grid-template-columns:1fr}
   .auth__art{min-height:230px}
 }
+/* ---------- packages editor ----------
+   One line per thing the package allows: which class types it covers, how
+   many, and over what. Checkboxes rather than a multi-select, because a
+   package covering two types is normal and a multi-select hides that. */
+.pricesw{margin-bottom:22px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:var(--blush-lift)}
+.pricesw .check{margin:0}
+.rowend{display:flex;gap:8px;justify-content:flex-end}
+.check{display:flex;align-items:center;gap:9px;margin:4px 0 2px;font-size:.92rem;cursor:pointer}
+.check input{width:15px;height:15px;accent-color:var(--wine)}
+.err{margin-top:12px;font-size:13px;color:var(--bad)}
+.allow{display:flex;flex-direction:column;gap:10px;margin:10px 0 14px}
+.allow__row{
+  display:grid;grid-template-columns:1fr 92px 108px auto;gap:0 12px;align-items:end;
+  padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--blush-lift);
+}
+.allow__row .field{margin-bottom:0}
+.allow__row>.btn{margin-bottom:1px}
+.allow__types{display:flex;flex-wrap:wrap;gap:6px 14px;padding-bottom:9px}
+.allow__type{display:flex;align-items:center;gap:7px;font-size:.9rem;cursor:pointer}
+.allow__type input{width:15px;height:15px;accent-color:var(--wine)}
+@media (max-width:620px){
+  .allow__row{grid-template-columns:1fr 1fr;gap:0 10px}
+  .allow__types{grid-column:1/3}
+  .allow__row>.btn{grid-column:1/3;margin-top:10px}
+}
+
 @media (max-width:620px){
   .slot{flex-wrap:wrap;gap:8px 12px}
   .slot__who,.slot__cap{width:auto}

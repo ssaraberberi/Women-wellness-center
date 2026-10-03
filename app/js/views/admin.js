@@ -15,6 +15,7 @@ export function renderAdmin(ctx) {
     ['#/', 'Dashboard'],
     ['#/schedule', 'Schedule'],
     ['#/instructors', 'Instructors'],
+    ['#/packages', 'Packages'],
     ['#/memberships', 'Memberships'],
     ['#/clients', 'Clients'],
     ['#/issues', 'Attention', problems.length || null]
@@ -29,6 +30,10 @@ export function renderAdmin(ctx) {
     title = 'Instructors';
     actions = [el('button.btn.btn--sm', { type: 'button', text: 'Add instructor', onclick: () => instructorEditor(ctx) })];
     body = instructorsView(ctx);
+  } else if (route === 'packages') {
+    title = 'Packages'; sub = 'What the studio sells, and what each one lets you book';
+    actions = [el('button.btn.btn--sm', { type: 'button', text: 'Add package', onclick: () => planEditor(ctx, null) })];
+    body = packagesView(ctx);
   } else if (route === 'memberships') { title = 'Memberships'; body = membershipsView(ctx); }
   else if (route === 'clients') { title = 'Clients'; body = clientsView(ctx); }
   else if (route === 'issues') { title = 'Needs attention'; sub = 'Things that were valid when they were set, and are not now'; body = issuesView(ctx, problems); }
@@ -368,6 +373,147 @@ function instructorEditor(ctx) {
     el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
     el('button.btn', { type: 'button', text: 'Add instructor', onclick: () => form.requestSubmit() })
   ]);
+}
+
+/* ---------- packages ---------- */
+function packagesView(ctx) {
+  const { state } = ctx;
+  const plans = state.plans || [];
+
+  /* The switch the website reads. Off is the safe side and the side it
+     starts on, so prices stay in until someone here says otherwise. */
+  const on = !!state.showPrices;
+  const box = el('input', { type: 'checkbox', checked: on, onchange: async e => {
+    const want = e.target.checked;
+    try {
+      await store.setShowPrices(want);
+      toast(want ? 'Prices are on the website now' : 'Prices are hidden on the website');
+    } catch (ex) { e.target.checked = !want; toast(ex.message); }
+  } });
+  const toggle = el('div.pricesw', null, [
+    el('label.check', null, [box, el('span', { text: 'Show prices on the website' })]),
+    el('p.muted', { style: 'font-size:13px;margin-top:4px',
+      text: 'Off, dua-pilates.com lists every package and what it includes, and says the price comes at opening. The app always shows them.' })
+  ]);
+
+  if (!plans.length)
+    return el('div', null, [toggle, el('p.muted', { text: 'No packages yet. Add one and it appears to clients straight away.' })]);
+
+  const line = a => (a.limit == null ? 'Unlimited ' : a.limit + ' × ') +
+    a.types.map(typeName).join(' or ') + ' per ' + a.per;
+
+  return el('div', null, [toggle, el('div.tablewrap', null, el('table', null, [
+    el('thead', null, el('tr', null, [
+      el('th', { text: 'Package' }), el('th.num', { text: 'Price' }),
+      el('th', { text: 'What it allows' }), el('th', { text: 'On it now' }),
+      el('th.right', { text: '' })
+    ])),
+    el('tbody', null, plans.map(p => {
+      const on = (state.memberships || []).filter(m => m.planId === p.id && m.status === 'active').length;
+      return el('tr', null, [
+        el('td', null, [
+          el('b', { text: p.name }),
+          p.featured ? chip('Most popular', 'good') : null,
+          p.blurb ? el('div.muted', { style: 'font-size:13px;margin-top:3px', text: p.blurb }) : null
+        ]),
+        el('td.num', { text: money(p.price) }),
+        el('td.muted', { style: 'font-size:13px', text: p.allowances.map(line).join(' · ') }),
+        el('td.num', { text: String(on) }),
+        el('td.right', null, el('div.rowend', null, [
+          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => planEditor(ctx, p) }),
+          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Retire',
+            onclick: () => retirePlan(ctx, p, on) })
+        ]))
+      ]);
+    }))
+  ]))]);
+}
+
+/* Add and edit are one form: the only difference is whether it starts with
+   a package in it, and whether the id is already spoken for. */
+function planEditor(ctx, plan) {
+  const types = ctx.state.classTypes || [];
+  const rows = el('div.allow');
+
+  function addRow(a) {
+    const picked = a ? a.types : (types[0] ? [types[0].id] : []);
+    const row = el('div.allow__row', null, [
+      el('div.allow__types', null, types.map(t => {
+        const id = 'ty' + Math.random().toString(36).slice(2);
+        return el('label.allow__type', { for: id }, [
+          el('input', { type: 'checkbox', id, value: t.id, checked: picked.includes(t.id) }),
+          el('span', { text: t.name })
+        ]);
+      })),
+      field('Classes', input('limit', {
+        type: 'number', min: '1', step: '1', placeholder: 'no limit',
+        value: a && a.limit != null ? String(a.limit) : ''
+      })),
+      field('Per', select('per', [
+        { value: 'month', label: 'month' }, { value: 'week', label: 'week' }
+      ], a ? a.per : 'month')),
+      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove',
+        onclick: () => { row.remove(); if (!rows.children.length) addRow(null); } })
+    ]);
+    rows.appendChild(row);
+  }
+  (plan && plan.allowances.length ? plan.allowances : [null]).forEach(addRow);
+
+  const err = el('p.err', { hidden: true });
+  const form = el('form', { onsubmit: async e => {
+    e.preventDefault();
+    const f = new FormData(form);
+    const allowances = [...rows.children].map(row => ({
+      types: [...row.querySelectorAll('.allow__types input:checked')].map(i => i.value),
+      limit: row.querySelector('[name=limit]').value,
+      per: row.querySelector('[name=per]').value
+    }));
+    try {
+      await store.savePlan({
+        id: plan ? plan.id : '',
+        name: f.get('name'), price: f.get('price'), blurb: f.get('blurb'),
+        sort: f.get('sort'), featured: form.querySelector('[name=featured]').checked,
+        allowances
+      });
+      closeModal();
+      toast(plan ? 'Package updated' : 'Package added — clients see it now');
+    } catch (ex) { err.hidden = false; err.textContent = ex.message; }
+  } }, [
+    field('Name', input('name', { value: plan ? plan.name : '', required: true, maxlength: '60' })),
+    el('div.row', null, [
+      field('Price', input('price', { type: 'number', min: '0', step: '1', required: true,
+        value: plan ? String(plan.price) : '' }), 'In lek, whole numbers'),
+      field('Order', input('sort', { type: 'number', step: '1', value: plan ? '' : '', placeholder: '0' }),
+        'Lowest first')
+    ]),
+    field('Line underneath', input('blurb', { value: plan && plan.blurb ? plan.blurb : '', maxlength: '120' })),
+    el('label.check', null, [
+      el('input', { type: 'checkbox', name: 'featured', checked: !!(plan && plan.featured) }),
+      el('span', { text: 'Show as the most popular package' })
+    ]),
+    el('p.eyebrow', { style: 'margin-top:22px', text: 'What it allows' }),
+    rows,
+    el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Add a line', onclick: () => addRow(null) }),
+    err
+  ]);
+
+  modal(plan ? 'Edit ' + plan.name : 'New package', form,
+    el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() }));
+}
+
+function retirePlan(ctx, plan, on) {
+  const body = el('div', null, [
+    el('p', { text: on
+      ? on + ' ' + (on === 1 ? 'client is' : 'clients are') + ' on ' + plan.name +
+        ' right now. They keep it until it runs out — retiring only stops anyone new from buying it.'
+      : 'No one is on ' + plan.name + '. It stops being offered.' }),
+    el('p.muted', { style: 'font-size:13px;margin-top:10px',
+      text: 'Nothing is deleted. The package stays on every membership that already names it.' })
+  ]);
+  modal('Retire ' + plan.name, body, el('button.btn', { type: 'button', text: 'Retire it', onclick: async () => {
+    try { await store.archivePlan(plan.id); closeModal(); toast(plan.name + ' retired'); }
+    catch (ex) { closeModal(); toast(ex.message); }
+  } }));
 }
 
 /* ---------- memberships ---------- */

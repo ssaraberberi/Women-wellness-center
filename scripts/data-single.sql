@@ -1,11 +1,11 @@
 -- ============================================================
 -- DUA — the catalogue, as ONE statement.
 --
--- Same contents as data.sql, wrapped in a DO block so it
--- survives a client that allows a single command per request — the
--- Vercel storage query box, Neon's HTTP driver, anything that sends
--- SQL as a prepared statement. If your editor runs several statements
--- happily, use data.sql instead; it reads better.
+-- Same contents as data.sql, wrapped in a DO block so it survives a
+-- client that allows a single command per request — the Vercel storage
+-- query box, Neon's HTTP driver, anything that sends SQL as a prepared
+-- statement. If your editor runs several statements happily, use
+-- data.sql instead; it reads better.
 --
 -- Run this second. Change the registration code before you do.
 -- ============================================================
@@ -21,6 +21,15 @@ begin
   insert into settings (key, value) values
     ('admin_registration_code', 'DUA-MW8J-77DC')
   on conflict (key) do update set value = excluded.value;
+
+
+  -- ─────────────────────────── prices on the website ───────────────────────────
+  -- 'off' and the packages show everything but what they cost. The switch is
+  -- in the app, under Packages, so this line only sets where it starts — and
+  -- `do nothing` means re-running this file never flips it back.
+
+  insert into settings (key, value) values ('show_prices', 'off')
+  on conflict (key) do nothing;
 
 
   -- ─────────────────────────── what the studio does ───────────────────────────

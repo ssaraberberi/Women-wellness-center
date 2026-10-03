@@ -131,6 +131,25 @@ Nothing in the deployment touches the database. No build step, no migration on
 start — the function connects and reads. Filling it is a thing you do once, by
 hand, and changing what is in it is the same two files run again.
 
+## Packages, and whether the website prices them
+
+**Packages** in the admin is the whole of it: add one, edit it, retire it.
+Each package carries lines saying what it allows — which class types, how
+many, per week or per month — and the form replaces them whole, so deleting a
+line deletes the allowance. Retiring never deletes: a membership someone
+already bought still names the package, and the history has to keep saying
+what they bought, so it is archived and stops being offered.
+
+Above that table is the switch the public site reads. With it off,
+dua-pilates.com lists every package and what it includes and says the price
+comes at opening; the app always shows them. `scripts/data.sql` sets it off
+to begin with, with `do nothing`, so re-running the file never flips it back.
+
+Off is the default in the stylesheet, not in the script. A reader with no
+JavaScript, an API that is down, a slow or unexpected answer — every one of
+those leaves the prices in. The only path that shows a price is the one where
+the studio said to.
+
 ## Still to do before real money changes hands
 
 Checkout records a membership without taking a card. Wiring a processor means

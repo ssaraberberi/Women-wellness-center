@@ -573,6 +573,19 @@ fieldset{border:0}
 .btn--block{display:flex;justify-content:center;width:100%}
 .pack--feature .btn{background:var(--blush);color:var(--rose-ink);border-color:var(--blush)}
 
+/* Prices are off until the studio turns them on, and the stylesheet is
+   where that default lives: no class on <html> means no price anywhere,
+   whatever the script does or fails to do. */
+[data-price]{display:none}
+.prices [data-price]{display:revert}
+.prices [data-noprice]{display:none}
+.pack__soon{
+  font-family:var(--display);font-style:italic;
+  font-size:clamp(1.15rem,1.5vw,1.5rem);line-height:1.2;
+  margin-top:clamp(18px,2vw,30px);color:var(--rose-ink);
+}
+.pack--feature .pack__soon{color:var(--rose-soft)}
+
 /* ---------- 16a. Special offers ----------
    Conditions on a package rather than packages, so they are set lighter:
    no ground of their own, only a rule above each one. */

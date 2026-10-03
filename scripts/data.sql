@@ -22,6 +22,15 @@ insert into settings (key, value) values
 on conflict (key) do update set value = excluded.value;
 
 
+-- ─────────────────────────── prices on the website ───────────────────────────
+-- 'off' and the packages show everything but what they cost. The switch is
+-- in the app, under Packages, so this line only sets where it starts — and
+-- `do nothing` means re-running this file never flips it back.
+
+insert into settings (key, value) values ('show_prices', 'off')
+on conflict (key) do nothing;
+
+
 -- ─────────────────────────── what the studio does ───────────────────────────
 -- The studio offers reformer Pilates and the spa.  Nothing in the code
 -- knows these names: add a row here and it appears in the app.

@@ -13,6 +13,8 @@ import { iso, addDays, periodRange, hhmm } from '../../shared/domain.js';
 const bad = (status, message, code) => { const e = new Error(message); e.status = status; e.code = code; throw e; };
 const need = (u, ...roles) => { if (!u) bad(401, 'Sign in first'); if (!roles.includes(u.role)) bad(403, 'Not allowed'); };
 const trim = v => typeof v === 'string' ? v.trim() : v;
+const slug = v => String(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
 function requireFields(body, fields) {
   for (const f of fields) if (!trim(body[f])) bad(400, 'Missing ' + f);
@@ -229,7 +231,8 @@ export async function adminState(user) {
   need(user, 'admin');
   const now = new Date();
   const state = await load.adminState(now);
-  return { ...state, issues: rules.issues(state, now) };
+  const { showPrices } = await publicSettings();
+  return { ...state, issues: rules.issues(state, now), showPrices };
 }
 
 export async function roster(user, classId) {
@@ -239,6 +242,97 @@ export async function roster(user, classId) {
        from bookings b join users u on u.id = b.client_id
       where b.class_id = $1 and b.status in ('booked','waitlist')
       order by case b.status when 'booked' then 0 else 1 end, b.created_at`, [classId]);
+}
+
+/* ---------- what the public site is allowed to know ---------- */
+
+/* The only endpoint that answers without a session. It says one thing, and
+   says it in the safe direction: anything other than 'on' is off, so a
+   missing row, a typo or an unreachable database all keep the prices in. */
+export async function publicSettings() {
+  const row = await one(`select value from settings where key = 'show_prices'`);
+  return { showPrices: !!row && row.value === 'on' };
+}
+
+export async function setSettings(user, body) {
+  need(user, 'admin');
+  if (typeof body.showPrices !== 'boolean') bad(400, 'showPrices is true or false');
+  await q(`insert into settings (key, value) values ('show_prices', $1)
+           on conflict (key) do update set value = excluded.value`,
+          [body.showPrices ? 'on' : 'off']);
+  return { showPrices: body.showPrices };
+}
+
+/* ---------- packages ---------- */
+
+/* One call saves a plan and the whole of what it allows. The allowances are
+   replaced rather than patched: the form shows every row, so what comes back
+   is the complete answer, and a row the studio deleted has to disappear. */
+export async function savePlan(user, body) {
+  need(user, 'admin');
+  requireFields(body, ['name']);
+
+  const price = Number(body.price);
+  if (!Number.isInteger(price) || price < 0) bad(400, 'Price must be a whole number of lek', 'price');
+
+  const allowances = Array.isArray(body.allowances) ? body.allowances : [];
+  if (!allowances.length) bad(400, 'A package has to allow something', 'allowances');
+
+  const types = (await many('select id from class_types')).map(r => r.id);
+  for (const a of allowances) {
+    if (!Array.isArray(a.types) || !a.types.length) bad(400, 'Every line needs at least one class type', 'allowances');
+    for (const t of a.types) if (!types.includes(t)) bad(400, 'No such class type: ' + t, 'allowances');
+    if (!['week', 'month'].includes(a.per)) bad(400, 'A line counts per week or per month', 'allowances');
+    if (a.limit !== null && a.limit !== undefined && a.limit !== '') {
+      const n = Number(a.limit);
+      if (!Number.isInteger(n) || n < 1) bad(400, 'A limit is a whole number of classes, or blank for no limit', 'allowances');
+    }
+  }
+
+  /* An id the studio never sees: made from the name the first time, kept
+     afterwards, so a rename cannot orphan the memberships pointing at it. */
+  const id = trim(body.id) || slug(body.name);
+  if (!id) bad(400, 'That name has no letters or digits in it', 'name');
+
+  return tx(async c => {
+    if (!trim(body.id)) {
+      const clash = await c.query('select 1 from plans where id = $1', [id]);
+      if (clash.rowCount) bad(409, 'A package with that name already exists', 'name');
+    }
+    await c.query(
+      `insert into plans (id, name, price_all, blurb, featured, sort, archived)
+       values ($1,$2,$3,$4,$5,$6,false)
+       on conflict (id) do update set name = excluded.name, price_all = excluded.price_all,
+         blurb = excluded.blurb, featured = excluded.featured, sort = excluded.sort,
+         archived = false`,
+      [id, trim(body.name), price, trim(body.blurb) || null, !!body.featured, Number(body.sort) || 0]);
+
+    /* Only one package can be the one we point at. */
+    if (body.featured) await c.query('update plans set featured = false where id <> $1', [id]);
+
+    await c.query('delete from plan_allowances where plan_id = $1', [id]);
+    let n = 0;
+    for (const a of allowances)
+      await c.query(
+        `insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort)
+         values ($1,$2,$3,$4,$5)`,
+        [id, a.types, a.limit === '' || a.limit === null || a.limit === undefined ? null : Number(a.limit), a.per, n++]);
+
+    return { id };
+  });
+}
+
+/* Archived, never deleted: a membership someone already bought points at it,
+   and the history has to keep saying what they bought. */
+export async function archivePlan(user, id) {
+  need(user, 'admin');
+  const plan = await one('select id, name from plans where id = $1 and not archived', [id]);
+  if (!plan) bad(404, 'No such package');
+  const live = await one(
+    `select count(*)::int as n from memberships
+      where plan_id = $1 and status = 'active' and ends_on >= current_date`, [id]);
+  await q('update plans set archived = true, featured = false where id = $1', [id]);
+  return { ok: true, stillOn: live.n };
 }
 
 export async function addInstructor(user, body) {
