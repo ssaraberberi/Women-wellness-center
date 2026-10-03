@@ -230,6 +230,7 @@ td.right,th.right{text-align:right}
    One line per thing the package allows: which class types it covers, how
    many, and over what. Checkboxes rather than a multi-select, because a
    package covering two types is normal and a multi-select hides that. */
+.plan--on .btn[disabled]{background:rgba(255,251,234,.16);border-color:rgba(255,251,234,.4);color:var(--blush);opacity:1}
 .plan__price--soon{font-family:var(--display);font-style:italic;font-size:1.15rem;color:var(--wine)}
 /* The application queue, and the client's side of the same wait. */
 .queue{margin-bottom:24px;padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:var(--blush-lift)}
@@ -249,6 +250,20 @@ td.right,th.right{text-align:right}
 .steps__title{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--wine);margin-bottom:10px}
 .steps ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
 .steps li{font-size:.93rem;line-height:1.6;color:var(--ink-soft)}
+/* The language pair. Two words, always both visible, so nobody has to
+   guess which one is hiding. */
+.lang{display:inline-flex;gap:2px;margin:14px 0 12px;border:1px solid var(--line);border-radius:99px;padding:2px;background:var(--blush-lift)}
+.lang__btn{
+  border:0;background:none;cursor:pointer;border-radius:99px;padding:5px 12px;
+  font:inherit;font-size:11px;letter-spacing:.1em;color:var(--ink-soft);
+}
+.lang__btn.is-on{background:var(--wine);color:var(--blush)}
+.side .lang{background:rgba(255,251,234,.07);border-color:rgba(255,251,234,.18)}
+.side .lang__btn{color:rgba(255,251,234,.6)}
+.side .lang__btn.is-on{background:var(--blush);color:var(--wine)}
+.auth__art .lang{background:rgba(255,251,234,.1);border-color:rgba(255,251,234,.25)}
+.auth__art .lang__btn{color:rgba(255,251,234,.7)}
+.auth__art .lang__btn.is-on{background:var(--blush);color:var(--wine)}
 .pricesw{margin-bottom:22px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:var(--blush-lift)}
 .pricesw .check{margin:0}
 .rowend{display:flex;gap:8px;justify-content:flex-end}

@@ -4,7 +4,7 @@
    so no screen can drift from what was actually recorded.
    ============================================================ */
 import * as store from './store.js';
-import { clear, el, closeModal } from './ui.js';
+import { clear, el, closeModal, onLang } from './ui.js';
 import { renderAuth } from './views/auth.js';
 import { renderClient } from './views/client.js';
 import { renderInstructor } from './views/instructor.js';
@@ -49,5 +49,8 @@ function render() {
 
 window.addEventListener('hashchange', () => { closeModal(); render(); });
 store.subscribe(render);
+/* Switching language rebuilds every screen from the same state: nothing is
+   translated in place, so there is no half-English screen to get stuck in. */
+onLang(() => { closeModal(); render(); });
 render();
 store.boot();

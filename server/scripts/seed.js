@@ -60,9 +60,9 @@ const TIMETABLE = [
 ];
 
 const NAMED = [
-  ['Sara Berberi', 'sara@example.com', 'signature'],
-  ['Enkelejda Gjoka', 'enke@example.com', 'essential'],
-  ['Kejsi Dervishi', 'kejsi@example.com', 'unlimited'],
+  ['Sara Berberi', 'sara@example.com', 'routine'],
+  ['Enkelejda Gjoka', 'enke@example.com', 'start'],
+  ['Kejsi Dervishi', 'kejsi@example.com', 'obsessed'],
   ['Ana Përmeti', 'anap@example.com', null]          // membership already expired
 ];
 const FILLER = ['Arta','Blerta','Denisa','Elona','Fjolla','Greta','Ilda','Jorida','Klea','Lira',
@@ -133,7 +133,7 @@ async function main() {
                       [id, plan, iso(addDays(today, -12)), iso(addDays(today, 18))]);
       else
         await c.query(`insert into memberships (client_id, plan_id, starts_on, ends_on, status)
-                       values ($1,'essential',$2,$3,'cancelled')`,
+                       values ($1,'start',$2,$3,'cancelled')`,
                       [id, iso(addDays(today, -45)), iso(addDays(today, -15))]);
     }
 
@@ -143,7 +143,7 @@ async function main() {
       fillerIds.push(id);
       await c.query(`insert into memberships (client_id, plan_id, starts_on, ends_on, status)
                      values ($1,$2,$3,$4,'active')`,
-                    [id, i % 3 === 0 ? 'unlimited' : i % 3 === 1 ? 'signature' : 'essential',
+                    [id, i % 3 === 0 ? 'obsessed' : i % 3 === 1 ? 'routine' : 'start',
                      iso(addDays(today, -10)), iso(addDays(today, 20))]);
     }
 

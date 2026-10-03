@@ -1,7 +1,8 @@
 /* Sign in, client registration, and the gated administrator route.
    The admin code is checked by the server; this form only carries it. */
-import { el, field, input, toast } from '../ui.js';
+import { el, field, input, toast, t } from '../ui.js';
 import * as store from '../store.js';
+import { langToggle } from './shell.js';
 
 export function renderAuth({ go }) {
   let tab = 'in';
@@ -85,7 +86,8 @@ export function renderAuth({ go }) {
   return el('div.auth', null, [
     el('div.auth__art', null, [
       el('span.auth__logo', { role: 'img', 'aria-label': 'DUA Pilates and Spa', text: 'dua' }),
-      el('h2', { html: 'Because <em>I want to.</em>' })
+      el('h2', { html: 'Because <em>I want to.</em>' }),
+      langToggle()
     ]),
     el('div.auth__form', null, [
       el('p.eyebrow', { text: 'Studio account' }),

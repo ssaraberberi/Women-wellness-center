@@ -173,6 +173,57 @@ The screens say all of this in their own words: three numbered steps in the
 client's dialog before she applies, and the line in the studio's queue that
 matters most — confirm only once she has paid, because nothing else checks.
 
+## Albanian and English
+
+`app/js/i18n.js` holds the dictionary; `el()` in `ui.js` sends every `text`
+and every `aria-label`, `placeholder` and `title` through `t()` on the way
+into the DOM. A view writes English and the reader's language comes out. A
+string with no entry comes through unchanged, which is how a name, a number
+or a line nobody has translated yet survives rather than breaking.
+
+Sentences with a value in them use `t('Apply for %s', name)` — never
+concatenation around `t()`, because word order is not the same in both.
+A translation may reorder with `%1 %2 %3`: the date is built that way, since
+Albanian puts the day before the month.
+
+Switching language re-renders every screen from the same state rather than
+translating in place, so there is no half-English screen to get stuck in. The
+choice is kept in `localStorage` and the pair of words sits in the sidebar and
+on the sign-in screen, both always visible.
+
+Albanian is the default, as it is on the website.
+
+Two kinds of string live outside the views and are translated the same way:
+the package blurbs, which are written in `scripts/data.sql`, and the notices
+the server composes. Change one there and add its pair to the dictionary.
+
+## What protects an account
+
+- **Guessing is rate limited.** Failed sign-ins are counted per address and
+  per caller over a rolling fifteen minutes, in `signin_failures`. Eight wrong
+  guesses at one address, or twenty from one caller, and the answer is 429 for
+  both — the right password included. A success clears that address. Both
+  limits are needed: one address attacked from everywhere and one caller
+  working through a list are the same attack from two sides.
+- **A wrong address costs the same as a right one.** Signing in with an
+  address that has no account used to return at once while a real one took the
+  time scrypt takes, which told anyone with a stopwatch which addresses exist.
+  It now burns the same work on a throwaway hash; measured, the difference is
+  single-digit milliseconds against scrypt's fifty.
+- **Writes must come from here.** Any non-GET request whose `Origin` is not
+  this host is refused before it reaches a handler, behind the
+  `SameSite=Lax` cookie rather than instead of it.
+- **Headers.** `vercel.json` sends a content security policy that keeps
+  scripts, styles, images, fonts and connections to this origin, plus
+  `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `base-uri 'none'` and a
+  permissions policy switching off camera, microphone, location and payment.
+- Passwords are scrypt with a per-password salt; sessions are opaque random
+  tokens stored as SHA-256 digests, in `HttpOnly` cookies marked `Secure` in
+  production. A copy of the table is not a copy of anyone's session.
+
+Still missing, and worth knowing: there is no password reset. If the
+administrator forgets hers, the way back is SQL.
+
 ## Still to do before real money changes hands
 
 Payment happens at the studio and an administrator records it by confirming

@@ -1,6 +1,5 @@
 /* The client side: simple, visual, and never showing the arithmetic. */
-import { el, frag, chip, dot, modal, closeModal, toast, meter, money,
-         typeName, typeShort, range, niceDate, relDay, shortDate, startsAt } from '../ui.js';
+import { el, frag, chip, dot, modal, closeModal, toast, meter, money, typeName, typeShort, range, niceDate, relDay, shortDate, startsAt, t, tw } from '../ui.js';
 import * as store from '../store.js';
 import { iso, addDays } from '../../../shared/domain.js';
 import { balances, canBook, canCancel, cancelDeadline, spots, membershipOf, isExpired,
@@ -20,10 +19,10 @@ export function renderClient(ctx) {
   ];
 
   let title = 'Today', sub = '', body;
-  if (route === 'calendar') { title = 'Book a class'; sub = 'The next ' + BOOKING_HORIZON_DAYS + ' days'; body = calendar(ctx, m, expired); }
+  if (route === 'calendar') { title = 'Book a class'; sub = t('The next %s days', BOOKING_HORIZON_DAYS); body = calendar(ctx, m, expired); }
   else if (route === 'mine') { title = 'My classes'; body = mine(ctx); }
   else if (route === 'memberships') { title = 'Membership'; sub = 'Choose what fits your week'; body = memberships(ctx, m, expired); }
-  else { sub = relDay(iso(now), now) + ' at DUA'; body = home(ctx, m, expired); }
+  else { sub = t('%s at DUA', relDay(iso(now), now)); body = home(ctx, m, expired); }
 
   return shell({ user, route, nav, title, sub, body, notices: state.notices });
 }
@@ -60,7 +59,7 @@ function membershipCard(ctx, m, expired) {
         el('div', { style: 'display:flex;justify-content:space-between;gap:12px;font-size:14px' }, [
           el('span', { text: b.label }),
           el('b', { style: 'font-weight:400', class: 'num',
-            text: b.unlimited ? 'Unlimited' : b.left + ' left this ' + b.per })
+            text: b.unlimited ? t('Unlimited') : t('%s left this %s', b.left, tw(b.per)) })
         ]),
         b.unlimited ? null : meter(b.used, b.allowance.limit)
       ]))),
@@ -166,8 +165,8 @@ function confirmCancel(ctx, booking, s) {
     el('p', { text: typeName(s.typeId) + ' · ' + niceDate(s.date) + ' · ' + range(s) }),
     el('div', { class: 'notice ' + (cc.ok ? 'notice--good' : 'notice--warn'), style: 'margin-top:14px',
       text: cc.ok
-        ? 'Free cancellation until ' + hh + '. Your session goes straight back to your balance.'
-        : 'The ' + hh + ' deadline has passed. This class will still count against your membership.' })
+        ? t('Free cancellation until %s. Your session goes straight back to your balance.', hh)
+        : t('The %s deadline has passed. This class will still count against your membership.', hh) })
   ]), [
     el('button.btn.btn--ghost', { type: 'button', text: 'Keep it', onclick: closeModal }),
     el('button.btn', { type: 'button', text: cc.ok ? 'Cancel class' : 'Cancel anyway', onclick: async e => {
@@ -251,9 +250,8 @@ function memberships(ctx, m, expired) {
   return frag([
     pending ? el('div.pending', null, [
       el('p.pending__title', { text: 'Waiting for the studio' }),
-      el('p', { text: 'You applied for ' + (pendingPlan ? pendingPlan.name : 'a package') +
-        '. Pay at the studio and we will confirm it — it becomes active for thirty days from the day we do, ' +
-        'and your calendar opens then. Nothing has been charged here.' })
+      el('p', { text: t('You applied for %s. Pay at the studio and we will confirm it — it becomes active for thirty days from the day we do, and your calendar opens then. Nothing has been charged here.',
+        pendingPlan ? pendingPlan.name : t('a package')) })
     ]) : null,
 
     el('div.plans', null, PLANS.map(p => el('div', { class: 'plan' + (p.id === current ? ' plan--on' : '') }, [
@@ -262,8 +260,8 @@ function memberships(ctx, m, expired) {
       el('p.plan__price' + (p.price == null ? '.plan__price--soon' : ''), { text: priceText(p) }),
       el('p.muted', { style: 'font-size:13px', text: p.blurb }),
       el('ul', null, p.allowances.map(a => el('li', {
-        text: (a.limit == null ? 'Unlimited ' : a.limit + ' ') +
-              a.types.map(typeShort).join(' + ') + (a.limit == null ? '' : ' a ' + a.per)
+        text: a.limit == null ? t('Unlimited %s', a.types.map(typeShort).join(' + '))
+                             : t('%s %s a %s', a.limit, a.types.map(typeShort).join(' + '), tw(a.per))
       }))),
       p.id === current
         ? el('button.btn.btn--sm', { type: 'button', disabled: true, text: 'Current plan' })
@@ -271,7 +269,7 @@ function memberships(ctx, m, expired) {
           ? el('button.btn.btn--sm.btn--ghost', { type: 'button', disabled: true,
               text: pending.planId === p.id ? 'Waiting for the studio' : 'Applied for another' })
           : el('button.btn.btn--sm' + (p.featured ? '' : '.btn--ghost'), { type: 'button',
-              text: 'Apply for ' + p.name, onclick: () => applyFor(ctx, p) })
+              text: t('Apply for %s', p.name), onclick: () => applyFor(ctx, p) })
     ]))),
     el('p.muted', { style: 'margin-top:18px;font-size:13px',
       text: 'You apply here and pay at the studio. We confirm it there, and it runs for thirty days from that day.' })

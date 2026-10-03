@@ -133,6 +133,18 @@ create table if not exists auth_tokens (
 );
 create index if not exists auth_tokens_user on auth_tokens (user_id);
 
+-- Failed sign-ins, so a password cannot be guessed at machine speed.
+-- Rows older than the window are deleted as they are counted, which is
+-- why this needs no sweeper of its own.
+create table if not exists signin_failures (
+  id         bigserial primary key,
+  email      text not null,
+  ip         text,
+  at         timestamptz not null default now()
+);
+create index if not exists signin_failures_email on signin_failures (lower(email), at desc);
+create index if not exists signin_failures_ip on signin_failures (ip, at desc);
+
 -- Settings that must not live in client code. The admin registration
 -- code is one row here, read only by the server.
 create table if not exists settings (

@@ -1,7 +1,6 @@
 /* The studio's own side: dense, and built to answer "who is in the
    16:00 and who can teach it" without leaving the page. */
-import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money,
-         typeName, typeShort, range, niceDate, relDay, shortDate, startsAt } from '../ui.js';
+import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money, typeName, typeShort, range, niceDate, relDay, shortDate, startsAt, t, tw } from '../ui.js';
 import * as store from '../store.js';
 import { iso, addDays, startOfWeek, minutes } from '../../../shared/domain.js';
 import { spots, suggestInstructors, instructorFit,
@@ -63,12 +62,12 @@ function dashboard(ctx, problems) {
       tile(String(state.clients.length), 'Clients'),
       tile(String(activeMems.length), 'Active memberships'),
       tile(String(state.instructors.filter(i => i.active).length), 'Instructors'),
-      tile(String(todays.length), "Today's classes", seatsToday + ' of ' + capToday + ' seats booked'),
+      tile(String(todays.length), "Today's classes", t('%s of %s seats booked', seatsToday, capToday)),
       tile(String(upcoming.length), 'Next 7 days'),
       tile(String(cancelled), 'Cancelled bookings')
     ]),
     problems.length ? el('div', { class: 'notice notice--warn', style: 'margin-top:18px' }, [
-      el('span', { text: problems.length + ' class' + (problems.length > 1 ? 'es need' : ' needs') + ' attention' }),
+      el('span', { text: t(problems.length > 1 ? '%s classes need attention' : '%s class needs attention', problems.length) }),
       el('a.linkish', { href: '#/issues', style: 'margin-left:auto', text: 'Review' })
     ]) : null,
     el('h2.display', { style: 'font-size:1.25rem;margin:26px 0 12px', text: "Today's classes" }),
@@ -127,7 +126,7 @@ function scheduleView(ctx) {
   if (schedMode === 'day') {
     const list = state.classes.filter(s => s.date === schedAnchor).sort((a, b) => a.start.localeCompare(b.start));
     grid = el('div.grid', null, list.length ? list.map(s => adminSlot(ctx, s))
-      : [el('p.muted', { text: 'Nothing on ' + niceDate(schedAnchor) })]);
+      : [el('p.muted', { text: t('Nothing on %s', niceDate(schedAnchor)) })]);
   } else {
     const weeks = schedMode === 'week' ? 1 : 4;
     const from = startOfWeek(anchor);
@@ -146,7 +145,7 @@ function scheduleView(ctx) {
               onclick: () => classEditor(ctx, s)
             }, [
               el('b', { text: s.start + ' ' + typeShort(s.typeId) }),
-              el('span', { text: (i ? i.name.split(' ')[0] : '⚠ unassigned') + ' · ' + cap.taken + '/' + cap.capacity })
+              el('span', { text: (i ? i.name.split(' ')[0] : t('⚠ unassigned')) + ' · ' + cap.taken + '/' + cap.capacity })
             ]);
           })
         ]);
@@ -162,7 +161,7 @@ async function rosterDialog(ctx, s) {
   const waiting = rows.filter(r => r.status === 'waitlist');
 
   modal(typeName(s.typeId) + ' · ' + range(s), el('div', null, [
-    el('p.muted', { text: niceDate(s.date) + ' · ' + booked.length + ' of ' + s.capacity + ' booked' }),
+    el('p.muted', { text: niceDate(s.date) + ' · ' + t('%s of %s booked', booked.length, s.capacity) }),
     el('div.tablewrap', { style: 'margin-top:14px' }, el('table', null, [
       el('thead', null, el('tr', null, [el('th', { text: 'Client' }), el('th.right', { text: 'Status' })])),
       el('tbody', null, booked.length
@@ -189,7 +188,7 @@ function assignDialog(ctx, s) {
   const list = who => el('div.sugg', null, who.map(r =>
     el('button', { type: 'button', disabled: r.status !== 'recommended', onclick: async ev => {
       ev.currentTarget.disabled = true;
-      try { await store.assignInstructor(s.id, r.instructor.id); closeModal(); toast(r.instructor.name + ' assigned'); }
+      try { await store.assignInstructor(s.id, r.instructor.id); closeModal(); toast(t('%s assigned', r.instructor.name)); }
       catch (ex) { closeModal(); toast(ex.message); }
     } }, [
       dot(s.typeId),
@@ -237,10 +236,10 @@ function classEditor(ctx, s) {
     if (data.instructorId) {
       const i = state.instructors.find(x => x.id === data.instructorId);
       const fit = instructorFit(state, i, { ...data, id: s ? s.id : 'new', cancelled: false });
-      if (fit.status !== 'recommended') { err.textContent = i.name + ' — ' + fit.why.toLowerCase(); err.hidden = false; return; }
+      if (fit.status !== 'recommended') { err.textContent = t('%s — %s', i.name, t(fit.why).toLowerCase()); err.hidden = false; return; }
     }
     const booked = s ? spots(state, s).taken : 0;
-    if (data.capacity < booked) { err.textContent = booked + ' people are already booked; capacity cannot go below that'; err.hidden = false; return; }
+    if (data.capacity < booked) { err.textContent = t('%s people are already booked; capacity cannot go below that', booked); err.hidden = false; return; }
     try { await store.saveClass(data); closeModal(); toast(editing ? 'Class updated' : 'Class added'); }
     catch (ex) { err.textContent = ex.message; err.hidden = false; }
   } }, [
@@ -266,7 +265,7 @@ function classEditor(ctx, s) {
         try {
           const r = await store.cancelClass(s.id);
           closeModal();
-          toast(r.affected ? 'Class cancelled — ' + r.affected + ' client' + (r.affected > 1 ? 's' : '') + ' notified and refunded'
+          toast(r.affected ? t(r.affected > 1 ? 'Class cancelled — %s clients notified and refunded' : 'Class cancelled — %s client notified and refunded', r.affected)
                            : 'Class cancelled');
         } catch (ex) { closeModal(); toast(ex.message); }
       } }) : null,
@@ -308,10 +307,10 @@ function instructorsView(ctx) {
 }
 
 function removeDialog(ctx, i, upcoming) {
-  modal('Remove ' + i.name + '?', el('div', null, [
+  modal(t('Remove %s?', i.name), el('div', null, [
     el('p', { text: 'They lose access to the instructor dashboard straight away.' }),
     upcoming ? el('div', { class: 'notice notice--warn', style: 'margin-top:14px',
-      text: upcoming + ' upcoming class' + (upcoming > 1 ? 'es' : '') + ' will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.' }) : null
+      text: t(upcoming > 1 ? '%s upcoming classes will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.' : '%s upcoming class will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.', upcoming) }) : null
   ]), [
     el('button.btn.btn--ghost', { type: 'button', text: 'Keep', onclick: closeModal }),
     el('button.btn', { type: 'button', text: 'Remove instructor', onclick: async ev => {
@@ -319,7 +318,7 @@ function removeDialog(ctx, i, upcoming) {
       try {
         const r = await store.removeInstructor(i.id);
         closeModal();
-        toast(r.orphaned ? 'Removed — ' + r.orphaned + ' class' + (r.orphaned > 1 ? 'es' : '') + ' now need an instructor' : 'Removed');
+        toast(r.orphaned ? t(r.orphaned > 1 ? 'Removed — %s classes now need an instructor' : 'Removed — %s class now needs an instructor', r.orphaned) : t('Removed'));
       } catch (ex) { closeModal(); toast(ex.message); }
     } })
   ]);
@@ -399,8 +398,9 @@ function packagesView(ctx) {
   if (!plans.length)
     return el('div', null, [toggle, el('p.muted', { text: 'No packages yet. Add one and it appears to clients straight away.' })]);
 
-  const line = a => (a.limit == null ? 'Unlimited ' : a.limit + ' × ') +
-    a.types.map(typeName).join(' or ') + ' per ' + a.per;
+  const line = a => a.limit == null
+    ? t('Unlimited %s per %s', a.types.map(typeName).join(t(' or ')), tw(a.per))
+    : t('%s × %s per %s', a.limit, a.types.map(typeName).join(t(' or ')), tw(a.per));
 
   return el('div', null, [toggle, el('div.tablewrap', null, el('table', null, [
     el('thead', null, el('tr', null, [
@@ -497,21 +497,21 @@ function planEditor(ctx, plan) {
     err
   ]);
 
-  modal(plan ? 'Edit ' + plan.name : 'New package', form,
+  modal(plan ? t('Edit %s', plan.name) : t('New package'), form,
     el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() }));
 }
 
 function retirePlan(ctx, plan, on) {
   const body = el('div', null, [
     el('p', { text: on
-      ? on + ' ' + (on === 1 ? 'client is' : 'clients are') + ' on ' + plan.name +
-        ' right now. They keep it until it runs out — retiring only stops anyone new from buying it.'
-      : 'No one is on ' + plan.name + '. It stops being offered.' }),
+      ? t(on === 1 ? '%s client is on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.'
+                   : '%s clients are on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.', on, plan.name)
+      : t('No one is on %s. It stops being offered.', plan.name) }),
     el('p.muted', { style: 'font-size:13px;margin-top:10px',
       text: 'Nothing is deleted. The package stays on every membership that already names it.' })
   ]);
   modal('Retire ' + plan.name, body, el('button.btn', { type: 'button', text: 'Retire it', onclick: async () => {
-    try { await store.archivePlan(plan.id); closeModal(); toast(plan.name + ' retired'); }
+    try { await store.archivePlan(plan.id); closeModal(); toast(t('%s retired', plan.name)); }
     catch (ex) { closeModal(); toast(ex.message); }
   } }));
 }
@@ -537,7 +537,7 @@ function membershipsView(ctx) {
         el('div', null, [
           el('b', { text: c ? c.name : 'Unknown client' }),
           el('div.muted', { style: 'font-size:13px',
-            text: (plan ? plan.name : m.planId) + ' · asked ' + shortDate(m.start) })
+            text: (plan ? plan.name : m.planId) + ' · ' + t('asked %s', shortDate(m.start)) })
         ]),
         el('div.rowend', null, [
           el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Not paid',
@@ -581,19 +581,17 @@ function decideMembership(ctx, m, c, plan, paid) {
   const what = plan ? plan.name : 'the package';
   const body = el('div', null, [
     el('p', { text: paid
-      ? who + ' has paid for ' + what + ' at the studio. Confirming makes it active for thirty days from today, '
-        + 'and opens her calendar straight away.'
-      : who + ' has not paid for ' + what + '. The application is closed and she is told to ask at the studio. '
-        + 'She can apply again afterwards.' }),
+      ? t('%s has paid for %s at the studio. Confirming makes it active for thirty days from today, and opens her calendar straight away.', who, what)
+      : t('%s has not paid for %s. The application is closed and she is told to ask at the studio. She can apply again afterwards.', who, what) }),
     paid ? el('p.muted', { style: 'font-size:13px;margin-top:10px',
       text: 'Do not confirm before the money is in. This is the only step that checks it.' }) : null
   ]);
-  modal(paid ? 'Confirm ' + what : 'Close the application', body,
+  modal(paid ? t('Confirm %s', what) : t('Close the application'), body,
     el('button.btn', { type: 'button', text: paid ? 'She has paid — confirm' : 'Close it', onclick: async () => {
       try {
         await (paid ? store.confirmMembership(m.id) : store.declineMembership(m.id));
         closeModal();
-        toast(paid ? what + ' is active for ' + who : 'Application closed');
+        toast(paid ? t('%s is active for %s', what, who) : t('Application closed'));
       } catch (ex) { closeModal(); toast(ex.message); }
     } }));
 }
@@ -619,7 +617,7 @@ function membershipEditor(ctx, m, c) {
     el('p.muted', { style: 'font-size:13px', text: 'Extending the date or changing the plan takes effect immediately, including for classes already booked.' })
   ]);
 
-  modal('Adjust ' + (c ? c.name : 'membership'), form, [
+  modal(t('Adjust %s', c ? c.name : t('membership')), form, [
     el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
     el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() })
   ]);

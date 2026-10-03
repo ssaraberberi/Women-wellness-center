@@ -5,7 +5,8 @@
    says is trusted: each write re-reaches the decision here.
    ============================================================ */
 import { q, one, many, tx } from './db.js';
-import { hashPassword, verifyPassword, issueToken, revokeToken, adminCode } from './auth.js';
+import { hashPassword, verifyPassword, issueToken, revokeToken, adminCode,
+         burnPasswordTime, signinBlocked, recordSigninFailure, clearSigninFailures } from './auth.js';
 import * as load from './load.js';
 import * as rules from '../../shared/rules.js';
 import { iso, addDays, periodRange, hhmm } from '../../shared/domain.js';
@@ -44,15 +45,29 @@ export async function register(body) {
   return { user, ...(await issueToken(user.id)) };
 }
 
-export async function login(body) {
+export async function login(body, meta) {
   requireFields(body, ['email', 'password']);
+  const ip = meta && meta.ip;
+
+  if (await signinBlocked(body.email, ip))
+    bad(429, 'Too many attempts. Wait a few minutes and try again.', 'throttled');
+
   const row = await one(
     'select id, role, name, email, phone, password_hash, active from users where lower(email) = lower($1)',
     [body.email]);
-  /* Same message either way: whether an email has an account is not
-     something an unauthenticated caller gets to probe for. */
-  if (!row || !(await verifyPassword(body.password, row.password_hash))) bad(401, 'Email or password is wrong');
+
+  /* Same message either way, and the same work either way: whether an
+     address has an account is not something an unauthenticated caller
+     gets to probe for, by reading the answer or by timing it. */
+  const ok = row ? await verifyPassword(body.password, row.password_hash)
+                 : await burnPasswordTime(body.password);
+  if (!row || !ok) {
+    await recordSigninFailure(body.email, ip);
+    bad(401, 'Email or password is wrong');
+  }
   if (!row.active) bad(403, 'This account has been removed');
+
+  await clearSigninFailures(body.email);
   const { password_hash, active, ...user } = row;
   return { user, ...(await issueToken(row.id)) };
 }

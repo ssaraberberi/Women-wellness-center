@@ -3,6 +3,8 @@
    No framework: el() builds nodes, and the views compose them.
    ============================================================ */
 import { at, iso, addDays } from '../../shared/domain.js';
+import { t, tw } from './i18n.js';
+export { t, tw, setLang, getLang, onLang } from './i18n.js';
 
 /* The class types come from the server at boot; the helpers below read
    whatever was last handed over rather than a hard-coded list. */
@@ -17,16 +19,20 @@ export function el(tag, props, kids) {
     const v = props[k];
     if (v == null || v === false) return;
     if (k === 'class') node.className = (node.className ? node.className + ' ' : '') + v;
-    else if (k === 'text') node.textContent = v;
+    /* The one place every visible word passes through. A view writes
+       English; what lands in the DOM is the reader's language. */
+    else if (k === 'text') node.textContent = t(v);
     else if (k === 'html') node.innerHTML = v;
     else if (k.slice(0, 2) === 'on') node.addEventListener(k.slice(2), v);
     else if (k === 'disabled' || k === 'checked' || k === 'hidden' || k === 'selected') node[k] = !!v;
     else if (k === 'value') node.value = v;
+    else if (k === 'aria-label' || k === 'placeholder' || k === 'title') node.setAttribute(k, t(v));
     else node.setAttribute(k, v);
   });
   (Array.isArray(kids) ? kids : kids != null ? [kids] : []).forEach(k => {
     if (k == null || k === false) return;
-    node.appendChild(typeof k === 'string' || typeof k === 'number' ? document.createTextNode(String(k)) : k);
+    node.appendChild(typeof k === 'string' ? document.createTextNode(t(k))
+                   : typeof k === 'number' ? document.createTextNode(String(k)) : k);
   });
   return node;
 }
@@ -41,22 +47,24 @@ export const typeName = id => (CATALOGUE.find(t => t.id === id) || {}).name || i
 export const typeShort = id => (CATALOGUE.find(t => t.id === id) || {}).short || id;
 export const range = s => s.start + '–' + s.end;
 
+/* Dates are built from translated parts rather than from Intl, so the
+   weekday and the month read the same here as everywhere else in the app. */
 export function niceDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return WD[d.getDay()] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate();
+  return t('%s, %s %s', t(WD[d.getDay()]), t(MONTHS[d.getMonth()]), d.getDate());
 }
 export function shortDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  return WD[d.getDay()].slice(0, 3) + ' ' + d.getDate();
+  return t(WD[d.getDay()].slice(0, 3)) + ' ' + d.getDate();
 }
 export function relDay(dateStr, now) {
-  const t = iso(now);
-  if (dateStr === t) return 'Today';
-  if (dateStr === iso(addDays(now, 1))) return 'Tomorrow';
+  if (dateStr === iso(now)) return t('Today');
+  if (dateStr === iso(addDays(now, 1))) return t('Tomorrow');
   return niceDate(dateStr);
 }
 export const hhmm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 export const money = n => new Intl.NumberFormat('en-GB').format(n) + ' ALL';
+export const dayShort = key => t(key.charAt(0).toUpperCase() + key.slice(1));
 
 /* ---------- modal ---------- */
 let openScrim = null;

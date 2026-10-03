@@ -22,6 +22,37 @@ export async function verifyPassword(plain, stored) {
   return key.length === want.length && timingSafeEqual(key, want);
 }
 
+/* An address with no account used to come back instantly while a real one
+   took the time scrypt takes, which told anyone watching the clock which
+   addresses exist. Burning the same work on a throwaway hash removes the
+   difference. */
+const NOBODY = 'scrypt$' + N + '$' + '0'.repeat(32) + '$' + '0'.repeat(KEYLEN * 2);
+export const burnPasswordTime = plain => verifyPassword(plain, NOBODY).catch(() => false);
+
+/* ---------- too many wrong guesses ----------
+   Counted per address and per caller, over a rolling window. Both are
+   needed: one address under attack from everywhere, and one caller
+   working through a list of addresses, are the same attack from two
+   sides. The answer never says which limit was hit. */
+const WINDOW_MIN = 15, MAX_PER_EMAIL = 8, MAX_PER_IP = 20;
+
+export async function signinBlocked(email, ip) {
+  await q(`delete from signin_failures where at < now() - ($1 || ' minutes')::interval`, [WINDOW_MIN * 4]);
+  const row = await one(
+    `select
+       count(*) filter (where lower(email) = lower($1))::int as by_email,
+       count(*) filter (where ip is not distinct from $2)::int as by_ip
+     from signin_failures
+     where at > now() - ($3 || ' minutes')::interval`, [email || '', ip || null, WINDOW_MIN]);
+  return !!row && (row.by_email >= MAX_PER_EMAIL || row.by_ip >= MAX_PER_IP);
+}
+
+export const recordSigninFailure = (email, ip) =>
+  q('insert into signin_failures (email, ip) values ($1,$2)', [email || '', ip || null]);
+
+export const clearSigninFailures = email =>
+  q('delete from signin_failures where lower(email) = lower($1)', [email || '']);
+
 /* Tokens are random and opaque; only their hash is stored, so a copy of
    the table is not a copy of everyone's session. */
 const TOKEN_DAYS = 30;

@@ -67,7 +67,7 @@ const routes = [
     return { user: r.user };
   }],
   ['POST', /^\/api\/auth\/login$/, async (ctx) => {
-    const r = await api.login(await body(ctx.req));
+    const r = await api.login(await body(ctx.req), { ip: callerIp(ctx.req) });
     ctx.cookie = setCookie(r.token, r.maxAge);
     return { user: r.user };
   }],
@@ -109,6 +109,26 @@ const routes = [
   ['DELETE', /^\/api\/admin\/plans\/([\w-]+)$/,         ctx => api.archivePlan(ctx.user, ctx.m[1])]
 ];
 
+/* Vercel sets x-forwarded-for and x-real-ip; the leftmost entry is the
+   caller as the edge saw it. Spoofable in principle, which is why it is
+   only one of the two limits the throttle applies. */
+function callerIp(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return fwd || String(req.headers['x-real-ip'] || '').trim() ||
+         (req.socket && req.socket.remoteAddress) || null;
+}
+
+/* A browser will not send a cross-site fetch with our cookie unless the
+   cookie allows it, and SameSite=Lax says it does not. This is the belt to
+   that pair of braces: a write whose Origin is not ours is refused before
+   it reaches any handler. */
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;                      // same-origin fetches may omit it
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  try { return new URL(origin).host === host; } catch { return false; }
+}
+
 /* The rewrite in vercel.json hands us the path it matched, because a
    rewritten request no longer carries it in req.url. Locally there is no
    rewrite and req.url is the whole truth, so take that when it is there. */
@@ -149,6 +169,9 @@ export default async function handler(req, res) {
       return send(res, 503, { ok: false, error: e.message, hint: hintFor(e) });
     }
   }
+
+  if (req.method !== 'GET' && !sameOrigin(req))
+    return send(res, 403, { error: 'Request came from somewhere else' });
 
   const token = readCookie(req, 'dua_session');
   const user = await userForToken(token).catch(() => null);
