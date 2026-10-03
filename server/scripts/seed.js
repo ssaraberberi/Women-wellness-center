@@ -1,8 +1,18 @@
 #!/usr/bin/env node
-/* Fills an empty database with a studio that looks like it has been
-   running for a fortnight: a timetable, instructors with real hours,
-   clients part-way through their memberships, and classes that are
-   filling up. Pass --fresh to wipe the data tables first.
+/* Two jobs, and only the first one runs by default.
+
+   The catalogue — the admin registration code, the class types and the
+   plans — is what an empty database needs before anyone can sign in at
+   all: `migrate` builds the tables, this fills the three the app cannot
+   start without. It invents no people, so it is safe to run against the
+   real studio, and safe to run again.
+
+   The demo studio — four instructors, a month of timetable, clients
+   part-way through their memberships, classes filling up — is behind
+   --demo, because every account it creates shares one published
+   password. Never give it a database that real people will sign in to.
+
+   Pass --fresh to wipe the data tables first.
 
    Demo passwords come from SEED_PASSWORD (default demo1234) and are
    hashed like any other. The admin registration code comes from
@@ -14,6 +24,7 @@ import { iso, addDays, startOfWeek, DAY_KEYS } from '../../shared/domain.js';
 const PASSWORD = process.env.SEED_PASSWORD || 'demo1234';
 const CODE = process.env.ADMIN_REGISTRATION_CODE || 'DUA-2026-STUDIO';
 const FRESH = process.argv.includes('--fresh');
+const DEMO = process.argv.includes('--demo');
 
 const today = new Date(); today.setHours(0, 0, 0, 0);
 const monday = startOfWeek(today);
@@ -118,6 +129,8 @@ async function main() {
                        values ($1,$2,$3,$4,$5)`, [id, types, limit, period, n++]);
     }
 
+    if (!DEMO) return;
+
     const mkUser = async (role, name, email, phone) => {
       const r = await c.query(
         `insert into users (role, name, email, phone, password_hash) values ($1,$2,$3,$4,$5)
@@ -209,11 +222,16 @@ async function main() {
   });
 
   const n = async t => (await q('select count(*)::int as n from ' + t)).rows[0].n;
-  console.log('seeded:',
-    await n('users'), 'users ·', await n('classes'), 'classes ·',
-    await n('memberships'), 'memberships ·', await n('bookings'), 'bookings');
-  console.log('demo password: ' + PASSWORD);
-  console.log('admin registration code is stored in the database, not in the app');
+  console.log('catalogue:', await n('class_types'), 'class types ·', await n('plans'), 'plans');
+  if (DEMO)
+    console.log('demo studio:',
+      await n('users'), 'users ·', await n('classes'), 'classes ·',
+      await n('memberships'), 'memberships ·', await n('bookings'), 'bookings',
+      '\n             every demo account signs in with: ' + PASSWORD);
+  else
+    console.log('no accounts created — pass --demo for the demo studio.');
+  console.log('The admin registration code is stored in the database, not in the app.\n' +
+              'Register at /app with that code to make the first administrator.');
   await pool.end();
 }
 main().catch(e => { console.error(e); process.exit(1); });

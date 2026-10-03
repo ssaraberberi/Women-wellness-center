@@ -13,6 +13,21 @@ The browser talks to an API; nothing is decided in the browser.
 
 `npm run check` says whether the database is reachable, migrated and seeded.
 
+### The three seed commands
+
+`migrate` only builds tables. An empty database has no admin registration
+code, no class types and no plans, so nobody can sign in and the app has
+nothing to show. One of these fills that gap:
+
+| | What it writes | Where it belongs |
+|---|---|---|
+| `npm run seed` | the admin code, the class types, the plans — **no accounts** | the real studio. Safe to re-run; it leaves people alone |
+| `npm run seed:demo` | the same, plus the demo studio | a database only you sign in to |
+| `npm run reset` | wipes everything first, then `seed:demo` | starting the demo over |
+
+`seed:demo` and `reset` give every account they create one published
+password. Never point them at a database real clients use.
+
 Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
 
 | Role | Email | What to look at |
@@ -24,7 +39,9 @@ Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
 
 The administrator registration code is never sent to the browser. It lives in
 the `settings` table, put there by the seed from `ADMIN_REGISTRATION_CODE`, and
-is compared on the server. Change it before going live.
+is compared on the server. Change it before going live — and note that the
+server reads the table, not the variable: changing `ADMIN_REGISTRATION_CODE`
+in Railway does nothing until `npm run seed` runs again and rewrites the row.
 
 ## Shape
 
@@ -72,12 +89,18 @@ cannot be used to find out who has an account.
    follows the database if it moves. `PORT` is injected; do not set it.
 4. `railway.json` already asks for `npm run migrate` before each deploy and
    `/healthz` as the health check, so the schema is applied on every release.
-5. First deploy only, to create the demo studio:
+5. First deploy only. From this repo, with the Railway CLI linked to the
+   project (`npm i -g @railway/cli`, `railway login`, `railway link`):
 
-       railway run npm run reset
+       railway run npm run seed
 
-   On a real launch, run `npm run seed` instead — it fills the class types,
-   plans and the admin code without wiping anything.
+   That writes the admin registration code, the class types and the plans,
+   and creates no accounts. Then open `/app`, choose **Register**, enter the
+   code from step 3, and the first administrator is yours.
+
+   `railway run npm run seed:demo` instead if this database is only for you
+   to click around in — it adds the demo studio, whose every account shares
+   one published password.
 6. **Settings → Networking → Generate Domain**, or point a subdomain such as
    `app.dua-pilates.com` at it. The marketing site stays on Vercel; this
    service serves only `/app`, `/shared` and `/assets`, and redirects `/`
