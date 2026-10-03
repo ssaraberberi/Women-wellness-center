@@ -3,13 +3,6 @@
 import { el, field, input, toast } from '../ui.js';
 import * as store from '../store.js';
 
-const DEMO = [
-  ['Administrator', 'admin@dua-pilates.com'],
-  ['Instructor', 'elira@dua-pilates.com'],
-  ['Client · Signature', 'sara@example.com'],
-  ['Client · Essential', 'enke@example.com']
-];
-
 export function renderAuth({ go }) {
   let tab = 'in';
   let asAdmin = false;
@@ -92,11 +85,7 @@ export function renderAuth({ go }) {
   return el('div.auth', null, [
     el('div.auth__art', null, [
       el('span.auth__logo', { role: 'img', 'aria-label': 'DUA Pilates and Spa', text: 'dua' }),
-      el('h2', { html: 'Because <em>I want to.</em>' }),
-      el('div.auth__demo', null, [
-        el('p', { text: 'Demo accounts — password demo1234' }),
-        ...DEMO.map(([label, email]) => el('p', null, [el('b', { text: label }), ' · ', email]))
-      ])
+      el('h2', { html: 'Because <em>I want to.</em>' })
     ]),
     el('div.auth__form', null, [
       el('p.eyebrow', { text: 'Studio account' }),
