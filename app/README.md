@@ -87,20 +87,24 @@ cannot be used to find out who has an account.
 
    Use the variable reference for `DATABASE_URL`, not a pasted string, so it
    follows the database if it moves. `PORT` is injected; do not set it.
-4. `railway.json` already asks for `npm run migrate` before each deploy and
-   `/healthz` as the health check, so the schema is applied on every release.
-5. First deploy only. From this repo, with the Railway CLI linked to the
-   project (`npm i -g @railway/cli`, `railway login`, `railway link`):
+4. `railway.json` runs `npm run migrate && npm run seed` before every release
+   and checks `/healthz`, so each deploy applies the schema and rewrites the
+   catalogue. Both are safe to repeat: `seed` creates no accounts and leaves
+   the people already in the database alone.
+5. Open `/app`, choose **Register**, enter the code from step 3. That is the
+   first administrator, and nothing else creates one.
 
-       railway run npm run seed
+   Because the seed runs on every release, changing `ADMIN_REGISTRATION_CODE`
+   in Railway and redeploying is all it takes to change the code later.
 
-   That writes the admin registration code, the class types and the plans,
-   and creates no accounts. Then open `/app`, choose **Register**, enter the
-   code from step 3, and the first administrator is yours.
+   If this database is only for you to click around in, the demo studio needs
+   the CLI (`npm i -g @railway/cli`, `railway login`, `railway link`) and the
+   database's **public** URL, since `postgres.railway.internal` is not
+   reachable from outside Railway:
 
-   `railway run npm run seed:demo` instead if this database is only for you
-   to click around in — it adds the demo studio, whose every account shares
-   one published password.
+       DATABASE_URL="<the proxy.rlwy.net URL>" npm run seed:demo
+
+   Every account it creates shares one published password.
 6. **Settings → Networking → Generate Domain**, or point a subdomain such as
    `app.dua-pilates.com` at it. The marketing site stays on Vercel; this
    service serves only `/app`, `/shared` and `/assets`, and redirects `/`
