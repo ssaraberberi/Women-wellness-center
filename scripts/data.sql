@@ -34,15 +34,21 @@ on conflict (id) do update
 
 
 -- ─────────────────────────── the plans ───────────────────────────
--- price_all is in Albanian lek, whole numbers.
+-- The six packages, the same ones the website prices. price_all is in
+-- Albanian lek, whole numbers.
 --
--- ►► These are placeholders.  Put your own prices in before you sell one. ◄◄
+-- The allowance model counts classes within a period, so each pack is
+-- written as its classes per month — which is what "around 2x per week"
+-- comes to. "New clients only" and "once only" on TRY DUA are not rules
+-- the schema can hold; they are watched at the desk for now.
 
 insert into plans (id, name, price_all, blurb, featured, sort) values
-  ('essential', 'Essential', 11900, 'Reformer, eight times a month.',                        false, 1),
-  ('signature', 'Signature', 16900, 'Reformer, twelve times a month.',                       true,  2),
-  ('unlimited', 'Unlimited', 24900, 'Reformer, as often as you like.',                       false, 3),
-  ('wellness',  'Wellness',  28900, 'Reformer twelve times, and the spa once a month.',      false, 4)
+  ('try-dua',  'TRY DUA',      1200,  'Meet DUA. One reformer class, for new clients, once.', false, 1),
+  ('single',   'SINGLE CLASS', 2200,  'Your class, your time. One reformer class, no package.', false, 2),
+  ('start',    'DUA START',    7200,  'Build the habit. Four classes, around once a week.',     false, 3),
+  ('routine',  'DUA ROUTINE',  13200, 'The sweet spot. Eight classes, around twice a week.',    true,  4),
+  ('glow',     'DUA GLOW',     18000, 'Take it further. Twelve classes, around three a week.',  false, 5),
+  ('obsessed', 'DUA OBSESSED', 22400, 'For the Pilates girls. Sixteen classes, four a week.',   false, 6)
 on conflict (id) do update
   set name      = excluded.name,
       price_all = excluded.price_all,
@@ -55,11 +61,17 @@ on conflict (id) do update
 -- Rewritten whole each time, so removing a line here removes the allowance.
 
 delete from plan_allowances
- where plan_id in ('essential', 'signature', 'unlimited', 'wellness');
+ where plan_id in ('try-dua', 'single', 'start', 'routine', 'glow', 'obsessed');
 
 insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort) values
-  ('essential', array['reformer'],  8,    'month', 0),
-  ('signature', array['reformer'],  12,   'month', 0),
-  ('unlimited', array['reformer'],  null, 'month', 0),
-  ('wellness',  array['reformer'],  12,   'month', 0),
-  ('wellness',  array['spa'],       1,    'month', 1);
+  ('try-dua',  array['reformer'],  1,  'month', 0),
+  ('single',   array['reformer'],  1,  'month', 0),
+  ('start',    array['reformer'],  4,  'month', 0),
+  ('routine',  array['reformer'],  8,  'month', 0),
+  ('glow',     array['reformer'],  12, 'month', 0),
+  ('obsessed', array['reformer'],  16, 'month', 0);
+
+-- The four plans this replaced. Archived rather than deleted, because a
+-- membership may still point at one.
+update plans set archived = true
+ where id in ('essential', 'signature', 'unlimited', 'wellness');

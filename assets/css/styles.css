@@ -521,7 +521,11 @@ fieldset{border:0}
 
 /* ---------- 15c. Class detail ---------- */
 
-/* ---------- 16. Memberships ---------- */
+/* ---------- 16. Packages ----------
+   Six cards and three offers. Restraint does the work: one ground, one
+   border, and the chosen package carried in the wine rather than in a
+   louder box. The butter cream of the page is the card itself, so the
+   section reads as paper laid on paper. */
 .plans{background:var(--petal)}
 .plans__inner{max-width:var(--maxw);margin:0 auto;padding:var(--sec) var(--gut)}
 .plans__head{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(20px,3vw,56px);align-items:end;margin-bottom:clamp(48px,6vw,100px)}
@@ -529,45 +533,69 @@ fieldset{border:0}
 .plans__head h2{grid-column:1/10;margin-top:18px}
 .plans__head .lede{grid-column:10/13;color:var(--ink-soft);padding-bottom:8px}
 
-.plans__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,1.8vw,32px);align-items:stretch}
-.plan{
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,1.8vw,30px);align-items:stretch}
+.pack{
   position:relative;background:var(--blush-lift);border:1px solid rgba(59,21,34,.13);
-  padding:clamp(28px,2.7vw,52px);border-radius:var(--r);display:flex;flex-direction:column;gap:16px;
+  border-radius:var(--r);padding:clamp(28px,2.6vw,46px);
+  display:flex;flex-direction:column;
   transition:transform .7s var(--ease-out),box-shadow .7s var(--ease);
 }
-.plan:hover{transform:translateY(-6px);box-shadow:0 26px 60px -40px rgba(59,21,34,.55)}
-.plan--feature{background:var(--rose-ink);color:var(--blush);border-color:var(--rose-ink);margin-top:clamp(-14px,-1.4vw,-28px);margin-bottom:clamp(-14px,-1.4vw,-28px)}
-.plan__flag{
-  position:absolute;top:0;right:clamp(28px,2.7vw,52px);transform:translateY(-50%);border-radius:99px;
-  background:var(--rose);color:var(--plum);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;
+.pack:hover{transform:translateY(-6px);box-shadow:0 26px 60px -40px rgba(59,21,34,.55)}
+
+/* The one we want read first: wine ground, and a hair taller than its row. */
+.pack--feature{
+  background:var(--rose-ink);color:var(--blush);border-color:var(--rose-ink);
+  margin-top:clamp(-12px,-1.2vw,-24px);margin-bottom:clamp(-12px,-1.2vw,-24px);
 }
-.plan__top{display:flex;flex-direction:column;gap:10px}
-.plan__tag{font-family:var(--display);font-size:clamp(1.6rem,2.2vw,2.3rem);line-height:1}
-.plan__desc{font-size:.92rem;color:var(--ink-soft);max-width:28ch}
-.plan--feature .plan__desc{color:rgba(255,251,234,.66)}
-.plan__tiers{display:flex;gap:7px;margin-top:14px}
-.tier{
-  min-width:50px;padding:10px 12px;border:1px solid rgba(59,21,34,.2);border-radius:var(--r-sm);
-  font-size:12px;letter-spacing:.1em;transition:background .4s var(--ease),color .4s var(--ease),border-color .4s var(--ease);
+.pack__flag{
+  position:absolute;top:0;left:clamp(28px,2.6vw,46px);transform:translateY(-50%);
+  border-radius:99px;background:var(--blush);color:var(--rose-ink);
+  font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:7px 14px;white-space:nowrap;
 }
-.tier:hover{border-color:var(--plum)}
-.tier.is-active{background:var(--rose-ink);color:var(--blush);border-color:var(--rose-ink)}
-.plan__price{font-family:var(--display);font-size:clamp(2.4rem,3.6vw,4rem);line-height:1;margin-top:14px;display:flex;align-items:baseline;gap:10px}
-.plan__cur{font-family:var(--sans);font-size:12px;letter-spacing:0.10em;opacity:.6}
-.plan__per{font-size:10.5px;letter-spacing:0.11em;text-transform:uppercase;color:var(--rose-ink);margin-top:-6px}
-.plan--feature .plan__per{color:rgba(255,251,234,.6)}
-.plan__list{display:flex;flex-direction:column;gap:11px;margin-top:8px;padding-top:20px;border-top:1px solid rgba(59,21,34,.14);flex:1}
-.plan--feature .plan__list{border-color:rgba(255,251,234,.2)}
-.plan__list li{position:relative;padding-left:20px;font-size:.94rem;color:var(--ink-soft)}
-.plan--feature .plan__list li{color:rgba(255,251,234,.82)}
-.plan__list li::before{content:"";position:absolute;left:0;top:.68em;width:9px;height:1px;background:var(--rose-mid)}
-.plan--feature .plan__list li::before{background:var(--rose)}
-.plan .btn{margin-top:14px}
-.plans__foot{
-  margin-top:clamp(34px,4vw,64px);text-align:center;font-size:12px;letter-spacing:.1em;color:var(--rose-ink);
-  display:flex;flex-wrap:wrap;gap:8px 14px;justify-content:center;align-items:center;
+.pack__name{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;color:var(--rose-ink)}
+.pack--feature .pack__name{color:var(--rose-soft)}
+.pack__sub{font-family:var(--display);font-size:clamp(1.3rem,1.8vw,1.85rem);line-height:1.15;margin-top:10px}
+.pack__price{
+  font-family:var(--display);font-size:clamp(2.1rem,3vw,3.2rem);line-height:1;
+  margin-top:clamp(18px,2vw,30px);
 }
-.plans__foot b{font-weight:400;color:var(--plum)}
+.pack__list{
+  display:flex;flex-direction:column;gap:11px;flex:1;
+  margin-top:clamp(18px,2vw,28px);padding-top:clamp(18px,2vw,26px);
+  border-top:1px solid rgba(59,21,34,.14);
+}
+.pack--feature .pack__list{border-color:rgba(255,251,234,.22)}
+.pack__list li{position:relative;padding-left:20px;font-size:.93rem;line-height:1.6;color:var(--ink-soft)}
+.pack--feature .pack__list li{color:rgba(255,251,234,.82)}
+.pack__list li::before{content:"";position:absolute;left:0;top:.68em;width:9px;height:1px;background:var(--rose-mid)}
+.pack--feature .pack__list li::before{background:var(--rose)}
+.pack .btn{margin-top:clamp(22px,2.4vw,32px)}
+.btn--block{display:flex;justify-content:center;width:100%}
+.pack--feature .btn{background:var(--blush);color:var(--rose-ink);border-color:var(--blush)}
+
+/* ---------- 16a. Special offers ----------
+   Conditions on a package rather than packages, so they are set lighter:
+   no ground of their own, only a rule above each one. */
+.offers{margin-top:clamp(56px,7vw,110px)}
+.offers__grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,56px);
+  margin-top:clamp(26px,3vw,44px);
+}
+.offer{border-top:1px solid rgba(59,21,34,.18);padding-top:clamp(18px,2vw,26px)}
+.offer__name{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;color:var(--rose-ink)}
+.offer__body{margin-top:12px;font-size:.95rem;line-height:1.7;color:var(--ink-soft);max-width:34ch}
+.offer__cta{margin-top:12px;font-family:var(--display);font-style:italic;font-size:1.1rem;color:var(--plum)}
+.offer__note{margin-top:12px;font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--rose-ink)}
+
+@media (max-width:1100px){
+  .packs{grid-template-columns:repeat(2,1fr)}
+  .pack--feature{margin-top:0;margin-bottom:0}
+  .offers__grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:720px){
+  .packs,.offers__grid{grid-template-columns:1fr}
+  .plans__head h2,.plans__head .eyebrow,.plans__head .lede{grid-column:1/13}
+}
 
 /* ---------- 16b. Coming soon ----------
    The timetable and the membership tiers are not live yet. The sections keep

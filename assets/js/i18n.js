@@ -243,6 +243,55 @@
       'Vendi yt është ruajtur. Eja dhjetë minuta më herët për klasën e parë — çorapet me kapje i kemi ne.',
     'Close': 'Mbyll',
 
+    /* ---- packages ---- */
+    'Packages': 'Paketat',
+    'Find your': 'Gjej rutinën',
+    'DUA routine.': 'tënde DUA.',
+    'The more you move, the more you save.': 'Sa më shumë lëviz, aq më shumë kursen.',
+    'Most popular': 'Më e përzgjedhura',
+    'Choose package': 'Zgjidh paketën',
+    'Meet DUA': 'Provo DUA',
+    'Your class, your time': 'Një klasë, kur të duash',
+    'Build the habit': 'Fillo rutinën',
+    'The sweet spot': 'Rutina ideale',
+    'Take it further': 'Bëje pjesë të rutinës tënde',
+    'For the Pilates girls': 'Për Pilates girls',
+    '1 Reformer class': '1 klasë Reformer',
+    'New clients only': 'Vetëm për klientet e reja',
+    'Can only be purchased once': 'Mund të blihet vetëm një herë',
+    'Perfect for experiencing DUA before choosing a package':
+      'Për të provuar eksperiencën DUA para se të zgjedhësh një paketë',
+    'No package required': 'Nuk kërkon paketë',
+    'Perfect for occasional visits': 'Ideale për vizita individuale',
+    '4 classes': '4 klasa',
+    'Around 1x per week': 'Afërsisht 1x në javë',
+    '1,800 L / class': '1,800 L / klasë',
+    'Perfect for getting started': 'E përshtatshme për dikë që sapo po fillon',
+    '8 classes': '8 klasa',
+    'Around 2x per week': 'Afërsisht 2x në javë',
+    '1,650 L / class': '1,650 L / klasë',
+    'The ideal balance between consistency, results and value':
+      'Balanca ideale mes rutinës, rezultateve dhe çmimit',
+    '12 classes': '12 klasa',
+    'Around 3x per week': 'Afërsisht 3x në javë',
+    '1,500 L / class': '1,500 L / klasë',
+    'Designed for greater consistency in your Pilates routine':
+      'Për më shumë vazhdimësi në Pilates',
+    '16 classes': '16 klasa',
+    'Around 4x per week': 'Afërsisht 4x në javë',
+    '1,400 L / class': '1,400 L / klasë',
+    'Our largest package for our most active clients':
+      'Paketa jonë më e madhe për klientet më aktive',
+    'Special offers': 'Oferta speciale',
+    'Two friends join DUA ROUTINE together for the first time and pay 12,500 L each instead of 13,200 L.':
+      'Dy shoqe blejnë DUA ROUTINE së bashku për herë të parë dhe paguajnë 12,500 L secila në vend të 13,200 L.',
+    'Bring your Pilates bestie': 'Eja me bestie-n tënde',
+    'Exclusive launch offer for the first 20–30 DUA clients. Receive 10–15% off your first package + exclusive launch benefits.':
+      'Ofertë launch-i për 20–30 klientet e para të DUA. Përfitojnë 10–15% ulje në paketën e parë + benefite ekskluzive launch-i.',
+    'Limited spots available.': 'Vende të limituara.',
+    'Refer a friend. When she purchases a DUA package, you both receive 1 bonus class.':
+      'Refero një shoqe. Nëse ajo blen një paketë DUA, të dyja përfitoni nga 1 klasë bonus.',
+
     /* ---- questions ---- */
     'Questions': 'Pyetje',
     'Before your': 'Para klasës',
