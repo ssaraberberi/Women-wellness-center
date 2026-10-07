@@ -255,6 +255,13 @@
     'Most popular': 'Më e përzgjedhura',
     'classes': 'klasa',
     'Or just one class': 'Ose vetëm një klasë',
+    'One to one': 'Një me një',
+    'Personal': 'Personal',
+    'training.': 'training.',
+    'Packages with personal training, too — one to one with your instructor, and a class built entirely around you.':
+      'Edhe paketa me personal training — një me një me instruktoren tënde, dhe një klasë e ndërtuar tërësisht rreth teje.',
+    'For a first time on the reformer, for working on something specific, or simply for the full attention.':
+      'Për herën e parë mbi reformer, për të punuar mbi diçka të caktuar, ose thjesht për vëmendjen e plotë.',
     'Meet DUA': 'Provo DUA',
     'Your class, your time': 'Një klasë, kur të duash',
     'Build the habit': 'Fillo rutinën',

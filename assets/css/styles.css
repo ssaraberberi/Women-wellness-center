@@ -613,6 +613,25 @@ fieldset{border:0}
 .prices [data-price]{display:revert}
 .prices [data-noprice]{display:none}
 
+/* ---------- 16a2. One to one ----------
+   A different format, not a different size, so it is neither a rung on the
+   ladder nor one of the single classes. Its own band, on the deeper petal,
+   with the room a private class deserves. */
+.one2one{
+  margin-top:clamp(52px,6vw,96px);background:var(--petal-deep);
+  border-radius:var(--r);padding:clamp(30px,3.4vw,62px);
+}
+.one2one__grid{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);
+  gap:clamp(18px,3vw,70px);align-items:start;margin-top:clamp(18px,2vw,30px);
+}
+.one2one__title{line-height:1.02}
+.one2one__body p{font-size:clamp(1rem,1.15vw,1.18rem);line-height:1.7;max-width:46ch}
+.one2one__note{margin-top:14px;font-size:.92rem;color:var(--ink-soft)}
+@media (max-width:860px){
+  .one2one__grid{grid-template-columns:1fr;gap:18px}
+}
+
 /* ---------- 16b. Special offers ----------
    Conditions on a package rather than packages, so they are set lighter:
    no ground of their own, only a rule above each one. */
