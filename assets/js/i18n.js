@@ -256,6 +256,92 @@
     'classes': 'klasa',
     'Or just one class': 'Ose vetëm një klasë',
     'One to one': 'Një me një',
+    'Not sure?': 'Nuk je e sigurt?',
+    'Which one': 'Cila është',
+    'is yours?': 'e jotja?',
+    'Three or four questions. Nothing is saved and nothing is sent — the answer is one of the packages below.':
+      'Tri ose katër pyetje. Nuk ruhet asgjë dhe nuk dërgohet asgjë — përgjigjja është një nga paketat më poshtë.',
+    'Yours': 'Për ty',
+    'Show me': 'Ma trego',
+    'Start again': 'Nise nga fillimi',
+    'Back': 'Kthehu',
+    'What are you here for?': 'Për çfarë je këtu?',
+    'Massage and spa': 'Masazh dhe spa',
+    'Both': 'Të dyja',
+    'Have you been on a reformer before?': 'A ke qenë më parë mbi reformer?',
+    'Never': 'Kurrë',
+    'A few times': 'Ca herë',
+    'Yes, regularly': 'Po, rregullisht',
+    'How often would you like to come?': 'Sa shpesh do të doje të vije?',
+    'Just once, to see': 'Vetëm një herë, për ta parë',
+    'About once a week': 'Rreth një herë në javë',
+    'Twice a week': 'Dy herë në javë',
+    'Three or four times a week': 'Tri ose katër herë në javë',
+    'In a small group, or one to one?': 'Në grup të vogël, apo një me një?',
+    'A small group': 'Në grup të vogël',
+    'Either is fine': 'Të dyja më rrinë mirë',
+    'What would you like it to do?': 'Çfarë do të doje që të bëjë?',
+    'Switch everything off': 'Të fikë gjithçka',
+    'Make me feel lighter': 'Të më bëjë të ndihem më e lehtë',
+    'Work on firming': 'Të punojë mbi fortësimin',
+    'Ease aching muscles': 'Të lehtësojë muskujt e lodhur',
+    'One treatment, or a few?': 'Një trajtim, apo disa?',
+    'Just one': 'Vetëm një',
+    'A few, over time': 'Disa, me kohë',
+    'How long?': 'Sa gjatë?',
+    'An hour': 'Një orë',
+    'The full ninety minutes': 'Nëntëdhjetë minutat e plota',
+    'How often on the reformer?': 'Sa shpesh mbi reformer?',
+    'Once a week': 'Një herë në javë',
+    'Three times a week': 'Tri herë në javë',
+    'Just once — a treat': 'Vetëm një herë — një shije',
+    'And what should the massage do?': 'Dhe çfarë duhet të bëjë masazhi?',
+    'Relax me': 'Të më relaksojë',
+    'Leave me lighter': 'Të më lërë më të lehtë',
+    'Just you, or two of you?': 'Vetëm ti, apo të dyja?',
+    'Just me': 'Vetëm unë',
+    'Two of us': 'Të dyja',
+    'One to one, so the whole class is built around you.':
+      'Një me një, që e gjithë klasa të ndërtohet rreth teje.',
+    'A first class, at the price we keep for a first class.':
+      'Klasa e parë, me çmimin që mbajmë për klasën e parë.',
+    'One class, no package, whenever it suits you.': 'Një klasë, pa paketë, kurdo që të vjen mirë.',
+    'Four classes a month is about once a week.':
+      'Katër klasa në muaj janë rreth një herë në javë.',
+    'Eight classes a month is about twice a week — and the best price per class for that rhythm.':
+      'Tetë klasa në muaj janë rreth dy herë në javë — dhe çmimi më i mirë për klasë në atë ritëm.',
+    'Sixteen classes a month, and the lowest price per class we have.':
+      'Gjashtëmbëdhjetë klasa në muaj, dhe çmimi më i ulët për klasë që kemi.',
+    'Twelve classes a month is about three times a week — room to build without overcommitting.':
+      'Dymbëdhjetë klasa në muaj janë rreth tri herë në javë — hapësirë për të ndërtuar pa u mbingarkuar.',
+    'Five lymphatic treatments, which is where this one works best.':
+      'Pesë trajtime limfatike, sepse aty punon më mirë ky.',
+    'Five sculpt treatments — body care asks for repetition.':
+      'Pesë trajtime sculpt — body-care kërkon përsëritje.',
+    'Deep recovery is not sold as a pack yet, so this is the treatment on its own.':
+      'Deep recovery nuk shitet ende si paketë, ndaj ky është trajtimi më vete.',
+    'Three relax treatments, at less than three separate ones.':
+      'Tri trajtime relaks, më lirë se tri veç e veç.',
+    'Ninety minutes, and the one we built to be the whole experience.':
+      'Nëntëdhjetë minuta, dhe ai që e ndërtuam si eksperiencën e plotë.',
+    'Lymphatic massage, for lightness and recovery.': 'Masazh limfatik, për lehtësi dhe rikuperim.',
+    'Sculpt, for firming and body care.': 'Sculpt, për fortësim dhe body-care.',
+    'A deeper massage, for muscular tension.': 'Masazh më i thellë, për tension muskulor.',
+    'An hour that asks nothing of you.': 'Një orë që nuk të kërkon asgjë.',
+    'Two of you, one price — a class and a massage each.':
+      'Të dyja, një çmim — nga një klasë dhe një masazh secila.',
+    'One class and one massage. A weekend, or a gift.':
+      'Një klasë dhe një masazh. Një fundjavë, ose një dhuratë.',
+    'Four classes and a massage — enough to start both at once.':
+      'Katër klasa dhe një masazh — sa duhet për t\'i nisur të dyja njëherësh.',
+    'Twelve classes and four lymphatic treatments, which is the most movement with recovery behind it.':
+      'Dymbëdhjetë klasa dhe katër trajtime limfatike — lëvizja më e madhe, me rikuperimin pas saj.',
+    'Eight classes and four sculpt treatments, for body care alongside the work.':
+      'Tetë klasa dhe katër trajtime sculpt, për body-care krah punës.',
+    'Eight classes and two lymphatic treatments — movement and recovery in step.':
+      'Tetë klasa dhe dy trajtime limfatike — lëvizja dhe rikuperimi në hap.',
+    'Eight classes and two massages — the one most people settle on.':
+      'Tetë klasa dhe dy masazhe — ajo ku ndalen shumica.',
     'Kinds of package': 'Llojet e paketave',
     'Pilates': 'Pilates',
     'Massages': 'Masazhet',
@@ -460,6 +546,8 @@
     if (m) return m[1] === '1' ? '1 vend i lirë' : m[1] + ' vende të lira';
     /* The money lines on the packages carry a figure, so they are matched
        rather than listed: one entry would otherwise be needed per price. */
+    m = s.match(/^Question (\d+) of (\d+)$/);
+    if (m) return 'Pyetja ' + m[1] + ' nga ' + m[2];
     m = s.match(/^Saves ([\d,]+ L)$/);
     if (m) return 'Kursen ' + m[1];
     m = s.match(/^Worth ([\d,]+ L) — you save ([\d,]+ L)$/);

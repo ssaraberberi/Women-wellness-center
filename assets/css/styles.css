@@ -521,6 +521,65 @@ fieldset{border:0}
 
 /* ---------- 15c. Class detail ---------- */
 
+/* ---------- 15d. Which one is yours ----------
+   A short questionnaire, set as one quiet panel rather than a form: the
+   answers are the only things that look clickable, and the result names a
+   card that is already on the page. Hidden without JavaScript, because the
+   packages are directly underneath and nothing is lost. */
+.which{background:var(--blush);padding:var(--sec) var(--gut)}
+.no-js .which{display:none}
+.which__inner{
+  max-width:var(--maxw);margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  gap:clamp(28px,5vw,96px);align-items:start;
+}
+.which__title{line-height:1.04;margin-top:16px}
+.which__lede{margin-top:clamp(16px,2vw,26px);max-width:40ch;color:var(--ink-soft);line-height:1.7}
+
+.quiz{
+  background:var(--blush-lift);border:1px solid rgba(59,21,34,.13);border-radius:var(--r);
+  padding:clamp(26px,3vw,48px);min-height:clamp(280px,30vw,380px);
+  display:flex;flex-direction:column;
+}
+.quiz__step{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--rose-ink)}
+.quiz__q{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(1.3rem,2vw,1.95rem);line-height:1.2;margin-top:12px;
+}
+.quiz__answers{display:flex;flex-direction:column;gap:8px;margin-top:clamp(20px,2.4vw,32px)}
+.quiz__a{
+  text-align:left;font:inherit;font-size:.98rem;cursor:pointer;
+  background:var(--blush);border:1px solid rgba(59,21,34,.16);border-radius:var(--r-sm);
+  padding:14px 18px;color:var(--plum);
+  transition:background .35s var(--ease),border-color .35s var(--ease),transform .35s var(--ease-out);
+}
+.quiz__a:hover{background:var(--petal);border-color:var(--rose-ink);transform:translateX(3px)}
+.quiz__a--go{background:var(--rose-ink);border-color:var(--rose-ink);color:var(--blush);text-align:center}
+.quiz__a--go:hover{background:var(--plum);border-color:var(--plum);transform:none}
+.quiz__back{
+  align-self:flex-start;margin-top:18px;background:none;border:0;cursor:pointer;font:inherit;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  padding:10px 0;border-bottom:1px solid currentColor;
+}
+.quiz__back:hover{color:var(--plum)}
+.quiz__name{font-family:var(--display);font-weight:400;font-size:clamp(1.8rem,3vw,2.9rem);line-height:1.05;margin-top:12px}
+.quiz__why{margin-top:14px;line-height:1.7;color:var(--ink-soft);max-width:38ch}
+.quiz__row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px;margin-top:auto;padding-top:clamp(20px,2.4vw,30px)}
+.quiz__row .quiz__a--go{flex:0 0 auto;padding:14px 26px}
+.quiz__row .quiz__back{margin-top:0}
+
+/* The card the answer points at, marked for a moment so the eye lands. */
+.is-picked{
+  box-shadow:0 0 0 2px var(--rose-ink), 0 26px 60px -40px rgba(59,21,34,.55);
+  animation:picked 2.4s var(--ease) 1;
+}
+@keyframes picked{0%{box-shadow:0 0 0 0 rgba(125,47,73,0)}18%{box-shadow:0 0 0 3px var(--rose-ink)}}
+
+@media (max-width:900px){
+  .which__inner{grid-template-columns:1fr;gap:28px}
+  .which__lede{max-width:none}
+}
+
 /* ---------- 16. Packages ----------
    Four packages read as a ladder, not as four boxes. The number of classes
    is the largest thing on each card and the rule beneath it grows with the
