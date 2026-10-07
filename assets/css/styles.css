@@ -632,6 +632,127 @@ fieldset{border:0}
   .one2one__grid{grid-template-columns:1fr;gap:18px}
 }
 
+/* ---------- 16a3. The three kinds ----------
+   Two dozen things across Pilates, massages and the two together is more
+   than a single column should carry, so they sit behind tabs. The markup
+   ships with all three open; tabs.js closes two, which is what keeps a
+   crawler and a reader without JavaScript whole. */
+.tabs{
+  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:clamp(34px,4vw,60px);
+  border-bottom:1px solid rgba(59,21,34,.14);padding-bottom:0;
+}
+.tab{
+  border:0;background:none;cursor:pointer;font:inherit;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+  padding:12px 18px;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .4s var(--ease),border-color .4s var(--ease);
+}
+.tab:hover{color:var(--plum)}
+.tab.is-on{color:var(--rose-ink);border-bottom-color:var(--rose-ink)}
+.panel[hidden]{display:none}
+.panel__lede{
+  max-width:52ch;margin:0 0 clamp(30px,3.4vw,52px);
+  font-size:clamp(1rem,1.15vw,1.16rem);line-height:1.7;color:var(--ink-soft);
+}
+
+/* ---------- 16a4. Massages ----------
+   Five treatments, each its own card; the duration rides with the price
+   because at this menu it is half of what is being chosen. */
+.treats{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,26px)}
+.treat{
+  background:var(--blush-lift);border:1px solid rgba(59,21,34,.13);border-radius:var(--r);
+  padding:clamp(24px,2.2vw,38px);display:flex;flex-direction:column;
+  transition:transform .7s var(--ease-out),box-shadow .7s var(--ease);
+}
+.treat:hover{transform:translateY(-5px);box-shadow:0 24px 54px -40px rgba(59,21,34,.5)}
+.treat__name{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;color:var(--rose-ink)}
+.treat__sub{font-family:var(--display);font-size:clamp(1.1rem,1.35vw,1.42rem);line-height:1.2;margin-top:9px;min-height:2.3em}
+.treat__price{font-family:var(--display);font-size:clamp(1.4rem,1.8vw,1.9rem);line-height:1;margin-top:clamp(14px,1.6vw,20px)}
+.treat__price span,.treat__soon span{font-family:var(--sans);font-size:11px;letter-spacing:.1em;color:var(--ink-soft)}
+.treat__soon{
+  font-family:var(--display);font-style:italic;font-size:clamp(1rem,1.2vw,1.2rem);
+  margin-top:clamp(14px,1.6vw,20px);color:var(--rose-ink);
+}
+.treat__list{
+  display:flex;flex-direction:column;gap:8px;margin-top:clamp(14px,1.6vw,20px);
+  padding-top:clamp(14px,1.6vw,18px);border-top:1px solid rgba(59,21,34,.14);
+}
+.treat__list li{position:relative;padding-left:18px;font-size:.88rem;line-height:1.55;color:var(--ink-soft)}
+.treat__list li::before{content:"";position:absolute;left:0;top:.66em;width:8px;height:1px;background:var(--rose-mid)}
+
+/* The same treatments several at a time: a list, because the only thing
+   that changes down it is a number. */
+.mpacks{margin-top:clamp(48px,5.5vw,88px)}
+.mpacks__list{margin-top:clamp(20px,2.4vw,34px);display:flex;flex-direction:column}
+.mpack{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto auto;
+  gap:10px clamp(16px,3vw,54px);align-items:baseline;
+  padding:clamp(16px,1.8vw,24px) 0;border-top:1px solid rgba(59,21,34,.14);
+}
+.mpack:last-child{border-bottom:1px solid rgba(59,21,34,.14)}
+.mpack__name{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose-ink)}
+.mpack__what{font-size:.95rem;color:var(--plum)}
+.mpack__price{font-family:var(--display);font-size:clamp(1.15rem,1.4vw,1.45rem);text-align:right}
+.mpack__soon{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--rose-ink);text-align:right}
+.mpack__saves{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--rose-ink);text-align:right}
+/* Its own name: .note is already a small uppercase label elsewhere, and
+   a medical disclaimer set in caps is the opposite of quiet. */
+.mpacks__note{
+  margin-top:clamp(20px,2.4vw,32px);max-width:62ch;
+  font-size:.84rem;line-height:1.65;color:var(--ink-soft);
+}
+
+/* ---------- 16a5. Combinations ----------
+   These are bought for the saving, so the saving is on the card and not
+   in a footnote. */
+.combos{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,26px)}
+.combo{
+  position:relative;background:var(--blush-lift);border:1px solid rgba(59,21,34,.13);
+  border-radius:var(--r);padding:clamp(24px,2.2vw,38px);display:flex;flex-direction:column;
+  transition:transform .7s var(--ease-out),box-shadow .7s var(--ease);
+}
+.combo:hover{transform:translateY(-5px);box-shadow:0 24px 54px -40px rgba(59,21,34,.5)}
+.combo--feature{background:var(--rose-ink);color:var(--blush);border-color:var(--rose-ink)}
+.combo__flag{
+  position:absolute;top:0;left:clamp(24px,2.2vw,38px);transform:translateY(-50%);
+  border-radius:99px;background:var(--blush);color:var(--rose-ink);
+  font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:7px 14px;white-space:nowrap;
+}
+.combo__name{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:400;color:var(--rose-ink)}
+.combo--feature .combo__name{color:var(--rose-soft)}
+.combo__what{font-family:var(--display);font-size:clamp(1.05rem,1.3vw,1.35rem);line-height:1.25;margin-top:10px;min-height:2.5em}
+.combo__price{font-family:var(--display);font-size:clamp(1.5rem,1.9vw,2rem);line-height:1;margin-top:clamp(12px,1.4vw,18px)}
+.combo__soon{
+  font-family:var(--display);font-style:italic;font-size:clamp(1rem,1.2vw,1.2rem);
+  margin-top:clamp(12px,1.4vw,18px);color:var(--rose-ink);
+}
+.combo--feature .combo__soon{color:var(--rose-soft)}
+.combo__value{margin-top:8px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--rose-ink)}
+.combo--feature .combo__value{color:rgba(255,251,234,.66)}
+.combo__note{
+  margin-top:auto;padding-top:clamp(14px,1.6vw,20px);
+  font-size:.88rem;line-height:1.6;color:var(--ink-soft);
+}
+.combo--feature .combo__note{color:rgba(255,251,234,.78)}
+
+.formula{margin-top:clamp(48px,5.5vw,88px)}
+.formula__line{
+  font-family:var(--display);font-size:clamp(1.4rem,2.6vw,2.6rem);line-height:1.35;
+  color:var(--ink-soft);
+}
+.formula__line b{font-weight:400;font-style:italic;color:var(--plum)}
+.formula .eyebrow{margin-bottom:clamp(18px,2vw,30px)}
+
+@media (max-width:1100px){
+  .treats,.combos{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:720px){
+  .treats,.combos{grid-template-columns:1fr}
+  .mpack{grid-template-columns:1fr 1fr;gap:6px 16px}
+  .mpack__price,.mpack__soon,.mpack__saves{text-align:left}
+  .tab{padding:11px 13px;letter-spacing:.1em}
+}
+
 /* ---------- 16b. Special offers ----------
    Conditions on a package rather than packages, so they are set lighter:
    no ground of their own, only a rule above each one. */

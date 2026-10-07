@@ -256,6 +256,61 @@
     'classes': 'klasa',
     'Or just one class': 'Ose vetëm një klasë',
     'One to one': 'Një me një',
+    'Kinds of package': 'Llojet e paketave',
+    'Pilates': 'Pilates',
+    'Massages': 'Masazhet',
+    'Combinations': 'Kombinimet',
+    'A short, premium menu: relaxation, recovery and body care.':
+      'Një meny e shkurtër dhe premium: relaks, recovery dhe body-care.',
+    'Where movement meets recovery — and every visit is worth more.':
+      'Këtu bashkohet movement me recovery — dhe rritet vlera e çdo vizite.',
+    'Total relaxation': 'Relaks total',
+    'Lightness and recovery': 'Lehtësi dhe rikuperim',
+    'Firming and body care': 'Fortësim dhe kujdes trupor',
+    'Release and restore': 'Lirim dhe rikthim',
+    'The full DUA experience': 'Eksperienca e plotë DUA',
+    '30 minutes · 2,000 L': '30 minuta · 2,000 L',
+    'For unwinding and wellbeing': 'Për çlodhje dhe mirëqenie',
+    'Lymphatic massage': 'Masazh limfatik',
+    'Wellness focus': 'Fokus wellness',
+    'For a regular routine': 'Për rutinë të rregullt',
+    'Sculpt and anti-cellulite': 'Sculpt dhe anticelulit',
+    'Body care': 'Body-care',
+    'For specific areas': 'Për zonat trupore',
+    'A deeper massage': 'Masazh më i thellë',
+    'For muscular tension': 'Për tension muskulor',
+    'Ideal after activity': 'Ideal pas aktivitetit',
+    '90 minutes': '90 minuta',
+    'A personalised experience': 'Eksperiencë e personalizuar',
+    'Relaxation and recovery': 'Relaks dhe recovery',
+    'Massage packages': 'Paketat e masazheve',
+    '3 × Relax 60′': '3 × Relax 60′',
+    '5 × Lymph 60′': '5 × Lymph 60′',
+    '5 × Sculpt 60′': '5 × Sculpt 60′',
+    'Lymphatic and anti-cellulite treatments are wellness and aesthetic care. They do not replace medical advice.':
+      'Shërbimet limfatike dhe anticelulit janë wellness/estetikë dhe nuk zëvendësojnë këshillën mjekësore.',
+    'Our main package': 'Paketa kryesore',
+    'Eight classes and two massages, every month.': 'Tetë klasa dhe dy masazhe, çdo muaj.',
+    '4 Pilates + 1 Relax 60′': '4 Pilates + 1 Relax 60′',
+    '8 Pilates + 2 Relax 60′': '8 Pilates + 2 Relax 60′',
+    '8 Pilates + 4 Sculpt': '8 Pilates + 4 Sculpt',
+    '12 Pilates + 4 Lymph': '12 Pilates + 4 Lymph',
+    '8 Pilates + 2 Lymph': '8 Pilates + 2 Lymph',
+    '1 Pilates + 1 Relax 60′': '1 Pilates + 1 Relax 60′',
+    '2 people · 1 Pilates + 1 Relax each': '2 persona · 1 Pilates + 1 Relax secili',
+    '10,900 L for both': '10,900 L për të dyja',
+    'Perfect to begin with': 'Perfekte për fillim',
+    'For body care': 'Për body-care',
+    'The premium package': 'Paketë premium',
+    'Movement and recovery': 'Movement dhe recovery',
+    'A gift, or a weekend': 'Dhuratë, ose fundjavë',
+    'The bestie experience': 'Bestie experience',
+    'Our signature formula': 'Formula jonë',
+    'builds.': 'ndërton.',
+    'recovers.': 'rikuperon.',
+    'they change things.': 'ndryshojnë gjithçka.',
+    'Massage': 'Masazhi',
+    'Together': 'Bashkë',
     'Personal': 'Personal',
     'training.': 'training.',
     'Packages with personal training, too — one to one with your instructor, and a class built entirely around you.':
@@ -403,6 +458,14 @@
     if (m) return DAYS[m[1]] + ' ' + m[2] + ' Sht · ' + m[3];
     m = s.match(/^(\d+) spots? left$/);
     if (m) return m[1] === '1' ? '1 vend i lirë' : m[1] + ' vende të lira';
+    /* The money lines on the packages carry a figure, so they are matched
+       rather than listed: one entry would otherwise be needed per price. */
+    m = s.match(/^Saves ([\d,]+ L)$/);
+    if (m) return 'Kursen ' + m[1];
+    m = s.match(/^Worth ([\d,]+ L) — you save ([\d,]+ L)$/);
+    if (m) return 'Vlera ' + m[1] + ' — kursen ' + m[2];
+    m = s.match(/^([\d,]+ L) \/ class$/);
+    if (m) return m[1] + ' / klasë';
     return null;
   }
 

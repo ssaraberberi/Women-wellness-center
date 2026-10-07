@@ -379,113 +379,302 @@
       <p class="lede" data-reveal>The more you move, the more you save.</p>
     </div>
 
-    <!-- Four packages in a row, read as a ladder rather than as four boxes:
-         the number of classes is the largest thing on each card and the rule
-         under it grows with the package, so the progression is visible before
-         a word is read. That is the point the headline is making. -->
-    <div class="packs">
-      <article class="pack" style="--step:0.250" data-reveal>
-        <h3 class="pack__name">DUA START</h3>
-        <p class="pack__count"><b>4</b> <span>classes</span></p>
-        <span class="pack__bar" aria-hidden="true"><i></i></span>
-        <p class="pack__sub">Build the habit</p>
-        <p class="pack__rhythm">Around 1x per week</p>
-        <p class="pack__price" data-price>7,200 L</p>
-        <p class="pack__each" data-price>1,800 L / class</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <p class="pack__note">Perfect for getting started</p>
-      </article>
-
-      <article class="pack pack--feature" style="--step:0.500" data-reveal>
-        <span class="pack__flag">Most popular</span>
-        <h3 class="pack__name">DUA ROUTINE</h3>
-        <p class="pack__count"><b>8</b> <span>classes</span></p>
-        <span class="pack__bar" aria-hidden="true"><i></i></span>
-        <p class="pack__sub">The sweet spot</p>
-        <p class="pack__rhythm">Around 2x per week</p>
-        <p class="pack__price" data-price>13,200 L</p>
-        <p class="pack__each" data-price>1,650 L / class</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <p class="pack__note">The ideal balance between consistency, results and value</p>
-      </article>
-
-      <article class="pack" style="--step:0.750" data-reveal>
-        <h3 class="pack__name">DUA GLOW</h3>
-        <p class="pack__count"><b>12</b> <span>classes</span></p>
-        <span class="pack__bar" aria-hidden="true"><i></i></span>
-        <p class="pack__sub">Take it further</p>
-        <p class="pack__rhythm">Around 3x per week</p>
-        <p class="pack__price" data-price>18,000 L</p>
-        <p class="pack__each" data-price>1,500 L / class</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <p class="pack__note">Designed for greater consistency in your Pilates routine</p>
-      </article>
-
-      <article class="pack" style="--step:1.000" data-reveal>
-        <h3 class="pack__name">DUA OBSESSED</h3>
-        <p class="pack__count"><b>16</b> <span>classes</span></p>
-        <span class="pack__bar" aria-hidden="true"><i></i></span>
-        <p class="pack__sub">For the Pilates girls</p>
-        <p class="pack__rhythm">Around 4x per week</p>
-        <p class="pack__price" data-price>22,400 L</p>
-        <p class="pack__each" data-price>1,400 L / class</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <p class="pack__note">Our largest package for our most active clients</p>
-      </article>
+    <!-- Three kinds of thing, and about two dozen of them, so they are
+         behind tabs rather than in one column a screen and a half long.
+         Nothing is hidden from a crawler or from a reader without
+         JavaScript: the panels only close once the script opens them. -->
+    <div class="tabs" role="tablist" aria-label="Kinds of package" data-reveal>
+      <button class="tab is-on" type="button" role="tab" id="tab-pilates" aria-controls="panel-pilates" aria-selected="true">Pilates</button>
+      <button class="tab" type="button" role="tab" id="tab-spa" aria-controls="panel-spa" aria-selected="false">Massages</button>
+      <button class="tab" type="button" role="tab" id="tab-combo" aria-controls="panel-combo" aria-selected="false">Combinations</button>
     </div>
 
-    <!-- The two single classes are not packages, so they are not dressed as
-         any: one wide band, lighter, under the ladder. -->
-    <div class="singles">
-      <p class="eyebrow" data-reveal><span>Or just one class</span></p>
-      <div class="singles__grid">
-        <article class="single" data-reveal>
-          <div class="single__head">
-            <h3 class="single__name">TRY DUA</h3>
-            <p class="single__sub">Meet DUA</p>
-          </div>
-          <div class="single__body">
-            <ul>
-            <li>New clients only</li>
-            <li>Can only be purchased once</li>
-            <li>Perfect for experiencing DUA before choosing a package</li>
-            </ul>
-            <p class="single__price" data-price>1,200 L</p>
-            <p class="single__soon" data-noprice>Price coming soon</p>
-          </div>
+    <div class="panel" id="panel-pilates" role="tabpanel" aria-labelledby="tab-pilates">
+      <!-- Four packages in a row, read as a ladder rather than as four boxes:
+           the number of classes is the largest thing on each card and the rule
+           under it grows with the package, so the progression is visible before
+           a word is read. That is the point the headline is making. -->
+      <div class="packs">
+        <article class="pack" style="--step:0.250" data-reveal>
+          <h3 class="pack__name">DUA START</h3>
+          <p class="pack__count"><b>4</b> <span>classes</span></p>
+          <span class="pack__bar" aria-hidden="true"><i></i></span>
+          <p class="pack__sub">Build the habit</p>
+          <p class="pack__rhythm">Around 1x per week</p>
+          <p class="pack__price" data-price>7,200 L</p>
+          <p class="pack__each" data-price>1,800 L / class</p>
+          <p class="pack__soon" data-noprice>Price coming soon</p>
+          <p class="pack__note">Perfect for getting started</p>
         </article>
 
-        <article class="single" data-reveal>
-          <div class="single__head">
-            <h3 class="single__name">SINGLE CLASS</h3>
-            <p class="single__sub">Your class, your time</p>
-          </div>
-          <div class="single__body">
-            <ul>
-            <li>No package required</li>
-            <li>Perfect for occasional visits</li>
-            </ul>
-            <p class="single__price" data-price>2,200 L</p>
-            <p class="single__soon" data-noprice>Price coming soon</p>
-          </div>
+        <article class="pack pack--feature" style="--step:0.500" data-reveal>
+          <span class="pack__flag">Most popular</span>
+          <h3 class="pack__name">DUA ROUTINE</h3>
+          <p class="pack__count"><b>8</b> <span>classes</span></p>
+          <span class="pack__bar" aria-hidden="true"><i></i></span>
+          <p class="pack__sub">The sweet spot</p>
+          <p class="pack__rhythm">Around 2x per week</p>
+          <p class="pack__price" data-price>13,200 L</p>
+          <p class="pack__each" data-price>1,650 L / class</p>
+          <p class="pack__soon" data-noprice>Price coming soon</p>
+          <p class="pack__note">The ideal balance between consistency, results and value</p>
         </article>
+
+        <article class="pack" style="--step:0.750" data-reveal>
+          <h3 class="pack__name">DUA GLOW</h3>
+          <p class="pack__count"><b>12</b> <span>classes</span></p>
+          <span class="pack__bar" aria-hidden="true"><i></i></span>
+          <p class="pack__sub">Take it further</p>
+          <p class="pack__rhythm">Around 3x per week</p>
+          <p class="pack__price" data-price>18,000 L</p>
+          <p class="pack__each" data-price>1,500 L / class</p>
+          <p class="pack__soon" data-noprice>Price coming soon</p>
+          <p class="pack__note">Designed for greater consistency in your Pilates routine</p>
+        </article>
+
+        <article class="pack" style="--step:1.000" data-reveal>
+          <h3 class="pack__name">DUA OBSESSED</h3>
+          <p class="pack__count"><b>16</b> <span>classes</span></p>
+          <span class="pack__bar" aria-hidden="true"><i></i></span>
+          <p class="pack__sub">For the Pilates girls</p>
+          <p class="pack__rhythm">Around 4x per week</p>
+          <p class="pack__price" data-price>22,400 L</p>
+          <p class="pack__each" data-price>1,400 L / class</p>
+          <p class="pack__soon" data-noprice>Price coming soon</p>
+          <p class="pack__note">Our largest package for our most active clients</p>
+        </article>
+
+      </div>
+
+      <!-- The two single classes are not packages, so they are not dressed as
+           any: one wide band, lighter, under the ladder. -->
+      <div class="singles">
+        <p class="eyebrow" data-reveal><span>Or just one class</span></p>
+        <div class="singles__grid">
+          <article class="single" data-reveal>
+            <div class="single__head">
+              <h3 class="single__name">TRY DUA</h3>
+              <p class="single__sub">Meet DUA</p>
+            </div>
+            <div class="single__body">
+              <ul>
+                <li>New clients only</li>
+                <li>Can only be purchased once</li>
+                <li>Perfect for experiencing DUA before choosing a package</li>
+              </ul>
+              <p class="single__price" data-price>1,200 L</p>
+              <p class="single__soon" data-noprice>Price coming soon</p>
+            </div>
+          </article>
+
+          <article class="single" data-reveal>
+            <div class="single__head">
+              <h3 class="single__name">SINGLE CLASS</h3>
+              <p class="single__sub">Your class, your time</p>
+            </div>
+            <div class="single__body">
+              <ul>
+                <li>No package required</li>
+                <li>Perfect for occasional visits</li>
+              </ul>
+              <p class="single__price" data-price>2,200 L</p>
+              <p class="single__soon" data-noprice>Price coming soon</p>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- A different format rather than a different size, so it is neither a
+           rung on the ladder nor one of the single classes: its own band, with
+           the room to say what it is. -->
+      <div class="one2one">
+        <p class="eyebrow" data-reveal><span>One to one</span></p>
+        <div class="one2one__grid">
+          <h3 class="display display--md one2one__title" data-reveal-lines>
+            <span class="line"><span>Personal</span></span>
+            <span class="line"><span><em>training.</em></span></span>
+          </h3>
+          <div class="one2one__body" data-reveal>
+            <p>Packages with personal training, too — one to one with your instructor, and a class built entirely around you.</p>
+            <p class="one2one__note">For a first time on the reformer, for working on something specific, or simply for the full attention.</p>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- A different format rather than a different size, so it is neither a
-         rung on the ladder nor one of the single classes: its own band, with
-         the room to say what it is. -->
-    <div class="one2one">
-      <p class="eyebrow" data-reveal><span>One to one</span></p>
-      <div class="one2one__grid">
-        <h3 class="display display--md one2one__title" data-reveal-lines>
-          <span class="line"><span>Personal</span></span>
-          <span class="line"><span><em>training.</em></span></span>
-        </h3>
-        <div class="one2one__body" data-reveal>
-          <p>Packages with personal training, too — one to one with your instructor, and a class built entirely around you.</p>
-          <p class="one2one__note">For a first time on the reformer, for working on something specific, or simply for the full attention.</p>
+    <div class="panel" id="panel-spa" role="tabpanel" aria-labelledby="tab-spa">
+      <p class="panel__lede" data-reveal>A short, premium menu: relaxation, recovery and body care.</p>
+      <div class="treats">
+        <article class="treat" data-reveal>
+          <h3 class="treat__name">DUA RELAX</h3>
+          <p class="treat__sub">Total relaxation</p>
+          <p class="treat__price" data-price>3,900 L <span>· 60′</span></p>
+          <p class="treat__soon" data-noprice>Price coming soon <span>· 60′</span></p>
+          <ul class="treat__list">
+            <li>30 minutes · 2,000 L</li>
+            <li>For unwinding and wellbeing</li>
+          </ul>
+        </article>
+
+        <article class="treat" data-reveal>
+          <h3 class="treat__name">DUA LYMPH</h3>
+          <p class="treat__sub">Lightness and recovery</p>
+          <p class="treat__price" data-price>4,200 L <span>· 60′</span></p>
+          <p class="treat__soon" data-noprice>Price coming soon <span>· 60′</span></p>
+          <ul class="treat__list">
+            <li>Lymphatic massage</li>
+            <li>Wellness focus</li>
+            <li>For a regular routine</li>
+          </ul>
+        </article>
+
+        <article class="treat" data-reveal>
+          <h3 class="treat__name">DUA SCULPT</h3>
+          <p class="treat__sub">Firming and body care</p>
+          <p class="treat__price" data-price>4,200 L <span>· 60′</span></p>
+          <p class="treat__soon" data-noprice>Price coming soon <span>· 60′</span></p>
+          <ul class="treat__list">
+            <li>Sculpt and anti-cellulite</li>
+            <li>Body care</li>
+            <li>For specific areas</li>
+          </ul>
+        </article>
+
+        <article class="treat" data-reveal>
+          <h3 class="treat__name">DUA DEEP RECOVERY</h3>
+          <p class="treat__sub">Release and restore</p>
+          <p class="treat__price" data-price>4,200 L <span>· 60′</span></p>
+          <p class="treat__soon" data-noprice>Price coming soon <span>· 60′</span></p>
+          <ul class="treat__list">
+            <li>A deeper massage</li>
+            <li>For muscular tension</li>
+            <li>Ideal after activity</li>
+          </ul>
+        </article>
+
+        <article class="treat" data-reveal>
+          <h3 class="treat__name">DUA SIGNATURE</h3>
+          <p class="treat__sub">The full DUA experience</p>
+          <p class="treat__price" data-price>5,900 L <span>· 90′</span></p>
+          <p class="treat__soon" data-noprice>Price coming soon <span>· 90′</span></p>
+          <ul class="treat__list">
+            <li>90 minutes</li>
+            <li>A personalised experience</li>
+            <li>Relaxation and recovery</li>
+          </ul>
+        </article>
+
+      </div>
+
+      <!-- The same five treatments bought several at a time. A list rather
+           than more cards: the only thing that changes down it is a number. -->
+      <div class="mpacks">
+        <p class="eyebrow" data-reveal><span>Massage packages</span></p>
+        <div class="mpacks__list">
+          <div class="mpack" data-reveal>
+            <p class="mpack__name">RELAX PACK</p>
+            <p class="mpack__what">3 × Relax 60′</p>
+            <p class="mpack__price" data-price>10,800 L</p>
+            <p class="mpack__saves" data-price>Saves 900 L</p>
+            <p class="mpack__soon" data-noprice>Price coming soon</p>
+          </div>
+
+          <div class="mpack" data-reveal>
+            <p class="mpack__name">LYMPH PACK</p>
+            <p class="mpack__what">5 × Lymph 60′</p>
+            <p class="mpack__price" data-price>19,500 L</p>
+            <p class="mpack__saves" data-price>Saves 1,500 L</p>
+            <p class="mpack__soon" data-noprice>Price coming soon</p>
+          </div>
+
+          <div class="mpack" data-reveal>
+            <p class="mpack__name">SCULPT PACK</p>
+            <p class="mpack__what">5 × Sculpt 60′</p>
+            <p class="mpack__price" data-price>19,500 L</p>
+            <p class="mpack__saves" data-price>Saves 1,500 L</p>
+            <p class="mpack__soon" data-noprice>Price coming soon</p>
+          </div>
+
         </div>
+        <p class="mpacks__note" data-reveal>Lymphatic and anti-cellulite treatments are wellness and aesthetic care. They do not replace medical advice.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-combo" role="tabpanel" aria-labelledby="tab-combo">
+      <p class="panel__lede" data-reveal>Where movement meets recovery — and every visit is worth more.</p>
+      <div class="combos">
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA RESET</h3>
+          <p class="combo__what">4 Pilates + 1 Relax 60′</p>
+          <p class="combo__price" data-price>9,900 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 10,700 L — you save 800 L</p>
+          <p class="combo__note">Perfect to begin with</p>
+        </article>
+
+        <article class="combo combo--feature" data-reveal>
+          <span class="combo__flag">Our main package</span>
+          <h3 class="combo__name">DUA ROUTINE + RELAX</h3>
+          <p class="combo__what">8 Pilates + 2 Relax 60′</p>
+          <p class="combo__price" data-price>19,500 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 21,000 L — you save 1,500 L</p>
+          <p class="combo__note">Eight classes and two massages, every month.</p>
+        </article>
+
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA SCULPT COMBO</h3>
+          <p class="combo__what">8 Pilates + 4 Sculpt</p>
+          <p class="combo__price" data-price>27,900 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 30,000 L — you save 2,100 L</p>
+          <p class="combo__note">For body care</p>
+        </article>
+
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA LIGHT & LEAN</h3>
+          <p class="combo__what">12 Pilates + 4 Lymph</p>
+          <p class="combo__price" data-price>31,900 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 34,800 L — you save 2,900 L</p>
+          <p class="combo__note">The premium package</p>
+        </article>
+
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA BALANCE</h3>
+          <p class="combo__what">8 Pilates + 2 Lymph</p>
+          <p class="combo__price" data-price>19,900 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 21,600 L — you save 1,700 L</p>
+          <p class="combo__note">Movement and recovery</p>
+        </article>
+
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA WEEKEND RESET</h3>
+          <p class="combo__what">1 Pilates + 1 Relax 60′</p>
+          <p class="combo__price" data-price>5,200 L</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 6,100 L — you save 900 L</p>
+          <p class="combo__note">A gift, or a weekend</p>
+        </article>
+
+        <article class="combo" data-reveal>
+          <h3 class="combo__name">DUA DUO</h3>
+          <p class="combo__what">2 people · 1 Pilates + 1 Relax each</p>
+          <p class="combo__price" data-price>10,900 L for both</p>
+          <p class="combo__soon" data-noprice>Price coming soon</p>
+          <p class="combo__value" data-price>Worth 12,200 L — you save 1,300 L</p>
+          <p class="combo__note">The bestie experience</p>
+        </article>
+
+      </div>
+
+      <div class="formula" data-reveal>
+        <p class="eyebrow"><span>Our signature formula</span></p>
+        <p class="formula__line"><b>Pilates</b> builds.</p>
+        <p class="formula__line"><b>Massage</b> recovers.</p>
+        <p class="formula__line"><b>Together</b> they change things.</p>
       </div>
     </div>
 
@@ -618,6 +807,7 @@
 </div>
 
 <script src="assets/js/main.js"></script>
+<script src="assets/js/tabs.js"></script>
 <script src="assets/js/prices.js"></script>
 <script src="assets/js/whatsapp.js"></script>
 <script src="assets/js/i18n.js"></script>
