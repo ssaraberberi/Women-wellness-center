@@ -379,90 +379,97 @@
       <p class="lede" data-reveal>The more you move, the more you save.</p>
     </div>
 
+    <!-- Four packages in a row, read as a ladder rather than as four boxes:
+         the number of classes is the largest thing on each card and the rule
+         under it grows with the package, so the progression is visible before
+         a word is read. That is the point the headline is making. -->
     <div class="packs">
-      <article class="pack" data-reveal>
-        <h3 class="pack__name">TRY DUA</h3>
-        <p class="pack__sub">Meet DUA</p>
-        <p class="pack__price" data-price>1,200 L</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>1 Reformer class</li>
-          <li>New clients only</li>
-          <li>Can only be purchased once</li>
-          <li>Perfect for experiencing DUA before choosing a package</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
-      </article>
-
-      <article class="pack" data-reveal>
-        <h3 class="pack__name">SINGLE CLASS</h3>
-        <p class="pack__sub">Your class, your time</p>
-        <p class="pack__price" data-price>2,200 L</p>
-        <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>1 Reformer class</li>
-          <li>No package required</li>
-          <li>Perfect for occasional visits</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
-      </article>
-
-      <article class="pack" data-reveal>
+      <article class="pack" style="--step:0.250" data-reveal>
         <h3 class="pack__name">DUA START</h3>
+        <p class="pack__count"><b>4</b> <span>classes</span></p>
+        <span class="pack__bar" aria-hidden="true"><i></i></span>
         <p class="pack__sub">Build the habit</p>
+        <p class="pack__rhythm">Around 1x per week</p>
         <p class="pack__price" data-price>7,200 L</p>
+        <p class="pack__each" data-price>1,800 L / class</p>
         <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>4 classes</li>
-          <li>Around 1x per week</li>
-          <li data-price>1,800 L / class</li>
-          <li>Perfect for getting started</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
+        <p class="pack__note">Perfect for getting started</p>
       </article>
 
-      <article class="pack pack--feature" data-reveal>
+      <article class="pack pack--feature" style="--step:0.500" data-reveal>
         <span class="pack__flag">Most popular</span>
         <h3 class="pack__name">DUA ROUTINE</h3>
+        <p class="pack__count"><b>8</b> <span>classes</span></p>
+        <span class="pack__bar" aria-hidden="true"><i></i></span>
         <p class="pack__sub">The sweet spot</p>
+        <p class="pack__rhythm">Around 2x per week</p>
         <p class="pack__price" data-price>13,200 L</p>
+        <p class="pack__each" data-price>1,650 L / class</p>
         <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>8 classes</li>
-          <li>Around 2x per week</li>
-          <li data-price>1,650 L / class</li>
-          <li>The ideal balance between consistency, results and value</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
+        <p class="pack__note">The ideal balance between consistency, results and value</p>
       </article>
 
-      <article class="pack" data-reveal>
+      <article class="pack" style="--step:0.750" data-reveal>
         <h3 class="pack__name">DUA GLOW</h3>
+        <p class="pack__count"><b>12</b> <span>classes</span></p>
+        <span class="pack__bar" aria-hidden="true"><i></i></span>
         <p class="pack__sub">Take it further</p>
+        <p class="pack__rhythm">Around 3x per week</p>
         <p class="pack__price" data-price>18,000 L</p>
+        <p class="pack__each" data-price>1,500 L / class</p>
         <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>12 classes</li>
-          <li>Around 3x per week</li>
-          <li data-price>1,500 L / class</li>
-          <li>Designed for greater consistency in your Pilates routine</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
+        <p class="pack__note">Designed for greater consistency in your Pilates routine</p>
       </article>
 
-      <article class="pack" data-reveal>
+      <article class="pack" style="--step:1.000" data-reveal>
         <h3 class="pack__name">DUA OBSESSED</h3>
+        <p class="pack__count"><b>16</b> <span>classes</span></p>
+        <span class="pack__bar" aria-hidden="true"><i></i></span>
         <p class="pack__sub">For the Pilates girls</p>
+        <p class="pack__rhythm">Around 4x per week</p>
         <p class="pack__price" data-price>22,400 L</p>
+        <p class="pack__each" data-price>1,400 L / class</p>
         <p class="pack__soon" data-noprice>Price coming soon</p>
-        <ul class="pack__list">
-          <li>16 classes</li>
-          <li>Around 4x per week</li>
-          <li data-price>1,400 L / class</li>
-          <li>Our largest package for our most active clients</li>
-        </ul>
-        <a class="btn btn--block" href="/app">Choose package</a>
+        <p class="pack__note">Our largest package for our most active clients</p>
       </article>
+    </div>
+
+    <!-- The two single classes are not packages, so they are not dressed as
+         any: one wide band, lighter, under the ladder. -->
+    <div class="singles">
+      <p class="eyebrow" data-reveal><span>Or just one class</span></p>
+      <div class="singles__grid">
+        <article class="single" data-reveal>
+          <div class="single__head">
+            <h3 class="single__name">TRY DUA</h3>
+            <p class="single__sub">Meet DUA</p>
+          </div>
+          <div class="single__body">
+            <ul>
+            <li>New clients only</li>
+            <li>Can only be purchased once</li>
+            <li>Perfect for experiencing DUA before choosing a package</li>
+            </ul>
+            <p class="single__price" data-price>1,200 L</p>
+            <p class="single__soon" data-noprice>Price coming soon</p>
+          </div>
+        </article>
+
+        <article class="single" data-reveal>
+          <div class="single__head">
+            <h3 class="single__name">SINGLE CLASS</h3>
+            <p class="single__sub">Your class, your time</p>
+          </div>
+          <div class="single__body">
+            <ul>
+            <li>No package required</li>
+            <li>Perfect for occasional visits</li>
+            </ul>
+            <p class="single__price" data-price>2,200 L</p>
+            <p class="single__soon" data-noprice>Price coming soon</p>
+          </div>
+        </article>
+      </div>
     </div>
 
     <!-- The offers sit under the packs rather than inside them: they are
@@ -489,18 +496,6 @@
       </article>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- ───────────────────────────── 7. THE STUDIO ───────────────────────────── -->
-<section class="studio soon" id="studio">
-  <div class="soon__inner">
-    <p class="eyebrow" data-reveal><span>The space</span></p>
-    <h2 class="display display--lg" data-reveal-lines>
-      <span class="line"><span>The studio</span></span>
-      <span class="line"><span><em>coming soon.</em></span></span>
-    </h2>
-    <p class="lede" data-reveal>We are still putting the rooms together. Photographs as soon as it is ready.</p>
   </div>
 </section>
 
