@@ -6,7 +6,9 @@
    ============================================================ */
 import { q, one, many, tx } from './db.js';
 import { hashPassword, verifyPassword, issueToken, revokeToken, adminCode,
-         burnPasswordTime, signinBlocked, recordSigninFailure, clearSigninFailures } from './auth.js';
+         burnPasswordTime, signinBlocked, recordSigninFailure, clearSigninFailures,
+         issueCode, claimCode, codeRequestBlocked, recordCodeRequest } from './auth.js';
+import { sendAuthEmail, mailConfigured } from './mail.js';
 import * as load from './load.js';
 import * as rules from '../../shared/rules.js';
 import { iso, addDays, periodRange, hhmm } from '../../shared/domain.js';
@@ -26,7 +28,7 @@ const notify = (client, userId, text, tone) =>
 
 /* ---------- auth ---------- */
 
-export async function register(body) {
+export async function register(body, meta) {
   requireFields(body, ['name', 'email', 'phone', 'password']);
   if (String(body.password).length < 8) bad(400, 'Password must be at least 8 characters');
   const wantsAdmin = !!body.code;
@@ -40,8 +42,14 @@ export async function register(body) {
   const hash = await hashPassword(body.password);
   const user = await one(
     `insert into users (role, name, email, phone, password_hash) values ($1,$2,$3,$4,$5)
-     returning id, role, name, email, phone`,
+     returning id, role, name, email, phone, email_verified as "emailVerified"`,
     [wantsAdmin ? 'admin' : 'client', trim(body.name), trim(body.email), trim(body.phone), hash]);
+
+  /* The confirmation letter goes out now, and she is signed in either way.
+     An address that is never confirmed costs her nothing today; it costs
+     her the reset link on the day she forgets her password, which is why
+     the app keeps asking. */
+  await deliver('verify', user, meta);
   return { user, ...(await issueToken(user.id)) };
 }
 
@@ -53,7 +61,8 @@ export async function login(body, meta) {
     bad(429, 'Too many attempts. Wait a few minutes and try again.', 'throttled');
 
   const row = await one(
-    'select id, role, name, email, phone, password_hash, active from users where lower(email) = lower($1)',
+    `select id, role, name, email, phone, password_hash, active,
+            email_verified as "emailVerified" from users where lower(email) = lower($1)`,
     [body.email]);
 
   /* Same message either way, and the same work either way: whether an
@@ -73,6 +82,108 @@ export async function login(body, meta) {
 }
 
 export const logout = token => revokeToken(token);
+
+/* ---------- the way back in ----------
+   A forgotten password is the one thing a studio cannot fix at the desk
+   out of hours, so it is fixed by email: a one-hour link, used once, and
+   every other session on that account ended when the new password is set.
+
+   Two rules run through all of it. The answer to "send me a link" never
+   says whether the address has an account — same body, same status, for a
+   member and for a stranger — because an endpoint that distinguishes them
+   is a membership list anyone can read. And a letter that fails to send is
+   logged, never raised: a registration must not fail because a letter could
+   not be posted, and the desk reset is still there on the day Resend is.
+*/
+
+/* Sending is best effort, and the caller is told whether it worked —
+   signed-in callers are shown it, the public one is not. */
+async function deliver(kind, who, meta) {
+  if (!mailConfigured()) {
+    console.error('email not sent (' + kind + '): RESEND_API_KEY is not set');
+    return false;
+  }
+  try {
+    const token = await issueCode(who.id, kind);
+    await sendAuthEmail({ kind, to: who.email, name: firstName(who.name), token, lang: meta && meta.lang });
+    return true;
+  } catch (e) {
+    console.error('email not sent (' + kind + '): ' + e.message);
+    return false;
+  }
+}
+
+const firstName = full => String(full || '').trim().split(/\s+/)[0] || '';
+
+export async function forgotPassword(body, meta) {
+  requireFields(body, ['email']);
+  const email = trim(body.email);
+  const ip = meta && meta.ip;
+
+  /* The same answer in every branch below, built once so no branch can
+     drift into saying more than the others. */
+  const quiet = { ok: true };
+
+  if (await codeRequestBlocked(email, ip)) return quiet;
+  await recordCodeRequest(email, ip);
+
+  const who = await one('select id, name, email, active from users where lower(email) = lower($1)', [email]);
+  if (who && who.active) await deliver('reset', who, meta);
+  return quiet;
+}
+
+export async function resetWithToken(body) {
+  requireFields(body, ['token', 'password']);
+  if (String(body.password).length < 8) bad(400, 'Password must be at least 8 characters', 'password');
+
+  const userId = await claimCode(body.token, 'reset');
+  if (!userId) bad(400, 'That link has expired or has already been used', 'token');
+
+  const row = await one('select id, role, name, email, phone, active from users where id = $1', [userId]);
+  if (!row || !row.active) bad(403, 'This account has been removed');
+
+  const hash = await hashPassword(body.password);
+  await tx(async c => {
+    /* Confirming the address is part of this: she just proved she reads
+       that inbox, which is the whole thing the verify link asks for. */
+    await c.query('update users set password_hash = $2, email_verified = true where id = $1', [userId, hash]);
+    /* A reset exists because somebody may have had the old password.
+       Everything signed in with it goes, and so does every other link. */
+    await c.query('delete from auth_tokens where user_id = $1', [userId]);
+    await c.query('delete from auth_codes where user_id = $1', [userId]);
+  });
+  await clearSigninFailures(row.email);
+
+  const { active, ...user } = row;
+  /* Signed in straight away: she has just proved the inbox and chosen the
+     password, and a sign-in form at this point only invites a typo. */
+  return { user: { ...user, emailVerified: true }, ...(await issueToken(userId)) };
+}
+
+export async function verifyEmail(body) {
+  requireFields(body, ['token']);
+  const userId = await claimCode(body.token, 'verify');
+  if (!userId) bad(400, 'That link has expired or has already been used', 'token');
+  await q('update users set email_verified = true where id = $1', [userId]);
+  return { ok: true };
+}
+
+/* Asked for from inside the app, by somebody already signed in, so this
+   one may say plainly what happened. */
+export async function sendVerification(user, meta) {
+  need(user, 'admin', 'instructor', 'client');
+  const row = await one('select id, name, email, email_verified from users where id = $1', [user.id]);
+  if (!row) bad(404, 'No such person');
+  if (row.email_verified) return { ok: true, sent: false, verified: true };
+
+  if (await codeRequestBlocked(row.email, meta && meta.ip))
+    bad(429, 'A link was sent a moment ago. Check your inbox, then try again in a few minutes.', 'throttled');
+  await recordCodeRequest(row.email, meta && meta.ip);
+
+  const sent = await deliver('verify', row, meta);
+  if (!sent) bad(502, 'The letter could not be sent. Tell the studio and they will confirm you by hand.', 'mail');
+  return { ok: true, sent: true };
+}
 
 /* ---------- shared reads ---------- */
 

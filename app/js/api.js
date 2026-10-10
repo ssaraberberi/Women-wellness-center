@@ -1,5 +1,7 @@
 /* Thin wrapper over fetch. The session lives in an httpOnly cookie, so
    there is no token for this code to hold or leak. */
+import { getLang } from './i18n.js';
+
 const BASE = '/api';
 
 /* A session lasts thirty days, so one will end while somebody is looking
@@ -9,10 +11,15 @@ let onLost = null;
 export const whenSignedOut = fn => { onLost = fn; };
 
 async function call(method, path, body) {
+  /* The language travels with every call, because some answers are not
+     drawn by this code: a letter is written by the server and has to
+     arrive in the language she was reading when she asked for it. */
+  const headers = { 'x-dua-lang': getLang() };
+  if (body) headers['content-type'] = 'application/json';
   const res = await fetch(BASE + path, {
     method,
     credentials: 'same-origin',
-    headers: body ? { 'content-type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
   let data = null;

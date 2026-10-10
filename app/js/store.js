@@ -87,6 +87,29 @@ export async function register(data) {
   return r.user;
 }
 
+/* ---------- the way back in ----------
+   Asking for a link answers the same way whichever address it was, so
+   there is nothing here to branch on; the screen says the same thing. */
+export const forgotPassword = email => api.post('/auth/forgot', { email });
+
+export async function resetWithToken(token, password) {
+  const r = await api.post('/auth/reset', { token, password });
+  merge({ user: r.user });
+  await catalogue();
+  await refresh();
+  return r.user;
+}
+
+export async function verifyEmail(token) {
+  const out = await api.post('/auth/verify', { token });
+  /* If she was already signed in, the nudge should go now rather than at
+     the next reload. */
+  if (state.user) merge({ user: { ...state.user, emailVerified: true } });
+  return out;
+}
+
+export const sendVerification = () => api.post('/auth/verify/send');
+
 export async function signOut() {
   await api.post('/auth/logout');
   state = { ...state, user: null, classes: [], bookings: [], memberships: [], balances: [], membership: null, notices: [] };

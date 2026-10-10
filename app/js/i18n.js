@@ -69,6 +69,35 @@ const SQ = {
   'Issued by the studio, and checked on the server.': 'Jepet nga studioja dhe kontrollohet në server.',
   'Administrator account created': 'Llogaria e administratores u krijua',
 
+  /* ---- the way back in ---- */
+  'Forgot your password?': 'Harrove fjalëkalimin?',
+  'Send me a link': 'Dërgomë një link',
+  'Back to sign in': 'Kthehu te hyrja',
+  'Give us the address you signed up with and we will send you a link to set a new password.':
+    'Shkruaj adresën me të cilën u regjistrove dhe do të dërgojmë një link për të vendosur fjalëkalim të ri.',
+  'If that address has an account, a link is on its way. It is good for one hour.':
+    'Nëse kjo adresë ka një llogari, linku është në rrugë. Vlen një orë.',
+  'Nothing in your inbox? Look in spam, or ask the studio — they can confirm you by hand.':
+    'Nuk ka asgjë në inbox? Kontrollo te spam, ose pyet studion — mund të të konfirmojnë me dorë.',
+  'Set a new password': 'Vendos fjalëkalim të ri',
+  'New password': 'Fjalëkalimi i ri',
+  'Repeat the password': 'Përsërit fjalëkalimin',
+  'At least eight characters.': 'Të paktën tetë karaktere.',
+  'Save the new password': 'Ruaj fjalëkalimin e ri',
+  'The two passwords are not the same': 'Fjalëkalimet nuk përputhen',
+  'Password changed. You are signed in.': 'Fjalëkalimi u ndryshua. Tani jeni brenda.',
+  'Ask for a new link': 'Kërko një link të ri',
+  'That link has expired or has already been used': 'Ky link ka skaduar ose është përdorur më parë',
+  'Your email is not confirmed yet. Confirm it so we can send you a way back in if you forget your password.':
+    'Email-i nuk është konfirmuar. Konfirmoje, që të kemi si të dërgojmë rrugën e kthimit nëse harron fjalëkalimin.',
+  'Send the link again': 'Dërgoje linkun sërish',
+  'Check your inbox for the link.': 'Shiko në inbox për linkun.',
+  'Your email is confirmed. Thank you.': 'Email-i u konfirmua. Faleminderit.',
+  'A link was sent a moment ago. Check your inbox, then try again in a few minutes.':
+    'Një link u dërgua pak më parë. Shiko në inbox, pastaj provo sërish pas disa minutash.',
+  'The letter could not be sent. Tell the studio and they will confirm you by hand.':
+    'Letra nuk mund të dërgohej. Thuaji studios dhe do të konfirmojnë me dorë.',
+
   /* ---- days and months ---- */
   'Monday': 'E hënë', 'Tuesday': 'E martë', 'Wednesday': 'E mërkurë', 'Thursday': 'E enjte',
   'Friday': 'E premte', 'Saturday': 'E shtunë', 'Sunday': 'E diel',

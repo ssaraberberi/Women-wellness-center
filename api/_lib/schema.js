@@ -15,7 +15,7 @@
    ============================================================ */
 
 /* Bump on every change to SCHEMA below. */
-export const VERSION = '2026-10-10a';
+export const VERSION = '2026-10-10b';
 
 export const SCHEMA = `
 create table if not exists users (
@@ -28,6 +28,8 @@ create table if not exists users (
   active        boolean not null default true,
   created_at    timestamptz not null default now()
 );
+-- Added after the first release, so it has to be able to arrive late.
+alter table users add column if not exists email_verified boolean not null default false;
 -- Email identifies an account, and case is not part of the identity.
 create unique index if not exists users_email_key on users (lower(email));
 
@@ -141,6 +143,30 @@ create table if not exists auth_tokens (
   created_at timestamptz not null default now()
 );
 create index if not exists auth_tokens_user on auth_tokens (user_id);
+
+-- One-time links sent by email: a password reset, or confirming that an
+-- address is really hers. The token is never stored, only its digest, so
+-- a copy of this table opens nothing. Single use, and short-lived.
+create table if not exists auth_codes (
+  token_hash text primary key,
+  user_id    uuid not null references users(id) on delete cascade,
+  kind       text not null check (kind in ('reset', 'verify')),
+  expires_at timestamptz not null,
+  used_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists auth_codes_user on auth_codes (user_id, kind);
+
+-- Requests for one of those links, counted so an inbox cannot be used as
+-- a weapon and an address cannot be probed at speed.
+create table if not exists auth_code_requests (
+  id    bigserial primary key,
+  email text not null,
+  ip    text,
+  at    timestamptz not null default now()
+);
+create index if not exists auth_code_requests_email on auth_code_requests (lower(email), at desc);
+create index if not exists auth_code_requests_ip on auth_code_requests (ip, at desc);
 
 -- Failed sign-ins, so a password cannot be guessed at machine speed.
 -- Rows older than the window are deleted as they are counted, which is

@@ -79,7 +79,8 @@ export async function issueToken(userId) {
 export async function userForToken(token) {
   if (!token) return null;
   const row = await one(
-    `select u.id, u.role, u.name, u.email, u.phone, u.active
+    `select u.id, u.role, u.name, u.email, u.phone, u.active,
+            u.email_verified as "emailVerified"
        from auth_tokens t join users u on u.id = t.user_id
       where t.token_hash = $1 and t.expires_at > now()`, [digest(token)]);
   if (!row || !row.active) return null;
@@ -89,6 +90,62 @@ export async function userForToken(token) {
 export const revokeToken = token => token ? q('delete from auth_tokens where token_hash = $1', [digest(token)]) : null;
 export const revokeAllFor = userId => q('delete from auth_tokens where user_id = $1', [userId]);
 export const sweepTokens = () => q('delete from auth_tokens where expires_at < now()');
+
+/* ---------- one-time links ----------
+   A password reset and an email confirmation are the same mechanism with
+   two lifetimes. The link carries a random token; the table keeps only its
+   digest, so whoever reads the table cannot sign in with it. Claiming is
+   one UPDATE: the row is marked used in the same statement that checks it
+   was not, so the same link in two tabs opens once. */
+const CODE_HOURS = { reset: 1, verify: 24 };
+
+export async function issueCode(userId, kind) {
+  const token = randomBytes(32).toString('base64url');
+  /* Asking again replaces the link rather than adding a second one: the
+     newest letter is the one she will open, and the older link should
+     stop working the moment it stops being the one we mean. */
+  await q('delete from auth_codes where user_id = $1 and kind = $2 and used_at is null', [userId, kind]);
+  await q(`insert into auth_codes (token_hash, user_id, kind, expires_at)
+           values ($1, $2, $3, now() + ($4 || ' hours')::interval)`,
+          [digest(token), userId, kind, CODE_HOURS[kind] || 1]);
+  return token;
+}
+
+export async function claimCode(token, kind) {
+  if (!token) return null;
+  const row = await one(
+    `update auth_codes set used_at = now()
+      where token_hash = $1 and kind = $2 and used_at is null and expires_at > now()
+      returning user_id`, [digest(token), kind]);
+  return row ? row.user_id : null;
+}
+
+export const sweepCodes = () => q('delete from auth_codes where expires_at < now() - interval \'7 days\'');
+
+/* ---------- how often a link may be asked for ----------
+   An inbox is somebody else's property: a form that mails on demand must
+   not be usable to flood one, or to find out at speed which addresses have
+   accounts. Counted per address and per caller, like wrong passwords.
+
+   Fail-open, for the same reason sign-in is: a reset link is the way back
+   in, and a counting table that cannot be read must not be what locks
+   somebody out of her own studio. Resend's own daily cap is the backstop
+   if that ever happens. */
+const CODE_WINDOW_MIN = 60, MAX_CODES_PER_EMAIL = 4, MAX_CODES_PER_IP = 15;
+
+export const codeRequestBlocked = (email, ip) => best('link read', async () => {
+  await q(`delete from auth_code_requests where at < now() - ($1 || ' minutes')::interval`, [CODE_WINDOW_MIN * 4]);
+  const row = await one(
+    `select
+       count(*) filter (where lower(email) = lower($1))::int as by_email,
+       count(*) filter (where ip is not distinct from $2)::int as by_ip
+     from auth_code_requests
+     where at > now() - ($3 || ' minutes')::interval`, [email || '', ip || null, CODE_WINDOW_MIN]);
+  return !!row && (row.by_email >= MAX_CODES_PER_EMAIL || row.by_ip >= MAX_CODES_PER_IP);
+}, false);
+
+export const recordCodeRequest = (email, ip) => best('link write', () =>
+  q('insert into auth_code_requests (email, ip) values ($1,$2)', [email || '', ip || null]), null);
 
 export async function adminCode() {
   const row = await one(`select value from settings where key = 'admin_registration_code'`);

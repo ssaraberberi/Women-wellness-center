@@ -241,7 +241,7 @@ function classEditor(ctx, s) {
     const booked = s ? spots(state, s).taken : 0;
     if (data.capacity < booked) { err.textContent = t('%s people are already booked; capacity cannot go below that', booked); err.hidden = false; return; }
     try { await store.saveClass(data); closeModal(); toast(editing ? 'Class updated' : 'Class added'); }
-    catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    catch (ex) { err.textContent = t(ex.message); err.hidden = false; }
   } }, [
     field('Class', select('typeId', CLASS_TYPES.map(t => ({ value: t.id, label: t.name })), v.typeId)),
     el('div.row', null, [
@@ -353,7 +353,7 @@ function instructorEditor(ctx) {
       });
       closeModal();
       toast('Instructor added — they can sign in now');
-    } catch (ex) { err.textContent = ex.message; err.hidden = false; }
+    } catch (ex) { err.textContent = t(ex.message); err.hidden = false; }
   } }, [
     field('Full name', input('name', { required: true })),
     el('div.row', null, [
@@ -483,7 +483,7 @@ function planEditor(ctx, plan) {
       });
       closeModal();
       toast(plan ? 'Package updated' : 'Package added — clients see it now');
-    } catch (ex) { err.hidden = false; err.textContent = ex.message; }
+    } catch (ex) { err.hidden = false; err.textContent = t(ex.message); }
   } }, [
     field('Name', input('name', { value: plan ? plan.name : '', required: true, maxlength: '60' })),
     el('div.row', null, [

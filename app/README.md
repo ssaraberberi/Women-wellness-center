@@ -16,7 +16,10 @@ thing that ships.
     npm install
     npm run migrate               # create the schema
     npm run reset                 # wipe and fill with demo data
-    npm start                     # http://localhost:3000/app/ (site at /)
+    npm start                     # http://localhost:3000/app (site at /)
+
+Leave the email variables out and nothing is emailed; everything else works.
+See *Email* below.
 
 `npm run check` says whether the database is reachable, migrated and seeded.
 
@@ -77,14 +80,17 @@ live without a deploy.
 
     shared/domain.js       dates and periods, used by both sides
     shared/rules.js        every decision, and the only copy of it
-    server/migrations/     schema, applied in order, once each
-    server/scripts/        migrate · seed · check
-    server/src/db.js       pool, and the transaction helper
-    server/src/auth.js     scrypt passwords, hashed session tokens
-    server/src/load.js     rows → the object the rules expect
-    server/src/api.js      the endpoints
-    server/src/index.js    http, routing, static files
+    api/index.js           the one Vercel function: routing and plumbing
+    api/_lib/schema.js     the schema, and the version that applies it
+    api/_lib/db.js         pool, and the transaction helper
+    api/_lib/auth.js       scrypt passwords, session tokens, emailed links
+    api/_lib/mail.js       the two letters, through Resend
+    api/_lib/load.js       rows → the object the rules expect
+    api/_lib/api.js        the endpoints
     app/                   the browser app
+    server/local.js        the local stand-in for Vercel
+    server/scripts/        migrate · seed · check
+    scripts/data.sql       the catalogue, and the registration code
 
 **One copy of the rules.** `shared/rules.js` is imported by the browser so the
 interface can answer instantly, and by the server, which reaches the same
@@ -115,19 +121,23 @@ no server process — `vercel.json` rewrites `/api/*` and `/healthz` into
    connected to this project. Vercel injects `DATABASE_URL` itself. Pick the
    **pooled** connection string if asked: a function is one request at a time,
    and an unpooled one will run the database out of connections.
-2. **No environment variables to add.** `DATABASE_URL` comes from the
-   integration and `NODE_ENV` from Vercel. Do not add `PORT`. The admin
-   registration code is not a variable — it lives in `scripts/data.sql`.
-3. **Fill the database**, once. Open the Neon SQL Editor from Vercel's
-   Storage tab and paste in `scripts/schema.sql`, then `scripts/data.sql`.
-   Change the registration code at the top of `data.sql` first.
+2. **Three environment variables, all for email** — `RESEND_API_KEY`,
+   `MAIL_FROM` and `SITE_URL`; see *Email* below. Everything else arrives by
+   itself: `DATABASE_URL` from the integration, `NODE_ENV` from Vercel. Do
+   not add `PORT`. The admin registration code is not a variable — it lives
+   in `scripts/data.sql`.
+3. **Fill the database**, once. The tables build themselves on the first
+   request, so this is only the catalogue: open the Neon SQL Editor from
+   Vercel's Storage tab and paste in `scripts/data-single.sql` (the same
+   rows as `data.sql`, wrapped so an editor that sends one statement at a
+   time accepts them). Change the registration code at the top first.
 
    With a checkout and the connection string to hand, the same thing is:
 
        DATABASE_URL="<the pooled URL>" npm run migrate
 
 4. Deploy. Check `/healthz` — `{"ok":true}` means the function reached
-   Postgres.
+   Postgres, and `"mail":true` that the letters can go out.
 5. Open `/app`, choose **Register**, enter the code you set in `data.sql`.
    That is the first administrator, and nothing else creates one.
 
@@ -221,6 +231,59 @@ Two kinds of string live outside the views and are translated the same way:
 the package blurbs, which are written in `scripts/data.sql`, and the notices
 the server composes. Change one there and add its pair to the dictionary.
 
+## Email
+
+Two letters, both about getting into an account: the password reset link, and
+the one that confirms an address. They go out through **Resend** — one HTTPS
+call from `api/_lib/mail.js`, no dependency added, nothing to keep up to date.
+Both are written in Albanian and English and the one that goes out is the
+language she was reading: the app sends `x-dua-lang` with every request.
+
+**Setting it up**, once:
+
+1. **resend.com** → sign up → **Domains** → *Add domain*, and give it
+   `mail.dua-pilates.com`, not the bare domain. A subdomain is what Resend
+   asks for, and it keeps the studio's own mail reputation separate from its
+   robots'.
+2. Resend shows three records to add. Add them in **Cloudflare** → DNS for
+   `dua-pilates.com`, with the proxy **off** (grey cloud — these are mail
+   records, not a website):
+   - a **TXT** record for DKIM, named like `resend._domainkey.mail`,
+   - an **MX** record on `send.mail` pointing at Resend's feedback host,
+   - a **TXT** SPF record on `send.mail`.
+
+   Copy each value from Resend rather than from here; they are per-account.
+   Cloudflare appends the zone to the name, so paste the host exactly as
+   Resend gives it **minus** `.dua-pilates.com`.
+3. Back in Resend, **Verify**. It takes a few minutes, occasionally longer.
+4. **API Keys** → *Create*, sending access, and put it in Vercel →
+   *Settings* → *Environment Variables*:
+
+       RESEND_API_KEY   re_...
+       MAIL_FROM        DUA Pilates and Spa <no-reply@mail.dua-pilates.com>
+       SITE_URL         https://dua-pilates.com
+
+   `SITE_URL` is what the links in the letters point at, so it is set
+   explicitly rather than guessed from the request — a wrong value here sends
+   somebody to a link that cannot work. Redeploy after adding them.
+5. Check `/healthz`: `"mail":true` means the key is there. Then use **Forgot
+   your password?** on a real address and read the letter.
+
+The free tier is 3,000 letters a month and 100 a day. A studio sends a
+handful of resets a week, so there is nothing to watch.
+
+**If sending fails** — no key, a domain not verified yet, Resend down — the
+failure is logged and never raised. The token is already in the database and
+the screen still says what it says, because the alternative is a registration
+that fails because a letter could not be posted. What the studio loses is the
+letter, not the account, and the desk reset covers the gap.
+
+**Locally**, leave `RESEND_API_KEY` unset and nothing is sent; `/healthz`
+reports `"mail":false` and the log says which letter did not go out. To
+exercise the whole path, point `fetch` at a recorder before importing the
+server and read the link out of the captured body — that is how the flow is
+tested.
+
 ## What protects an account
 
 - **Guessing is rate limited.** Failed sign-ins are counted per address and
@@ -245,14 +308,39 @@ the server composes. Change one there and add its pair to the dictionary.
   tokens stored as SHA-256 digests, in `HttpOnly` cookies marked `Secure` in
   production. A copy of the table is not a copy of anyone's session.
 
-**Getting back in.** No email leaves this app, so there is no link to send.
-There is an administrator at a desk instead: **Reset password** on any client
-or instructor issues a new one, shows it once, and signs that account out
-everywhere. The password is returned by that one response and stored only as
-a hash — the single copy afterwards is whatever was written down.
+**Getting back in.** Two ways, and the second is there because the first
+needs somebody awake.
 
-The last administrator is the one case this cannot cover. With two
-administrators they reset each other; with one, the way back is SQL:
+*By email.* **Forgot your password?** under the sign-in form sends a link —
+one hour, one use. Opening it lands on `/app?reset=TOKEN`, which asks for the
+new password and nothing else, and setting it signs every other session on
+that account out: a reset exists because somebody may have had the old
+password, so leaving the old sessions alive would make it ceremony. The
+request answers the same way for an address with an account and one without —
+same status, same body, same screen — because an endpoint that distinguishes
+them is a membership list anyone can read. Asking is counted per address and
+per caller over a rolling hour, four and fifteen, so an inbox cannot be used
+as a weapon.
+
+The token is random, and only its SHA-256 digest is stored, in `auth_codes`.
+Claiming one is a single `UPDATE` that marks the row used in the same
+statement that checks it was not, so the same link in two tabs opens once.
+Asking again replaces the link rather than adding a second one.
+
+*At the desk.* **Reset password** on any client or instructor issues a new
+password, shows it once, and signs that account out everywhere. It is the
+answer when she cannot reach her inbox, when the address on the account is
+wrong, and on the day Resend is down.
+
+**Confirming an address.** Registering sends a confirmation letter, and the
+app keeps a band at the top of every screen until it is opened. Nothing is
+withheld from an unconfirmed account — it is not a gate, it is the reset link
+working on the day it is needed. Resetting a password confirms the address
+too: she has just proved she reads that inbox.
+
+The last administrator is the one case the desk cannot cover, and email now
+does — provided `RESEND_API_KEY` is set and her address is confirmed. If
+neither holds, the way back is SQL:
 
     update users set password_hash = '<a scrypt hash>' where email = '...';
 
@@ -269,5 +357,7 @@ knows us in.
 
 Payment happens at the studio and an administrator records it by confirming
 the application. Wiring a processor would mean a webhook confirming the same
-row, so the shape of this is already the shape it needs. Notices are in-app; email or SMS would be a sender behind the
-same `notices` table.
+row, so the shape of this is already the shape it needs. Notices are in-app:
+email now has a sender (`api/_lib/mail.js`), so putting a notice in an inbox —
+"your membership is confirmed", "your class is tomorrow" — is a call to it
+from wherever the `notices` row is written, not new plumbing.

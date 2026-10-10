@@ -12,6 +12,7 @@
 import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
 import { pool, connectionProblem } from './_lib/db.js';
+import { mailConfigured } from './_lib/mail.js';
 import { VERSION as SCHEMA_VERSION } from './_lib/schema.js';
 
 const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
@@ -63,12 +64,12 @@ async function body(req) {
 /* ---------- routing ---------- */
 const routes = [
   ['POST', /^\/api\/auth\/register$/, async (ctx) => {
-    const r = await api.register(await body(ctx.req));
+    const r = await api.register(await body(ctx.req), meta(ctx.req));
     ctx.cookie = setCookie(r.token, r.maxAge);
     return { user: r.user };
   }],
   ['POST', /^\/api\/auth\/login$/, async (ctx) => {
-    const r = await api.login(await body(ctx.req), { ip: callerIp(ctx.req) });
+    const r = await api.login(await body(ctx.req), meta(ctx.req));
     ctx.cookie = setCookie(r.token, r.maxAge);
     return { user: r.user };
   }],
@@ -77,6 +78,17 @@ const routes = [
     ctx.cookie = clearCookie();
     return { ok: true };
   }],
+  /* The three that answer without a session, because somebody locked out
+     has no session to answer with. Each is rate limited inside _lib. */
+  ['POST', /^\/api\/auth\/forgot$/, async ctx => api.forgotPassword(await body(ctx.req), meta(ctx.req))],
+  ['POST', /^\/api\/auth\/reset$/,  async ctx => {
+    const r = await api.resetWithToken(await body(ctx.req));
+    ctx.cookie = setCookie(r.token, r.maxAge);
+    return { user: r.user };
+  }],
+  ['POST', /^\/api\/auth\/verify$/, async ctx => api.verifyEmail(await body(ctx.req))],
+  ['POST', /^\/api\/auth\/verify\/send$/, ctx => api.sendVerification(ctx.user, meta(ctx.req))],
+
   ['GET',  /^\/api\/me$/,          ctx => ({ user: ctx.user })],
   ['GET',  /^\/api\/bootstrap$/,   ctx => api.bootstrap(ctx.user)],
   /* No session needed: the marketing page asks this before anyone signs in. */
@@ -120,6 +132,14 @@ function callerIp(req) {
          (req.socket && req.socket.remoteAddress) || null;
 }
 
+/* What the handlers need to know about the request itself: who is asking,
+   and which language to write back in. The app sends the second as a
+   header, so a letter arrives in the language she was reading. */
+function meta(req) {
+  const lang = String(req.headers['x-dua-lang'] || '').toLowerCase();
+  return { ip: callerIp(req), lang: lang === 'en' ? 'en' : 'sq' };
+}
+
 /* A browser will not send a cross-site fetch with our cookie unless the
    cookie allows it, and SameSite=Lax says it does not. This is the belt to
    that pair of braces: a write whose Origin is not ours is refused before
@@ -145,7 +165,7 @@ function pathOf(req) {
 function hintFor(e) {
   const m = (e.message || '').toLowerCase();
   if (e.code === '42P01' || m.includes('does not exist') && m.includes('relation'))
-    return 'The database is reachable but empty. Run scripts/schema.sql and then scripts/data.sql.';
+    return 'The database is reachable but empty. The tables build themselves on the next request; the catalogue comes from scripts/data-single.sql.';
   if (m.includes('password') || m.includes('authentication'))
     return 'The connection string was rejected. Reconnect the Postgres integration to this project.';
   if (m.includes('timeout') || m.includes('enotfound') || m.includes('econnrefused'))
@@ -172,6 +192,9 @@ export default async function handler(req, res) {
                 (select count(*) from class_types) as class_types`)
         .catch(() => ({ rows: [{ schema: false }] }));
       const row = built.rows[0];
+      /* Whether the reset letters can actually go out. Nothing secret, and
+         the alternative is a studio believing a link was sent for weeks. */
+      row.mail = mailConfigured();
       if (row.schema && row.version !== SCHEMA_VERSION)
         return send(res, 200, { ok: true, ...row, note: 'schema is ' + (row.version || 'older') +
           ', code wants ' + SCHEMA_VERSION + ' — the next request applies it' });
