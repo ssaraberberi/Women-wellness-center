@@ -80,6 +80,75 @@ insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort)
   ('glow',     array['reformer'],  12, 'month', 0),
   ('obsessed', array['reformer'],  16, 'month', 0);
 
+
+-- ─────────────────────────── the spa, and the two together ───────────────────────────
+-- The website prices twenty-two things; the app used to sell six of them.
+-- These are the rest, in the same ids the page tags its cards with.
+--
+-- One caveat worth knowing: the schema has a single 'spa' class type, so a
+-- relax, a lymph and a sculpt hour are the same thing to it. The packages
+-- differ by name, price and count, which is what a client is choosing
+-- between anyway — but the timetable cannot yet say which kind an hour is.
+
+insert into plans (id, name, price_all, blurb, featured, sort) values
+  -- single treatments
+  ('relax',        'DUA RELAX',         3900,  'Total relaxation. One hour.',                     false, 10),
+  ('lymph',        'DUA LYMPH',         4200,  'Lightness and recovery. One hour.',               false, 11),
+  ('sculpt',       'DUA SCULPT',        4200,  'Firming and body care. One hour.',                false, 12),
+  ('deep',         'DUA DEEP RECOVERY', 4200,  'Release and restore. One hour.',                  false, 13),
+  -- not 'signature': that id belonged to a membership this catalogue
+  -- replaced, and an archived row still points at it.
+  ('spa-signature','DUA SIGNATURE',     5900,  'The full DUA experience. Ninety minutes.',        false, 14),
+  -- treatments bought several at a time
+  ('relax-pack',   'RELAX PACK',        10800, 'Three relax hours.',                              false, 20),
+  ('lymph-pack',   'LYMPH PACK',        19500, 'Five lymphatic hours.',                           false, 21),
+  ('sculpt-pack',  'SCULPT PACK',       19500, 'Five sculpt hours.',                              false, 22),
+  -- movement and recovery together
+  ('reset',        'DUA RESET',         9900,  'Four classes and one massage.',                   false, 30),
+  ('routine-relax','DUA ROUTINE + RELAX',19500,'Eight classes and two massages.',                 false, 31),
+  ('sculpt-combo', 'DUA SCULPT COMBO',  27900, 'Eight classes and four sculpt hours.',            false, 32),
+  ('light-lean',   'DUA LIGHT & LEAN',  31900, 'Twelve classes and four lymphatic hours.',        false, 33),
+  ('balance',      'DUA BALANCE',       19900, 'Eight classes and two lymphatic hours.',          false, 34),
+  ('weekend',      'DUA WEEKEND RESET', 5200,  'One class and one massage.',                      false, 35),
+  ('duo',          'DUA DUO',           10900, 'For two: a class and a massage each. Ask at the studio.', false, 36)
+on conflict (id) do update
+  set name      = excluded.name,
+      price_all = excluded.price_all,
+      blurb     = excluded.blurb,
+      featured  = excluded.featured,
+      sort      = excluded.sort,
+      archived  = false;
+
+delete from plan_allowances
+ where plan_id in ('relax','lymph','sculpt','deep','spa-signature',
+                   'relax-pack','lymph-pack','sculpt-pack',
+                   'reset','routine-relax','sculpt-combo','light-lean','balance','weekend','duo');
+
+insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort) values
+  ('relax',         array['spa'],      1,  'month', 0),
+  ('lymph',         array['spa'],      1,  'month', 0),
+  ('sculpt',        array['spa'],      1,  'month', 0),
+  ('deep',          array['spa'],      1,  'month', 0),
+  ('spa-signature', array['spa'],      1,  'month', 0),
+  ('relax-pack',    array['spa'],      3,  'month', 0),
+  ('lymph-pack',    array['spa'],      5,  'month', 0),
+  ('sculpt-pack',   array['spa'],      5,  'month', 0),
+  ('reset',         array['reformer'], 4,  'month', 0),
+  ('reset',         array['spa'],      1,  'month', 1),
+  ('routine-relax', array['reformer'], 8,  'month', 0),
+  ('routine-relax', array['spa'],      2,  'month', 1),
+  ('sculpt-combo',  array['reformer'], 8,  'month', 0),
+  ('sculpt-combo',  array['spa'],      4,  'month', 1),
+  ('light-lean',    array['reformer'], 12, 'month', 0),
+  ('light-lean',    array['spa'],      4,  'month', 1),
+  ('balance',       array['reformer'], 8,  'month', 0),
+  ('balance',       array['spa'],      2,  'month', 1),
+  ('weekend',       array['reformer'], 1,  'month', 0),
+  ('weekend',       array['spa'],      1,  'month', 1),
+  ('duo',           array['reformer'], 1,  'month', 0),
+  ('duo',           array['spa'],      1,  'month', 1);
+
+
 -- The four plans this replaced. Archived rather than deleted, because a
 -- membership may still point at one.
 update plans set archived = true

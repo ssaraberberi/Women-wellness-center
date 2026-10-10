@@ -170,6 +170,26 @@ The screens say all of this in their own words: three numbered steps in the
 client's dialog before she applies, and the line in the studio's queue that
 matters most — confirm only once she has paid, because nothing else checks.
 
+## What the studio sells
+
+`scripts/data.sql` carries all twenty-one, the same ones the website prices:
+the six reformer packages, five single treatments, three treatment packs, and
+seven combinations of the two. The ids match the `data-pack` tags on the
+public page, so the quiz there and the catalogue here name the same things.
+
+Two limits worth knowing before anyone asks:
+
+- The schema has one `spa` class type, so a relax, a lymph and a sculpt hour
+  are the same thing to the timetable. The packages differ by name, price and
+  count — which is what a client chooses between anyway — but a class cannot
+  yet be marked as one kind of treatment rather than another.
+- A client holds one membership at a time, which is why the combinations
+  exist. Someone who wants classes and massages buys a combination rather
+  than two memberships.
+
+`DUA SIGNATURE` is `spa-signature` rather than `signature`: that id belonged
+to a membership this catalogue replaced, and archived rows still point at it.
+
 ## Albanian and English
 
 `app/js/i18n.js` holds the dictionary; `el()` in `ui.js` sends every `text`

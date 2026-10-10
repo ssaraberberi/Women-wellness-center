@@ -351,6 +351,22 @@ const SQ = {
   /* Written in scripts/data.sql rather than here, but the studio is
      bilingual and a client should not meet English in the middle of her
      own language. Change a blurb there and add its pair here. */
+  'Total relaxation. One hour.': 'Relaks total. Një orë.',
+  'Lightness and recovery. One hour.': 'Lehtësi dhe rikuperim. Një orë.',
+  'Firming and body care. One hour.': 'Fortësim dhe kujdes trupor. Një orë.',
+  'Release and restore. One hour.': 'Lirim dhe rikthim. Një orë.',
+  'The full DUA experience. Ninety minutes.': 'Eksperienca e plotë DUA. Nëntëdhjetë minuta.',
+  'Three relax hours.': 'Tri orë relaksi.',
+  'Five lymphatic hours.': 'Pesë orë limfatike.',
+  'Five sculpt hours.': 'Pesë orë sculpt.',
+  'Four classes and one massage.': 'Katër klasa dhe një masazh.',
+  'Eight classes and two massages.': 'Tetë klasa dhe dy masazhe.',
+  'Eight classes and four sculpt hours.': 'Tetë klasa dhe katër orë sculpt.',
+  'Twelve classes and four lymphatic hours.': 'Dymbëdhjetë klasa dhe katër orë limfatike.',
+  'Eight classes and two lymphatic hours.': 'Tetë klasa dhe dy orë limfatike.',
+  'One class and one massage.': 'Një klasë dhe një masazh.',
+  'For two: a class and a massage each. Ask at the studio.':
+    'Për dy: nga një klasë dhe një masazh secila. Pyet në studio.',
   'Meet DUA. One reformer class, for new clients, once.':
     'Provo DUA. Një klasë reformeri, për kliente të reja, një herë.',
   'Your class, your time. One reformer class, no package.':
