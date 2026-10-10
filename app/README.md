@@ -42,9 +42,16 @@ through. A control that protects sign-in must not be able to stop it.
 registration code, the class types and the packages. Paste it into the Neon
 SQL editor, or run `npm run migrate`, which applies the schema and then this.
 
-It is an upsert, so running it again rewrites those rows and touches nothing
-else — changing a price is editing the number and running it again, on a live
-database, with every account, class and booking left alone.
+It is safe on a live database. The packages are rewritten, the four this
+catalogue replaced are archived rather than deleted — an old membership still
+names one — and every account, class, booking and membership is left alone.
+
+The registration code is the exception: it is inserted only if there is none,
+never overwritten. A code already in the database belongs to the studio, and
+re-running this file to pick up a new package must not quietly put an old one
+back. To change it, change it where it lives:
+
+    update settings set value = 'NEW-CODE' where key = 'admin_registration_code';
 
 `npm run seed:demo` is separate and optional: four instructors, a month of
 timetable, clients mid-membership. Every account it creates shares one

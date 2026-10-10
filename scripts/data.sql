@@ -17,9 +17,15 @@
 --
 -- ►► CHANGE THIS before you run the file. ◄◄
 
+-- `do nothing`, not `do update`: once a code is in the database it is the
+-- studio's, and re-running this file to pick up a new package must not
+-- quietly put an old one back. To change it, change it in the database:
+--
+--   update settings set value = 'NEW-CODE' where key = 'admin_registration_code';
+
 insert into settings (key, value) values
   ('admin_registration_code', 'DUA-MW8J-77DC')
-on conflict (key) do update set value = excluded.value;
+on conflict (key) do nothing;
 
 
 -- ─────────────────────────── prices on the website ───────────────────────────
