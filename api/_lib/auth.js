@@ -36,7 +36,18 @@ export const burnPasswordTime = plain => verifyPassword(plain, NOBODY).catch(() 
    sides. The answer never says which limit was hit. */
 const WINDOW_MIN = 15, MAX_PER_EMAIL = 8, MAX_PER_IP = 20;
 
-export async function signinBlocked(email, ip) {
+/* The throttle protects sign-in; it must never be the reason sign-in
+   stops working. It once was — a deploy landed before its table and
+   every attempt, right password included, answered 500. So all three go
+   through this: the counting is best effort, and if it cannot be done
+   it is logged and the attempt proceeds. Anyone who can break the table
+   is already inside the database. */
+async function best(what, fn, fallback) {
+  try { return await fn(); }
+  catch (e) { console.error('sign-in throttle (' + what + ') unavailable: ' + e.message); return fallback; }
+}
+
+export const signinBlocked = (email, ip) => best('read', async () => {
   await q(`delete from signin_failures where at < now() - ($1 || ' minutes')::interval`, [WINDOW_MIN * 4]);
   const row = await one(
     `select
@@ -45,13 +56,13 @@ export async function signinBlocked(email, ip) {
      from signin_failures
      where at > now() - ($3 || ' minutes')::interval`, [email || '', ip || null, WINDOW_MIN]);
   return !!row && (row.by_email >= MAX_PER_EMAIL || row.by_ip >= MAX_PER_IP);
-}
+}, false);
 
-export const recordSigninFailure = (email, ip) =>
-  q('insert into signin_failures (email, ip) values ($1,$2)', [email || '', ip || null]);
+export const recordSigninFailure = (email, ip) => best('write', () =>
+  q('insert into signin_failures (email, ip) values ($1,$2)', [email || '', ip || null]), null);
 
-export const clearSigninFailures = email =>
-  q('delete from signin_failures where lower(email) = lower($1)', [email || '']);
+export const clearSigninFailures = email => best('clear', () =>
+  q('delete from signin_failures where lower(email) = lower($1)', [email || '']), null);
 
 /* Tokens are random and opaque; only their hash is stored, so a copy of
    the table is not a copy of everyone's session. */

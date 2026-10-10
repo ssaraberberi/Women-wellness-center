@@ -12,6 +12,7 @@
 import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
 import { pool, connectionProblem } from './_lib/db.js';
+import { VERSION as SCHEMA_VERSION } from './_lib/schema.js';
 
 const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
@@ -160,11 +161,20 @@ export default async function handler(req, res) {
     const problem = connectionProblem();
     if (problem) return send(res, 503, { ok: false, error: problem });
     try {
-      await pool.query('select 1');
-      const built = await pool.query(
+      /* raw, not pool.query: this is the endpoint you call to find out
+         what is wrong, so it must answer even when applying the schema
+         is the thing that is failing. */
+      await pool.raw('select 1');
+      const built = await pool.raw(
         `select to_regclass('public.users') is not null as schema,
-                (select count(*) from class_types) as class_types`);
-      return send(res, 200, { ok: true, ...built.rows[0] });
+                (select value from settings where key = 'schema_version') as version,
+                (select count(*) from class_types) as class_types`)
+        .catch(() => ({ rows: [{ schema: false }] }));
+      const row = built.rows[0];
+      if (row.schema && row.version !== SCHEMA_VERSION)
+        return send(res, 200, { ok: true, ...row, note: 'schema is ' + (row.version || 'older') +
+          ', code wants ' + SCHEMA_VERSION + ' — the next request applies it' });
+      return send(res, 200, { ok: true, ...row });
     } catch (e) {
       return send(res, 503, { ok: false, error: e.message, hint: hintFor(e) });
     }

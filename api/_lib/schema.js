@@ -1,14 +1,23 @@
--- ============================================================
--- DUA — the schema.  Run this first, once.
---
--- Paste it into the Neon SQL Editor, or psql, or run
--- `npm run migrate`, which applies this file and then data.sql.
---
--- Postgres 13+ (gen_random_uuid is built in).  Every statement is
--- `if not exists`, so running it again changes nothing and is the
--- normal way to pick up a later addition to the file.
--- ============================================================
+/* ============================================================
+   DUA — the schema, and the app's own job of applying it
+   ------------------------------------------------------------
+   This used to be a file somebody had to remember to paste into the
+   database. They did not, once, and sign-in returned 500 to everybody
+   for as long as it took to notice — the throttle wrote to a table that
+   was not there yet.
 
+   So the schema lives here, as the string the app itself applies. Every
+   statement is `if not exists`, the whole thing runs inside one
+   transaction, and VERSION is bumped whenever this text changes: an
+   instance checks the version once, applies the schema if the database
+   is behind, and never looks again. A deploy cannot now arrive ahead of
+   its own tables.
+   ============================================================ */
+
+/* Bump on every change to SCHEMA below. */
+export const VERSION = '2026-10-10a';
+
+export const SCHEMA = `
 create table if not exists users (
   id            uuid primary key default gen_random_uuid(),
   role          text not null check (role in ('admin', 'instructor', 'client')),
@@ -151,3 +160,43 @@ create table if not exists settings (
   key   text primary key,
   value text not null
 );
+`;
+
+/* ---------- applying it ----------
+   Once per instance, not once per request: the promise is kept, so
+   everything after the first caller waits on the same work and then
+   stops asking. A database already at this version costs one cheap
+   select for the life of the instance.
+
+   settings is created by the schema itself, so the version cannot be
+   read before there is anywhere to keep it — a missing table means
+   "apply", which is exactly right for an empty database. */
+let applied = null;
+
+export function ensureSchema(pool) {
+  if (!applied) applied = apply(pool).catch(function (e) { applied = null; throw e; });
+  return applied;
+}
+
+async function apply(pool) {
+  const client = await pool.connect();
+  try {
+    const at = await client.query(
+      `select value from settings where key = 'schema_version'`
+    ).then(r => r.rows[0] && r.rows[0].value, () => null);
+    if (at === VERSION) return;
+
+    await client.query('begin');
+    await client.query(SCHEMA);
+    await client.query(
+      `insert into settings (key, value) values ('schema_version', $1)
+       on conflict (key) do update set value = excluded.value`, [VERSION]);
+    await client.query('commit');
+    console.log('schema applied: ' + VERSION + (at ? ' (was ' + at + ')' : ' (new database)'));
+  } catch (e) {
+    await client.query('rollback').catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}

@@ -1,39 +1,39 @@
 #!/usr/bin/env node
-/* Applies scripts/schema.sql and then scripts/data.sql.
+/* The schema applies itself now — the app does it on its first query, so
+   a deploy can no longer arrive before its own tables. This is here for
+   the times you want it done on purpose, and to load the catalogue.
 
-   There is no ledger and nothing to keep in step: both files are written
-   to be run as often as you like, so this is the same thing as pasting
-   them into the Neon SQL editor, for people who would rather type a
-   command. Each file runs in one transaction — a file that fails leaves
-   the database as it was. */
+   scripts/data.sql is the one half still yours: the registration code,
+   the class types and the packages. It is an upsert, so running it again
+   rewrites those rows and touches nothing else. */
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pool } from '../../api/_lib/db.js';
+import { VERSION } from '../../api/_lib/schema.js';
 
 const DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scripts');
-const FILES = ['schema.sql', 'data.sql'];
 
 async function main() {
-  for (const file of FILES) {
-    const sql = await readFile(join(DIR, file), 'utf8');
-    const client = await pool.connect();
-    try {
-      await client.query('begin');
-      await client.query(sql);
-      await client.query('commit');
-      console.log('  ✓ scripts/' + file);
-    } catch (e) {
-      await client.query('rollback').catch(() => {});
-      console.error('  ✗ scripts/' + file + '\n    ' + e.message);
-      process.exitCode = 1;
-      return;
-    } finally {
-      client.release();
-    }
+  await pool.query('select 1');          // applies the schema if it is behind
+  console.log('  ✓ schema ' + VERSION);
+
+  const sql = await readFile(join(DIR, 'data.sql'), 'utf8');
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    await client.query(sql);
+    await client.query('commit');
+    console.log('  ✓ scripts/data.sql');
+  } catch (e) {
+    await client.query('rollback').catch(() => {});
+    console.error('  ✗ scripts/data.sql\n    ' + e.message);
+    process.exitCode = 1;
+    return;
+  } finally {
+    client.release();
   }
-  console.log('Schema and catalogue are in place. Register the first administrator\n' +
-              'at /app with the code in scripts/data.sql.');
+  console.log('Ready. Register the first administrator at /app with the code in scripts/data.sql.');
 }
 
 main().catch(e => { console.error(e); process.exitCode = 1; })
