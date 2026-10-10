@@ -264,6 +264,14 @@ td.right,th.right{text-align:right}
 .auth__art .lang{background:rgba(255,251,234,.1);border-color:rgba(255,251,234,.25)}
 .auth__art .lang__btn{color:rgba(255,251,234,.7)}
 .auth__art .lang__btn.is-on{background:var(--blush);color:var(--wine)}
+/* Shown once, so it is set to be read across a desk: large, spaced, and
+   selectable. */
+.fresh{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:clamp(1.3rem,3.4vw,1.9rem);letter-spacing:.06em;
+  background:var(--blush);border:1px dashed var(--wine);border-radius:10px;
+  padding:16px 18px;margin-top:14px;text-align:center;user-select:all;color:var(--plum);
+}
 .pricesw{margin-bottom:22px;padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:var(--blush-lift)}
 .pricesw .check{margin:0}
 .rowend{display:flex;gap:8px;justify-content:flex-end}

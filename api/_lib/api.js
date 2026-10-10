@@ -325,6 +325,40 @@ export async function roster(user, classId) {
       order by case b.status when 'booked' then 0 else 1 end, b.created_at`, [classId]);
 }
 
+/* ---------- a way back in ----------
+   There is no email from this app, so there is no link to send. What
+   there is, is an administrator at a desk: she issues a new password,
+   reads it out once, and the account is reachable again.
+
+   Signing everyone out of that account is part of it. A reset exists
+   because somebody may have lost control of the password; leaving the
+   old sessions alive would make it ceremony. */
+export async function resetPassword(user, id) {
+  need(user, 'admin');
+  const who = await one('select id, name, email, role, active from users where id = $1', [id]);
+  if (!who) bad(404, 'No such person');
+  if (!who.active) bad(409, 'That account has been removed');
+
+  const password = freshPassword();
+  await tx(async c => {
+    await c.query('update users set password_hash = $2 where id = $1', [id, await hashPassword(password)]);
+    await c.query('delete from auth_tokens where user_id = $1', [id]);
+    if (who.id !== user.id)
+      await notify(c, who.id, 'Your password was reset at the studio. Ask for the new one at the desk.', 'warn');
+  });
+  /* Returned once and never stored in the clear — the only copy after
+     this response is whatever the administrator writes down. */
+  return { password, name: who.name, email: who.email };
+}
+
+/* Readable aloud: no l/1, no O/0, and grouped so it survives being said
+   across a desk. */
+function freshPassword() {
+  const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const pick = n => Array.from({ length: n }, () => a[Math.floor(Math.random() * a.length)]).join('');
+  return pick(4) + '-' + pick(4) + '-' + pick(4);
+}
+
 /* ---------- what the public site is allowed to know ---------- */
 
 /* The only endpoint that answers without a session. It says one thing, and

@@ -31,6 +31,18 @@ async function catalogue() {
   merge({ classTypes: cat.classTypes, plans: cat.plans });
 }
 
+/* The session ended under us. Drop everything that belonged to it and
+   let the app draw the sign-in screen; nothing is lost that was not
+   already gone. */
+api.whenSignedOut(() => {
+  if (!state.user) return;
+  state = { ...state, user: null, classes: [], bookings: [], memberships: [],
+            balances: [], membership: null, notices: [], clients: [], issues: [] };
+  location.hash = '';
+  emit();
+  catalogue().catch(() => {});
+});
+
 export async function boot() {
   try {
     const me = await api.get('/me').catch(() => ({ user: null }));
@@ -106,6 +118,7 @@ export const removeInstructor = act(id => api.del('/admin/instructors/' + id));
 export const savePlan         = act(data => api.post('/admin/plans', data));
 export const archivePlan      = act(id => api.del('/admin/plans/' + id));
 export const setShowPrices    = act(on => api.put('/admin/settings', { showPrices: !!on }));
+export const resetPassword    = act(id => api.post('/admin/users/' + id + '/password'));
 export const confirmMembership = act(id => api.post('/admin/memberships/' + id + '/confirm'));
 export const declineMembership = act(id => api.post('/admin/memberships/' + id + '/decline'));
 export const updateMembership = act((id, patch) => api.put('/admin/memberships/' + id, patch));

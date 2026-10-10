@@ -233,6 +233,7 @@ const SQ = {
   'Name': 'Emri',
   'Per': 'Për',
   'Unlimited': 'Pa limit',
+  'Most popular': 'Më e përzgjedhura',
   'Show as the most popular package': 'Shfaqe si paketën më të zgjedhur',
   'Show prices to clients': 'Trego çmimet te klientet',
   'Prices are on the website now': 'Çmimet janë në faqe tani',
@@ -250,6 +251,96 @@ const SQ = {
   'Membership updated — the client sees it now': 'Abonimi u përditësua — klientja e sheh tani',
   'Extending the date or changing the plan takes effect immediately, including for classes already booked.':
     'Zgjatja e datës ose ndryshimi i paketës hyn në fuqi menjëherë, edhe për klasat e rezervuara tashmë.',
+  /* What shared/rules.js says, the statuses it names, and the small
+     words the admin screens print raw. All of it reaches the page
+     through el(), so it only needed to be written down. */
+  'Already booked': 'Tashmë e rezervuar',
+  'Class is full': 'Klasa është plot',
+  'No active membership': 'Pa abonim aktiv',
+  'No longer at the studio': 'Nuk është më në studio',
+  'Not at the studio': 'Jo në studio',
+  'Not included in your membership': 'Nuk përfshihet në abonimin tënd',
+  'Outside their availability': 'Jashtë disponueshmërisë së saj',
+  'Qualified and free': 'E kualifikuar dhe e lirë',
+  'Sign in to book': 'Hyr për të rezervuar',
+  'That class no longer exists': 'Ajo klasë nuk ekziston më',
+  'This class has already started': 'Kjo klasë ka filluar tashmë',
+  'This class was cancelled': 'Kjo klasë u anulua',
+  'Waiting for the studio to confirm your package': 'Në pritje që studioja të konfirmojë paketën',
+  'Your membership has expired': 'Abonimi yt ka skaduar',
+  'recommended': 'e rekomanduar',
+  'unavailable': 'e zënë',
+  'unqualified': 'e pakualifikuar',
+  'removed': 'e hequr',
+  'cancelled': 'anuluar',
+  'replaced': 'zëvendësuar',
+  'requested': 'në pritje',
+  'day': 'ditë',
+  'week': 'javë',
+  'month': 'muaj',
+  'no limit': 'pa limit',
+  'none set': 'pa caktuar',
+  'Previous': 'E mëparshme',
+  'mon': 'hën',
+  'tue': 'mar',
+  'wed': 'mër',
+  'thu': 'enj',
+  'fri': 'pre',
+  'sat': 'sht',
+  'sun': 'die',
+  /* What the server says when it refuses. These arrive already
+     written and reach the screen through toast(), so they are looked
+     up like anything else. */
+  'Sign in first': 'Hyr së pari',
+  'Not allowed': 'Nuk lejohet',
+  'Method not allowed': 'Metodë e palejuar',
+  'No such endpoint': 'Nuk ka një adresë të tillë',
+  'Request came from somewhere else': 'Kërkesa erdhi nga diku tjetër',
+  'Request too large': 'Kërkesa është shumë e madhe',
+  'Invalid JSON': 'JSON i pavlefshëm',
+  'Email or password is wrong': 'Email-i ose fjalëkalimi është i gabuar',
+  'This account has been removed': 'Kjo llogari është hequr',
+  'That account has been removed': 'Ajo llogari është hequr',
+  'Too many attempts. Wait a few minutes and try again.':
+    'Shumë përpjekje. Prit pak minuta dhe provo sërish.',
+  'That admin code is not valid': 'Ai kod administratoreje nuk është i vlefshëm',
+  'That email already has an account': 'Ai email ka tashmë një llogari',
+  'Password must be at least 8 characters': 'Fjalëkalimi duhet të ketë të paktën 8 shenja',
+  'Already booked': 'Tashmë e rezervuar',
+  'Already on this class': 'Tashmë në këtë klasë',
+  'Booking not found': 'Rezervimi nuk u gjet',
+  'That booking is not active': 'Ai rezervim nuk është aktiv',
+  'No such class': 'Nuk ka një klasë të tillë',
+  'No such instructor': 'Nuk ka një instruktore të tillë',
+  'No such membership': 'Nuk ka një abonim të tillë',
+  'No such package': 'Nuk ka një paketë të tillë',
+  'No such person': 'Nuk ka një person të tillë',
+  'That request is not waiting any more': 'Ajo kërkesë nuk është më në pritje',
+  'A package has to allow something': 'Një paketë duhet të lejojë diçka',
+  'A package with that name already exists': 'Një paketë me atë emër ekziston tashmë',
+  'A line counts per week or per month': 'Një rresht numërohet në javë ose në muaj',
+  'A limit is a whole number of classes, or blank for no limit':
+    'Limiti është numër i plotë klasash, ose bosh për pa limit',
+  'Every line needs at least one class type': 'Çdo rresht kërkon të paktën një lloj klase',
+  'Price must be a whole number of lek': 'Çmimi duhet të jetë numër i plotë lekësh',
+  'That name has no letters or digits in it': 'Ai emër nuk ka as shkronja as shifra',
+  'The class must end after it starts': 'Klasa duhet të mbarojë pasi të ketë filluar',
+  'Start must be before end': 'Fillimi duhet të jetë para mbarimit',
+  'showPrices is true or false': 'showPrices është true ose false',
+  'No instructor assigned': 'Pa instruktore të caktuar',
+  'Reset password': 'Rivendos fjalëkalimin',
+  'Make a new password': 'Krijo fjalëkalim të ri',
+  'Done': 'U krye',
+  'A new password is made now, shown once, and never shown again. Read it out, and tell her to change it after she signs in.':
+    'Një fjalëkalim i ri krijohet tani, shfaqet një herë, dhe nuk shfaqet më. Lexoja me zë, dhe thuaji ta ndryshojë pasi të hyjë.',
+  'Everywhere that account is signed in is signed out.':
+    'Kudo ku ajo llogari është e kyçur, dilet.',
+  'Write it down before you close this. It is not kept anywhere you can read it back.':
+    'Shënoje para se ta mbyllësh. Nuk ruhet askund ku të lexohet përsëri.',
+  'A client applies in the app and pays here at the studio. Confirm it only once she has paid — confirming is what makes it active, for thirty days from that day. Until then she cannot book.':
+    'Një kliente aplikon në aplikacion dhe paguan këtu në studio. Konfirmoje vetëm pasi të ketë paguar — konfirmimi është ai që e bën aktive, për tridhjetë ditë nga ajo ditë. Deri atëherë nuk rezervon dot.',
+  'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.':
+    'Me të fikur, faqja dhe një kliente e kyçur këtu listojnë çdo paketë dhe çfarë përfshin, dhe thonë se çmimi vjen së shpejti. Çmimi nuk u dërgohet fare. Ti e sheh gjithmonë.',
   'Unknown client': 'Kliente e panjohur',
 
   /* The role as the server spells it, for the line under the logo. */
@@ -290,6 +381,8 @@ const SQ_FMT = {
   'Added %s': '%s u shtua',
   'Removed %s': '%s u hoq',
   'Renews %s': 'Rinovohet më %s',
+  'Reset the password for %s': 'Rivendos fjalëkalimin për %s',
+  'New password for %s': 'Fjalëkalimi i ri për %s',
   'Expired %s': 'Skaduar më %s',
   'Nothing on %s': 'Asgjë më %s',
   'Free cancellation until %s': 'Anulim falas deri në %s',
@@ -341,6 +434,11 @@ const SQ_FMT = {
     '%s nuk ka paguar për %s. Aplikimi mbyllet dhe asaj i thuhet të pyesë në studio. Mund të aplikojë sërish më pas.',
   'The next %s days': '%s ditët e ardhshme',
   '%s at DUA': '%s në DUA',
+  '%s at the studio': '%s në studio',
+  'Membership expired with %s classes still booked':
+    'Abonimi skadoi me %s klasa ende të rezervuara',
+  'Membership expired with %s class still booked':
+    'Abonimi skadoi me %s klasë ende të rezervuar',
   'Free cancellation until %s. Your session goes straight back to your balance.':
     'Anulim falas deri në %s. Seanca të kthehet menjëherë në bilanc.',
   'The %s deadline has passed. This class will still count against your membership.':
@@ -376,10 +474,29 @@ document.documentElement.lang = lang;
 
 /* The whole of it. A string with no entry comes through unchanged, which
    is how a name, a number or a word we have not met yet survives. */
+/* Sentences the rules build with a value inside them. Matching the shape
+   beats listing one entry per number or per class type. */
+const SHAPES = [
+  [/^Booking opens (\d+) days ahead$/,            (m) => 'Rezervimi hapet ' + m[1] + ' ditë përpara'],
+  [/^Does not teach (.+)$/,                        (m) => 'Nuk jep ' + m[1]],
+  [/^Already teaching (.+)$/,                      (m) => 'Tashmë jep ' + m[1]],
+  [/^No (.+) classes left this (week|month)$/,     (m) => 'Nuk ka më klasa ' + m[1] + ' këtë ' + (m[2] === 'week' ? 'javë' : 'muaj')],
+  [/^Missing (.+)$/,                               (m) => 'Mungon ' + m[1]],
+  [/^No such class type: (.+)$/,                   (m) => 'Nuk ka lloj klase: ' + m[1]],
+  [/^You have already asked for (.+)\. The studio will confirm it once you have paid\.$/,
+                                                   (m) => 'Ke kërkuar tashmë ' + m[1] + '. Studioja do ta konfirmojë sapo të kesh paguar.'],
+  [/^(\d+) spots? left$/,                          (m) => m[1] === '1' ? '1 vend i lirë' : m[1] + ' vende të lira'],
+];
+
 export function t(s, ...args) {
   if (s == null) return s;
   const key = String(s);
-  if (!args.length) return lang === 'en' ? key : (SQ[key] !== undefined ? SQ[key] : key);
+  if (!args.length) {
+    if (lang === 'en') return key;
+    if (SQ[key] !== undefined) return SQ[key];
+    for (const [re, to] of SHAPES) { const m = key.match(re); if (m) return to(m); }
+    return key;
+  }
   const tpl = lang === 'en' ? key : (SQ_FMT[key] !== undefined ? SQ_FMT[key] : key);
   /* %1 %2 %3 when a language needs the values in another order, %s when it
      does not. The English keys use %s; a translation may use either. */

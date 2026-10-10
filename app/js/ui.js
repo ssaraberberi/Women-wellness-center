@@ -72,7 +72,7 @@ export function modal(title, body, foot, opts) {
   closeModal();
   const panel = el('div.modal' + ((opts && opts.wide) ? '.modal--wide' : ''), { role: 'dialog', 'aria-modal': 'true' }, [
     el('div.modal__head', null, [
-      el('h2', { text: title }),
+      el('h2', { text: t(title) }),
       el('button.x', { type: 'button', 'aria-label': 'Close', onclick: closeModal, text: '✕' })
     ]),
     body,
@@ -96,7 +96,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 let toastNode = null, toastTimer = null;
 export function toast(text) {
   if (!toastNode) { toastNode = el('div.toast', { role: 'status', 'aria-live': 'polite' }); document.body.appendChild(toastNode); }
-  toastNode.textContent = text;
+  toastNode.textContent = t(text);
   toastNode.classList.add('is-on');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastNode.classList.remove('is-on'), 2600);

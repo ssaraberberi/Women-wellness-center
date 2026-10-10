@@ -64,7 +64,7 @@ function membershipCard(ctx, m, expired) {
         b.unlimited ? null : meter(b.used, b.allowance.limit)
       ]))),
     el('p.muted', { style: 'margin-top:14px;font-size:13px',
-      text: (expired ? 'Expired ' : 'Renews ') + niceDate(m.end) })
+      text: t(expired ? 'Expired %s' : 'Renews %s', niceDate(m.end)) })
   ]);
 }
 
@@ -91,7 +91,7 @@ function home(ctx, m, expired) {
           text: upcoming.length ? 'Book another' : 'Browse classes' })
       ])
     ]),
-    el('h2.display', { style: 'font-size:1.3rem;margin:28px 0 12px', text: relDay(today, now) + ' at the studio' }),
+    el('h2.display', { style: 'font-size:1.3rem;margin:28px 0 12px', text: t('%s at the studio', relDay(today, now)) }),
     el('div.grid', null, dayList(ctx, today, m, expired))
   ]);
 }

@@ -218,8 +218,25 @@ the server composes. Change one there and add its pair to the dictionary.
   tokens stored as SHA-256 digests, in `HttpOnly` cookies marked `Secure` in
   production. A copy of the table is not a copy of anyone's session.
 
-Still missing, and worth knowing: there is no password reset. If the
-administrator forgets hers, the way back is SQL.
+**Getting back in.** No email leaves this app, so there is no link to send.
+There is an administrator at a desk instead: **Reset password** on any client
+or instructor issues a new one, shows it once, and signs that account out
+everywhere. The password is returned by that one response and stored only as
+a hash — the single copy afterwards is whatever was written down.
+
+The last administrator is the one case this cannot cover. With two
+administrators they reset each other; with one, the way back is SQL:
+
+    update users set password_hash = '<a scrypt hash>' where email = '...';
+
+or, more simply, delete the row and register again with the code in
+`scripts/data.sql`.
+
+**A session that ends mid-use.** Thirty days is long enough that one will
+expire while somebody is looking at a screen. A 401 on anything but the
+sign-in calls drops the session on this side too and draws the sign-in
+screen, rather than leaving a studio on screen that the server no longer
+knows us in.
 
 ## Still to do before real money changes hands
 

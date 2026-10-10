@@ -181,23 +181,25 @@ export function suggestInstructors(state, klass) {
 /* ---------- drift ----------
    Valid when it was set, not valid now. */
 
+/* The parts, not a sentence: this file is shared with the server and has
+   no language of its own, so the screen that shows a problem is the one
+   that puts it into words. */
 export function issues(state, now) {
   const out = [];
   (state.classes || []).forEach(c => {
     if (c.cancelled || c.date < iso(now)) return;
-    if (!c.instructorId) { out.push({ kind: 'unassigned', klass: c, text: 'No instructor assigned' }); return; }
+    if (!c.instructorId) { out.push({ kind: 'unassigned', klass: c, why: 'No instructor assigned' }); return; }
     const i = (state.instructors || []).find(x => x.id === c.instructorId);
     if (!i) return;
     const fit = instructorFit(state, i, c);
     if (fit.status !== 'recommended')
-      out.push({ kind: fit.status, klass: c, instructor: i, text: i.name + ' — ' + fit.why.toLowerCase() });
+      out.push({ kind: fit.status, klass: c, instructor: i, who: i.name, why: fit.why });
   });
   (state.memberships || []).filter(m => m.status === 'active').forEach(m => {
     if (!isExpired(m, now)) return;
     const future = (state.bookings || []).filter(b => b.clientId === m.clientId && b.status === 'booked' &&
       ((state.classes || []).find(c => c.id === b.classId) || {}).date >= iso(now));
-    if (future.length) out.push({ kind: 'expired-booked', membership: m,
-      text: 'Membership expired with ' + future.length + ' class' + (future.length > 1 ? 'es' : '') + ' still booked' });
+    if (future.length) out.push({ kind: 'expired-booked', membership: m, count: future.length });
   });
   return out;
 }

@@ -106,6 +106,7 @@ const routes = [
   ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/confirm$/, ctx => api.confirmMembership(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/decline$/, ctx => api.declineMembership(ctx.user, ctx.m[1])],
   ['PUT',  /^\/api\/admin\/settings$/,                 async ctx => api.setSettings(ctx.user, await body(ctx.req))],
+  ['POST', /^\/api\/admin\/users\/([\w-]+)\/password$/, ctx => api.resetPassword(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/plans$/,                    async ctx => api.savePlan(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/plans\/([\w-]+)$/,         ctx => api.archivePlan(ctx.user, ctx.m[1])]
 ];

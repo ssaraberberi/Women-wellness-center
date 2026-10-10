@@ -296,10 +296,16 @@ function instructorsView(ctx) {
         ]),
         el('td', null, el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
           i.qualifications.map(q => chip(typeShort(q))))),
-        el('td.muted', { style: 'font-size:13px', text: days.length ? days.join(', ') : 'none set' }),
+        el('td.muted', { style: 'font-size:13px',
+          text: days.length ? days.map(d => t(d)).join(', ') : t('none set') }),
         el('td.right.num', { text: String(upcoming) }),
         el('td.right', null, i.active
-          ? el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove', onclick: () => removeDialog(ctx, i, upcoming) })
+          ? el('div.rowend', null, [
+              el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password',
+                onclick: () => resetFor(ctx, i) }),
+              el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove',
+                onclick: () => removeDialog(ctx, i, upcoming) })
+            ])
           : chip('Removed', 'bad'))
       ]);
     }))
@@ -611,7 +617,7 @@ function membershipEditor(ctx, m, c) {
     el('div.row', null, [
       field('Expires', input('end', { type: 'date', value: m.end, required: true })),
       field('Status', select('status', [
-        { value: 'active', label: 'Active' }, { value: 'cancelled', label: 'Cancelled' }
+        { value: 'active', label: t('Active') }, { value: 'cancelled', label: t('Cancelled') }
       ], m.status))
     ]),
     el('p.muted', { style: 'font-size:13px', text: 'Extending the date or changing the plan takes effect immediately, including for classes already booked.' })
@@ -624,13 +630,38 @@ function membershipEditor(ctx, m, c) {
 }
 
 /* ---------- clients ---------- */
+/* No email goes out from here, so a reset is a person at a desk: a new
+   password, shown once, read out, and gone from the screen when the
+   dialog closes. Everything that account was signed in to is signed out. */
+function resetFor(ctx, who) {
+  const body = el('div', null, [
+    el('p', { text: 'A new password is made now, shown once, and never shown again. Read it out, and tell her to change it after she signs in.' }),
+    el('p.muted', { style: 'font-size:13px;margin-top:10px',
+      text: 'Everywhere that account is signed in is signed out.' })
+  ]);
+  modal(t('Reset the password for %s', who.name), body,
+    el('button.btn', { type: 'button', text: 'Make a new password', onclick: async e => {
+      e.target.disabled = true; e.target.textContent = t('One moment…');
+      try {
+        const r = await store.resetPassword(who.id);
+        closeModal();
+        modal(t('New password for %s', who.name), el('div', null, [
+          el('p.fresh', { text: r.password }),
+          el('p.muted', { style: 'font-size:13px;margin-top:12px',
+            text: 'Write it down before you close this. It is not kept anywhere you can read it back.' })
+        ]), el('button.btn', { type: 'button', text: 'Done', onclick: closeModal }));
+      } catch (ex) { closeModal(); toast(ex.message); }
+    } }));
+}
+
 function clientsView(ctx) {
   const { state, now } = ctx;
   const today = iso(now);
   return el('div.tablewrap', null, el('table', null, [
     el('thead', null, el('tr', null, [
       el('th', { text: 'Client' }), el('th', { text: 'Membership' }),
-      el('th.right', { text: 'Upcoming' }), el('th.right', { text: 'Attended' })
+      el('th.right', { text: 'Upcoming' }), el('th.right', { text: 'Attended' }),
+      el('th.right', { text: '' })
     ])),
     el('tbody', null, state.clients.map(c => {
       const m = membershipOf(state, c.id);
@@ -644,23 +675,34 @@ function clientsView(ctx) {
         el('td', null, [el('div', { text: c.name }), el('div.muted', { style: 'font-size:12.5px', text: c.email })]),
         el('td', null, plan && !isExpired(m, now) ? chip(plan.name, 'good') : chip('None', 'warn')),
         el('td.right.num', { text: String(up) }),
-        el('td.right.num', { text: String(done) })
+        el('td.right.num', { text: String(done) }),
+        el('td.right', null, el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password',
+          onclick: () => resetFor(ctx, c) }))
       ]);
     }))
   ]));
 }
 
 /* ---------- attention ---------- */
+/* rules.js hands over the pieces; the words are this screen's job. */
+function problemText(p) {
+  if (p.kind === 'unassigned') return t('No instructor assigned');
+  if (p.kind === 'expired-booked')
+    return t(p.count > 1 ? 'Membership expired with %s classes still booked'
+                         : 'Membership expired with %s class still booked', p.count);
+  return t('%s — %s', p.who, t(p.why).toLowerCase());
+}
+
 function issuesView(ctx, problems) {
   if (!problems.length) return el('p.muted', { text: 'Nothing to fix. Every class has an instructor who is qualified and free.' });
   return el('div.grid', null, problems.map(p => {
     if (p.klass) return el('div', { class: 'slot slot--' + p.klass.typeId }, [
       el('span.slot__time.num', { text: shortDate(p.klass.date) + ' · ' + range(p.klass) }),
       el('span.slot__name', { text: typeName(p.klass.typeId) }),
-      el('span.muted', { style: 'flex:1;font-size:13px', text: p.text }),
+      el('span.muted', { style: 'flex:1;font-size:13px', text: problemText(p) }),
       el('span.slot__act', null, el('button.btn.btn--sm', { type: 'button', text: 'Fix',
         onclick: () => assignDialog(ctx, p.klass) }))
     ]);
-    return el('div.notice.notice--warn', { text: p.text });
+    return el('div.notice.notice--warn', { text: problemText(p) });
   }));
 }
