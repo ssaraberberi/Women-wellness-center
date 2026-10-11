@@ -189,6 +189,8 @@ export default async function handler(req, res) {
       const built = await pool.raw(
         `select to_regclass('public.users') is not null as schema,
                 (select value from settings where key = 'schema_version') as version,
+                (select value from settings where key = 'catalogue_version') as prepared,
+                (select count(*) from plans where not archived) as plans,
                 (select count(*) from class_types) as class_types`)
         .catch(() => ({ rows: [{ schema: false }] }));
       const row = built.rows[0];

@@ -1,177 +1,78 @@
 /* ============================================================
-   DUA — the catalogue, and the app's own job of filling it in
+   DUA — what a new database needs before anyone can use it
    ------------------------------------------------------------
-   The schema stopped being a file somebody had to paste when a deploy
-   landed ahead of its own tables. This is that lesson learned a second
-   time: the twenty-one packages were SQL to paste too, and the paste
-   failed three times in three different ways. A SQL editor that wraps
-   the whole file in one prepared statement refuses more than one
-   command; one that splits the file on every semicolon tears a
-   "do $$ ... $$" block in half. Neither is worth fighting.
+   Not the packages. The studio writes those herself, in the admin, and
+   the app must never put one there: a package that reappears because a
+   deployment restarted is not a package anybody can manage.
 
-   So the catalogue lives here and the app writes it, once.
+   What is here is the little that cannot be entered through a screen,
+   because without it there is no screen to enter it through: the two
+   class types everything else refers to, the switch that keeps prices
+   off the website, and the administrator registration code — without
+   which an empty database has no way to make its first administrator.
 
-   ONCE is the whole design. The studio edits its own packages in the
-   admin — names, prices, what each one allows — and those rows are hers
-   from the moment this has run. So this looks for settings.catalogue_version
-   and does nothing at all if it finds one: no later deploy can reach back
-   and undo an afternoon's pricing.
+   Written once, to a database that has never had it, and then never
+   again: the check is for the presence of settings.catalogue_version,
+   not for a version mismatch. Whatever is in those tables afterwards is
+   the studio's.
 
-   Changing the catalogue of a database that already has it is therefore
-   done in the admin screen, which is where it belongs. If a studio really
-   does want these rows put back exactly as written here:
-
-       delete from settings where key = 'catalogue_version';
-
-   and the next request writes them again, overwriting by id.
+   If you are tempted to add rows here that belong to the studio —
+   packages, prices, class times — that is what the admin screens are
+   for. This file learned that the hard way; see the undo below.
    ============================================================ */
 
-/* Only ever read on a database that has never had the catalogue. */
-export const VERSION = '2026-10-11a';
+export const VERSION = '2026-10-11b';
 
-const CATALOGUE = `
--- ─────────────────────────── prices on the website ───────────────────────────
--- 'off' and the packages show everything but what they cost. The switch is
--- in the app, under Packages, so this line only sets where it starts, and
--- never overrides a switch the studio has already thrown.
-
-insert into settings (key, value) values ('show_prices', 'off')
-on conflict (key) do nothing;
-
-
--- ─────────────────────────── what the studio does ───────────────────────────
--- The studio offers reformer Pilates and the spa.  Nothing in the code
--- knows these names: add a row here and it appears in the app.
-
+/* The names are not known to the code: a row here is what makes
+   "Reformer" appear in the app, and a third row would add a third kind. */
+const BOOTSTRAP = `
 insert into class_types (id, name, short_name, sort) values
   ('reformer', 'Reformer Pilates', 'Reformer', 1),
   ('spa',      'Spa',              'Spa',      2)
-on conflict (id) do update
-  set name = excluded.name, short_name = excluded.short_name, sort = excluded.sort;
+on conflict (id) do nothing;
 
-
--- ─────────────────────────── the plans ───────────────────────────
--- The six packages, the same ones the website prices. price_all is in
--- Albanian lek, whole numbers.
---
--- The allowance model counts classes within a period, so each pack is
--- written as its classes per month — which is what "around 2x per week"
--- comes to. "New clients only" and "once only" on TRY DUA are not rules
--- the schema can hold; they are watched at the desk for now.
-
-insert into plans (id, name, price_all, blurb, featured, sort) values
-  ('try-dua',  'TRY DUA',      1200,  'Meet DUA. One reformer class, for new clients, once.', false, 1),
-  ('single',   'SINGLE CLASS', 2200,  'Your class, your time. One reformer class, no package.', false, 2),
-  ('start',    'DUA START',    7200,  'Build the habit. Four classes, around once a week.',     false, 3),
-  ('routine',  'DUA ROUTINE',  13200, 'The sweet spot. Eight classes, around twice a week.',    true,  4),
-  ('glow',     'DUA GLOW',     18000, 'Take it further. Twelve classes, around three a week.',  false, 5),
-  ('obsessed', 'DUA OBSESSED', 22400, 'For the Pilates girls. Sixteen classes, four a week.',   false, 6)
-on conflict (id) do update
-  set name      = excluded.name,
-      price_all = excluded.price_all,
-      blurb     = excluded.blurb,
-      featured  = excluded.featured,
-      sort      = excluded.sort;
-
-
--- What each plan lets you book.  limit_count null means no limit.
--- Rewritten whole each time, so removing a line here removes the allowance.
-
-delete from plan_allowances
- where plan_id in ('try-dua', 'single', 'start', 'routine', 'glow', 'obsessed');
-
-insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort) values
-  ('try-dua',  array['reformer'],  1,  'month', 0),
-  ('single',   array['reformer'],  1,  'month', 0),
-  ('start',    array['reformer'],  4,  'month', 0),
-  ('routine',  array['reformer'],  8,  'month', 0),
-  ('glow',     array['reformer'],  12, 'month', 0),
-  ('obsessed', array['reformer'],  16, 'month', 0);
-
-
--- ─────────────────────────── the spa, and the two together ───────────────────────────
--- The website prices twenty-two things; the app used to sell six of them.
--- These are the rest, in the same ids the page tags its cards with.
---
--- One caveat worth knowing: the schema has a single 'spa' class type, so a
--- relax, a lymph and a sculpt hour are the same thing to it. The packages
--- differ by name, price and count, which is what a client is choosing
--- between anyway — but the timetable cannot yet say which kind an hour is.
-
-insert into plans (id, name, price_all, blurb, featured, sort) values
-  -- single treatments
-  ('relax',        'DUA RELAX',         3900,  'Total relaxation. One hour.',                     false, 10),
-  ('lymph',        'DUA LYMPH',         4200,  'Lightness and recovery. One hour.',               false, 11),
-  ('sculpt',       'DUA SCULPT',        4200,  'Firming and body care. One hour.',                false, 12),
-  ('deep',         'DUA DEEP RECOVERY', 4200,  'Release and restore. One hour.',                  false, 13),
-  -- not 'signature': that id belonged to a membership this catalogue
-  -- replaced, and an archived row still points at it.
-  ('spa-signature','DUA SIGNATURE',     5900,  'The full DUA experience. Ninety minutes.',        false, 14),
-  -- treatments bought several at a time
-  ('relax-pack',   'RELAX PACK',        10800, 'Three relax hours.',                              false, 20),
-  ('lymph-pack',   'LYMPH PACK',        19500, 'Five lymphatic hours.',                           false, 21),
-  ('sculpt-pack',  'SCULPT PACK',       19500, 'Five sculpt hours.',                              false, 22),
-  -- movement and recovery together
-  ('reset',        'DUA RESET',         9900,  'Four classes and one massage.',                   false, 30),
-  ('routine-relax','DUA ROUTINE + RELAX',19500,'Eight classes and two massages.',                 false, 31),
-  ('sculpt-combo', 'DUA SCULPT COMBO',  27900, 'Eight classes and four sculpt hours.',            false, 32),
-  ('light-lean',   'DUA LIGHT & LEAN',  31900, 'Twelve classes and four lymphatic hours.',        false, 33),
-  ('balance',      'DUA BALANCE',       19900, 'Eight classes and two lymphatic hours.',          false, 34),
-  ('weekend',      'DUA WEEKEND RESET', 5200,  'One class and one massage.',                      false, 35),
-  ('duo',          'DUA DUO',           10900, 'For two: a class and a massage each. Ask at the studio.', false, 36)
-on conflict (id) do update
-  set name      = excluded.name,
-      price_all = excluded.price_all,
-      blurb     = excluded.blurb,
-      featured  = excluded.featured,
-      sort      = excluded.sort,
-      archived  = false;
-
-delete from plan_allowances
- where plan_id in ('relax','lymph','sculpt','deep','spa-signature',
-                   'relax-pack','lymph-pack','sculpt-pack',
-                   'reset','routine-relax','sculpt-combo','light-lean','balance','weekend','duo');
-
-insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort) values
-  ('relax',         array['spa'],      1,  'month', 0),
-  ('lymph',         array['spa'],      1,  'month', 0),
-  ('sculpt',        array['spa'],      1,  'month', 0),
-  ('deep',          array['spa'],      1,  'month', 0),
-  ('spa-signature', array['spa'],      1,  'month', 0),
-  ('relax-pack',    array['spa'],      3,  'month', 0),
-  ('lymph-pack',    array['spa'],      5,  'month', 0),
-  ('sculpt-pack',   array['spa'],      5,  'month', 0),
-  ('reset',         array['reformer'], 4,  'month', 0),
-  ('reset',         array['spa'],      1,  'month', 1),
-  ('routine-relax', array['reformer'], 8,  'month', 0),
-  ('routine-relax', array['spa'],      2,  'month', 1),
-  ('sculpt-combo',  array['reformer'], 8,  'month', 0),
-  ('sculpt-combo',  array['spa'],      4,  'month', 1),
-  ('light-lean',    array['reformer'], 12, 'month', 0),
-  ('light-lean',    array['spa'],      4,  'month', 1),
-  ('balance',       array['reformer'], 8,  'month', 0),
-  ('balance',       array['spa'],      2,  'month', 1),
-  ('weekend',       array['reformer'], 1,  'month', 0),
-  ('weekend',       array['spa'],      1,  'month', 1),
-  ('duo',           array['reformer'], 1,  'month', 0),
-  ('duo',           array['spa'],      1,  'month', 1);
-
-
--- The four plans this replaced. Archived rather than deleted, because a
--- membership may still point at one.
-update plans set archived = true
- where id in ('essential', 'signature', 'unlimited', 'wellness');
+insert into settings (key, value) values ('show_prices', 'off')
+on conflict (key) do nothing;
 `;
+
+/* ---------- the undo ----------
+   One build of this file, 2026-10-11a, wrote a catalogue of twenty-one
+   packages into whatever database it found. That was the wrong call —
+   the studio enters her own, and the website is where the public list
+   lives — so this takes exactly those rows back out, once, and only
+   from a database that build wrote to.
+
+   A row anybody has actually used is left alone: a membership pointing
+   at a package is a record of money, and nothing here is worth breaking
+   it for. Allowances follow the package by cascade. */
+const WRITTEN_BY_A = [
+  'try-dua', 'single', 'start', 'routine', 'glow', 'obsessed',
+  'relax', 'lymph', 'sculpt', 'deep', 'spa-signature',
+  'relax-pack', 'lymph-pack', 'sculpt-pack',
+  'reset', 'routine-relax', 'sculpt-combo', 'light-lean', 'balance', 'weekend', 'duo'
+];
+
+async function undoA(client) {
+  const gone = await client.query(
+    `delete from plans
+      where id = any($1::text[])
+        and not exists (select 1 from memberships m where m.plan_id = plans.id)
+      returning id`, [WRITTEN_BY_A]);
+  const kept = await client.query(
+    `select id from plans where id = any($1::text[])`, [WRITTEN_BY_A]);
+  console.log('removed ' + gone.rowCount + ' package(s) a previous build had written' +
+    (kept.rowCount ? '; kept ' + kept.rows.map(r => r.id).join(', ') + ' — somebody has a membership on them' : ''));
+}
 
 /* ---------- the administrator registration code ----------
    Whoever types this at /app → Register becomes an administrator, and on
-   an empty database nobody can become one without it. It is the one piece
-   of this that is a secret, so it is not written into the repository:
+   an empty database nobody can become one without it. It is the one
+   secret in this file, so it is not written into the repository:
    ADMIN_REGISTRATION_CODE if the deployment sets one, otherwise a random
-   code written to the log, where the operator can read it and nobody else
-   can. Written only when there is none — a code already in the database
+   code written to the log, where the operator can read it and nobody
+   else can. Only ever when the database has none — a code already there
    belongs to the studio, and putting an old one back would be worse than
-   having none. */
+   leaving it alone. */
 function freshCode() {
   const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const pick = n => Array.from({ length: n }, () => a[Math.floor(Math.random() * a.length)]).join('');
@@ -202,20 +103,22 @@ async function apply(pool) {
     const at = await client.query(
       "select value from settings where key = 'catalogue_version'"
     ).then(r => r.rows[0] && r.rows[0].value, () => null);
-    /* Any version at all means this database has been filled, and what is
-       in it now is the studio's. Deliberately not `at !== VERSION`: that
-       would turn every later edit of this file into a silent rewrite of
-       her prices. */
-    if (at) return;
+    if (at === VERSION) return;
 
     await client.query('begin');
-    await client.query(CATALOGUE);
-    await adminCode(client);
+    /* A database that has never been touched gets the little it needs. One
+       that has is the studio's: nothing is written to it but the undo. */
+    if (!at) {
+      await client.query(BOOTSTRAP);
+      await adminCode(client);
+    } else if (at === '2026-10-11a') {
+      await undoA(client);
+    }
     await client.query(
       `insert into settings (key, value) values ('catalogue_version', $1)
        on conflict (key) do update set value = excluded.value`, [VERSION]);
     await client.query('commit');
-    console.log('catalogue applied: ' + VERSION);
+    console.log('database prepared: ' + VERSION + (at ? ' (was ' + at + ')' : ' (new database)'));
   } catch (e) {
     await client.query('rollback').catch(() => {});
     throw e;

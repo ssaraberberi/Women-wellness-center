@@ -39,69 +39,38 @@ The throttle that broke it is now best-effort for the same reason: if its
 table cannot be read or written, it says so in the log and lets the attempt
 through. A control that protects sign-in must not be able to stop it.
 
-### The database fills itself
+### What a new database gets, and what it never gets
 
-`api/_lib/catalogue.js` holds the class types, the twenty-one packages and
-what each allows, and writes them on the first request — but **only to a
-database that has never had them**. It looks for `settings.catalogue_version`
-and if anything is there it does nothing at all: the studio edits its own
-packages in the admin from that moment on, and no later deploy may reach back
-and undo an afternoon's pricing. To put these rows back exactly as the file
-writes them, `delete from settings where key = 'catalogue_version'` and the
-next request writes them again.
+`api/_lib/catalogue.js` writes the little that cannot be entered through a
+screen, because without it there is no screen to enter it through: the two
+class types everything else refers to, the switch that keeps prices off the
+website, and the administrator registration code. Once, to a database that
+has never had them, keyed on `settings.catalogue_version`.
 
-This is the schema's lesson learned twice. The packages were a file to paste
-too, and the paste failed three times in three ways: a SQL editor that wraps
-the whole file in one prepared statement refuses more than one command, and
-one that splits the file on every semicolon tears a `do $$ … $$` block in
-half. The catalogue has no business being something a person has to get past
-a text box.
+**It writes no packages, and nothing in the code ever will.** Those are the
+studio's, entered in the admin under *Packages*: a package that reappeared
+because a deployment restarted would not be a package anybody could manage.
+One build of that file did write a catalogue of twenty-one, which was the
+wrong call; it takes exactly those rows back out, once, leaving behind any
+that a membership points at — a membership is a record of money and nothing
+here is worth breaking it for.
 
-The administrator registration code is the one piece that is a secret, so it
-is not in the repository: `ADMIN_REGISTRATION_CODE` if the deployment sets
-one, otherwise a random code written to the log where only the operator can
-read it. Either way it is written only when the database has none — a code
-already there belongs to the studio.
+The registration code is the one secret, so it is not in the repository:
+`ADMIN_REGISTRATION_CODE` if the deployment sets one, otherwise a random code
+written to the log where only the operator can read it, and only ever when
+the database has none.
 
-`scripts/data.sql` still holds the same rows for anyone who would rather run
-them by hand, and is still safe on a live database.
+This is the schema's lesson applied twice over. The schema must be there or
+nothing works, so the app writes it. The packages must be the studio's, so
+the app keeps its hands off them. What is left in between — class types, a
+code — is the short list of things that are neither.
 
-### Filling the database by hand
+### Doing it by hand instead
 
-`scripts/data.sql` is the half that stays yours: the administrator
-registration code, the class types and the packages. Paste it into the Neon
-SQL editor, or run `npm run migrate`, which applies the schema and then this.
-
-It is safe on a live database. The packages are rewritten, the four this
-catalogue replaced are archived rather than deleted — an old membership still
-names one — and every account, class, booking and membership is left alone.
-
-The registration code is the exception: it is inserted only if there is none,
-never overwritten. A code already in the database belongs to the studio, and
-re-running this file to pick up a new package must not quietly put an old one
-back. To change it, change it where it lives:
-
-    update settings set value = 'NEW-CODE' where key = 'admin_registration_code';
-
-`npm run seed:demo` is separate and optional: four instructors, a month of
-timetable, clients mid-membership. Every account it creates shares one
-password, so never give it a database real people sign in to. `npm run reset`
-wipes and re-runs it. `npm run check` says what is in there.
-
-Demo accounts, all with the password from `SEED_PASSWORD` (default `demo1234`):
-
-| Role | Email | What to look at |
-|---|---|---|
-| Administrator | `admin@dua-pilates.com` | dashboard, schedule, instructor assignment |
-| Instructor | `elira@dua-pilates.com` | her classes, qualifications, availability |
-| Client | `sara@example.com` | Signature membership, booking, cancelling |
-| Client | `enke@example.com` | Essential — shows what a plan does *not* include |
-
-The administrator registration code is never sent to the browser. It lives in
-the `settings` table, put there by `scripts/data.sql`, and is compared on the
-server. It is not an environment variable and never was one worth being:
-change the line at the top of `data.sql`, run the file, and the new code is
-live without a deploy.
+`scripts/data.sql` holds exactly those same three rows, for anyone who would
+rather run them themselves or who wants to choose the registration code. It
+is three inserts, none of them overwriting anything, and it is safe on a live
+database.
 
 ## Shape
 
@@ -154,9 +123,10 @@ no server process — `vercel.json` rewrites `/api/*` and `/healthz` into
    itself: `DATABASE_URL` from the integration, `NODE_ENV` from Vercel. Do
    not add `PORT`. The admin registration code is not a variable — it lives
    in `scripts/data.sql`.
-3. **Nothing to fill in.** The tables and the catalogue both write
-   themselves on the first request — see *The database fills itself* above.
-   The one thing to note is the administrator registration code: set
+3. **Nothing to fill in.** The tables and the few rows underneath them
+   write themselves on the first request — see *What a new database gets*
+   above. The packages are not among them: add those in the admin once you
+   are in. The one thing to note is the registration code: set
    `ADMIN_REGISTRATION_CODE` with the other variables, or leave it and read
    the code the first request writes to the function log.
 
