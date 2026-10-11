@@ -41,6 +41,23 @@ export function renderAdmin(ctx) {
   return shell({ user, route, nav, title, sub, actions, body, notices: state.notices });
 }
 
+/* The letters are not arriving, and nobody would otherwise find out.
+   Both halves are said: what went wrong, and what to do — because the
+   fix is in a dashboard somewhere else, not on this screen. */
+function mailTrouble(state) {
+  const mail = state.mail;
+  if (!mail) return null;
+  if (!mail.configured) return el('div.notice.notice--warn', { style: 'margin-top:18px' }, [
+    el('span', { text: 'No reset links can be sent: the mail key is not set on the server. Clients who forget a password have to be reset at the desk.' })
+  ]);
+  if (!mail.last || mail.last.ok) return null;
+  return el('div.notice.notice--bad', { style: 'margin-top:18px;display:block' }, [
+    el('p', { style: 'font-weight:600', text: 'The last letter could not be sent' }),
+    el('p', { style: 'margin-top:6px', text: t('Sending as %s. The provider answered: %s', mail.from, mail.last.problem || '') }),
+    el('p', { style: 'margin-top:6px', text: 'Until this is fixed, nobody can get a password reset link. Reset at the desk in the meantime.' })
+  ]);
+}
+
 const tile = (big, label, note) => el('div.tile', null, [
   el('b', { class: 'num', text: big }), el('span', { text: label }), note ? el('i', { text: note }) : null
 ]);
@@ -66,6 +83,7 @@ function dashboard(ctx, problems) {
       tile(String(upcoming.length), 'Next 7 days'),
       tile(String(cancelled), 'Cancelled bookings')
     ]),
+    mailTrouble(state),
     problems.length ? el('div', { class: 'notice notice--warn', style: 'margin-top:18px' }, [
       el('span', { text: t(problems.length > 1 ? '%s classes need attention' : '%s class needs attention', problems.length) }),
       el('a.linkish', { href: '#/issues', style: 'margin-left:auto', text: 'Review' })

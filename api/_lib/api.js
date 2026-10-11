@@ -8,7 +8,7 @@ import { q, one, many, tx } from './db.js';
 import { hashPassword, verifyPassword, issueToken, revokeToken, adminCode,
          burnPasswordTime, signinBlocked, recordSigninFailure, clearSigninFailures,
          issueCode, claimCode, codeRequestBlocked, recordCodeRequest } from './auth.js';
-import { sendAuthEmail, mailConfigured } from './mail.js';
+import { sendAuthEmail, mailConfigured, mailFrom } from './mail.js';
 import * as load from './load.js';
 import * as rules from '../../shared/rules.js';
 import { iso, addDays, periodRange, hhmm } from '../../shared/domain.js';
@@ -451,7 +451,20 @@ export async function adminState(user) {
   const now = new Date();
   const state = await load.adminState(now);
   const { showPrices } = await publicSettings();
-  return { ...state, issues: rules.issues(state, now), showPrices };
+  return { ...state, issues: rules.issues(state, now), showPrices, mail: await mailState() };
+}
+
+/* Whether the letters are going out, for the one person who can do
+   something about it. A reset link that is refused is refused silently by
+   design — the woman asking for it must not be told whether her address
+   has an account, and a registration must not fail because a letter could
+   not be posted — so if this is not on the studio's own screen there is
+   nowhere the silence breaks. */
+async function mailState() {
+  const row = await one(`select value from settings where key = 'mail_last'`).catch(() => null);
+  let last = null;
+  try { last = row ? JSON.parse(row.value) : null; } catch (_) {}
+  return { configured: mailConfigured(), from: mailFrom(), last };
 }
 
 export async function roster(user, classId) {

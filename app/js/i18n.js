@@ -98,6 +98,12 @@ const SQ = {
   'The letter could not be sent. Tell the studio and they will confirm you by hand.':
     'Letra nuk mund të dërgohej. Thuaji studios dhe do të konfirmojnë me dorë.',
 
+  'The last letter could not be sent': 'Letra e fundit nuk mund të dërgohej',
+  'Until this is fixed, nobody can get a password reset link. Reset at the desk in the meantime.':
+    'Derisa kjo rregullohet, nuk mund të dërgohet link për fjalëkalim të ri. Ndërkohë rivendose fjalëkalimin te banaku.',
+  'No reset links can be sent: the mail key is not set on the server. Clients who forget a password have to be reset at the desk.':
+    'Nuk dërgohet asnjë link: çelësi i email-it nuk është vendosur në server. Klientet që harrojnë fjalëkalimin duhen rivendosur te banaku.',
+
   /* ---- days and months ---- */
   'Monday': 'E hënë', 'Tuesday': 'E martë', 'Wednesday': 'E mërkurë', 'Thursday': 'E enjte',
   'Friday': 'E premte', 'Saturday': 'E shtunë', 'Sunday': 'E diel',
@@ -427,6 +433,7 @@ const SQ_FMT = {
   'Removed %s': '%s u hoq',
   'Renews %s': 'Rinovohet më %s',
   'Reset the password for %s': 'Rivendos fjalëkalimin për %s',
+  'Sending as %s. The provider answered: %s': 'Dërgohet si %s. Shërbimi u përgjigj: %s',
   'New password for %s': 'Fjalëkalimi i ri për %s',
   'Expired %s': 'Skaduar më %s',
   'Nothing on %s': 'Asgjë më %s',
