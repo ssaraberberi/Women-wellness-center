@@ -259,6 +259,23 @@ vercel --prod   # production
 renders when the site gets shared. Change both if the domain ever changes.
 
 
+## The packages come from the studio
+
+The packages section ships as hand-written HTML and is replaced at runtime by
+whatever the studio has entered in the admin at `/app`: `assets/js/catalog.js`
+asks `/api/public/packages` and rebuilds the three panels from the answer.
+With no packages entered — or no JavaScript, or no network, or a slow answer —
+the page is exactly what is in `index.html`, which is why the hand-written
+cards are still there and still worth keeping correct.
+
+A tab whose kind has nothing in it is taken off the page, and the quiz falls
+back to the nearest package that does exist. Prices are the server's: while
+the switch in the admin is off they are not in the answer at all, and every
+card says the price is coming.
+
+See `app/README.md` for the fields each package carries and how a card is
+built from them.
+
 ## What is live, and what is parked
 
 The studio offers **reformer Pilates** and the **spa**, and has not opened, so the

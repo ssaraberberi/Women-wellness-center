@@ -104,6 +104,17 @@ const SQ = {
   'No reset links can be sent: the mail key is not set on the server. Clients who forget a password have to be reset at the desk.':
     'Nuk dërgohet asnjë link: çelësi i email-it nuk është vendosur në server. Klientet që harrojnë fjalëkalimin duhen rivendosur te banaku.',
 
+  /* ---- what a package says on the website ---- */
+  'How it reads on the website': 'Si duket në faqe',
+  'Headline': 'Titulli i shkurtër',
+  'Rhythm': 'Ritmi',
+  'The short line under the name — "The sweet spot"': 'Rreshti i shkurtër nën emër — "Rutina ideale"',
+  'How often it works out at — "Around 2x per week"': 'Sa shpesh del — "Afërsisht 2x në javë"',
+  'The sentence at the foot of the card': 'Fjalia në fund të kartës',
+  'In English (optional)': 'Në anglisht (opsionale)',
+  'Left blank, the website shows the text above in both languages.':
+    'Nëse e lë bosh, faqja tregon tekstin e mësipërm në të dyja gjuhët.',
+
   /* ---- days and months ---- */
   'Monday': 'E hënë', 'Tuesday': 'E martë', 'Wednesday': 'E mërkurë', 'Thursday': 'E enjte',
   'Friday': 'E premte', 'Saturday': 'E shtunë', 'Sunday': 'E diel',

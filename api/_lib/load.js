@@ -14,7 +14,8 @@ export async function classTypes() {
 
 export async function plans() {
   const rows = await many(
-    `select p.id, p.name, p.price_all, p.blurb, p.featured,
+    `select p.id, p.name, p.price_all, p.blurb, p.featured, p.sort,
+            p.tagline, p.rhythm, p.tagline_en, p.rhythm_en, p.blurb_en,
             a.class_type_ids, a.limit_count, a.period
        from plans p left join plan_allowances a on a.plan_id = p.id
       where not p.archived
@@ -22,7 +23,10 @@ export async function plans() {
   const byId = new Map();
   for (const r of rows) {
     if (!byId.has(r.id)) byId.set(r.id, {
-      id: r.id, name: r.name, price: r.price_all, blurb: r.blurb, featured: r.featured, allowances: []
+      id: r.id, name: r.name, price: r.price_all, blurb: r.blurb, featured: r.featured, sort: r.sort,
+      tagline: r.tagline, rhythm: r.rhythm,
+      en: { tagline: r.tagline_en, rhythm: r.rhythm_en, blurb: r.blurb_en },
+      allowances: []
     });
     if (r.class_type_ids) byId.get(r.id).allowances.push({
       types: r.class_type_ids, limit: r.limit_count, per: r.period

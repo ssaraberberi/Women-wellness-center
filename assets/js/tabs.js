@@ -36,10 +36,16 @@
   tabs.forEach(function (tab, i) {
     tab.addEventListener('click', function () { show(i); });
     tab.addEventListener('keydown', function (e) {
+      /* A tab can be taken off the page when the studio sells nothing of
+         that kind, and the arrows must not walk into one. */
+      var live = tabs.filter(function (t) { return !t.hidden; });
+      var at = live.indexOf(tab);
+      var pick = function (n) { show(tabs.indexOf(live[(n + live.length) % live.length]), true); };
       var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-      if (d) { e.preventDefault(); show((i + d + tabs.length) % tabs.length, true); }
-      else if (e.key === 'Home') { e.preventDefault(); show(0, true); }
-      else if (e.key === 'End') { e.preventDefault(); show(tabs.length - 1, true); }
+      if (!live.length) return;
+      if (d) { e.preventDefault(); pick(at + d); }
+      else if (e.key === 'Home') { e.preventDefault(); pick(0); }
+      else if (e.key === 'End') { e.preventDefault(); pick(live.length - 1); }
     });
   });
 

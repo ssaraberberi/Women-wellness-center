@@ -143,7 +143,7 @@ Nothing in the deployment touches the database. No build step, no migration on
 start — the function connects and reads. Filling it is a thing you do once, by
 hand, and changing what is in it is the same two files run again.
 
-## Packages, and whether the website prices them
+## Packages, and the website that shows them
 
 **Packages** in the admin is the whole of it: add one, edit it, retire it.
 Each package carries lines saying what it allows — which class types, how
@@ -152,10 +152,45 @@ line deletes the allowance. Retiring never deletes: a membership someone
 already bought still names the package, and the history has to keep saying
 what they bought, so it is archived and stops being offered.
 
-Above that table is the switch the public site reads. With it off,
+### The website shows what is in there
+
+`assets/js/catalog.js` asks `/api/public/packages` and rebuilds the three
+panels on dua-pilates.com from the answer. The section ships as hand-written
+HTML and **stays that way until there is something to put in its place**: no
+JavaScript, no network, a slow answer or an empty one, and the page is
+exactly what was written. The first package entered in the admin is what
+turns the section over to the database.
+
+Each package carries, besides its name and price, the two lines the card
+shows — a headline ("The sweet spot") and a rhythm ("Around 2x per week") —
+and the sentence underneath. Everything else is read off what the package
+allows, so nothing has to be kept in step by hand:
+
+- **which tab** — reformer only is *Pilates*, spa only is *Massages*, both is
+  *Combinations*. A tab with nothing behind it is taken off the page.
+- **the number on the card**, and the rule under it that grows with the
+  package, and the per-class price, and the "4 Pilates + 1 Spa" line on a
+  combination.
+
+The fixed words are generated in English on purpose: the page's own
+translator keys on the English source and is watching for new nodes, so
+"classes" and "Price coming soon" come out Albanian without that file
+knowing a word of it. What it cannot translate is what the studio typed, so
+each of those three texts has an optional English version and falls back to
+the other when it is blank — a studio writing in Albanian only writes once.
+
+The quiz above the packages points at a card on the page. When the package it
+had in mind is not among the studio's own, it takes the nearest by shape —
+same kind, closest in how much of each it gives — and says so rather than
+pretending to have meant that one.
+
+### Whether the website prices them
+
+Above the packages table in the admin is the switch the public site reads.
+With it off,
 dua-pilates.com lists every package and what it includes and says the price
-comes at opening; the app always shows them. `scripts/data.sql` sets it off
-to begin with, with `do nothing`, so re-running the file never flips it back.
+comes at opening; the app always shows them. A new database starts with it
+off, and nothing ever flips it back on by itself.
 
 Off is the default in the stylesheet, not in the script. A reader with no
 JavaScript, an API that is down, a slow or unexpected answer — every one of

@@ -245,6 +245,9 @@
 
     /* ---- packages ---- */
     'Price coming soon': 'Çmimi së shpejti',
+    'The closest thing to what you described.': 'Më e afërta me atë që përshkrove.',
+    'Ask us at the studio and we will put the right one together for you.':
+      'Na pyet në studio dhe do ta bëjmë paketën e duhur për ty.',
     'Two friends join DUA ROUTINE together for the first time, and both pay less.':
       'Dy shoqe blejnë DUA ROUTINE së bashku për herë të parë, dhe të dyja paguajnë më pak.',
 
@@ -254,6 +257,7 @@
     'The more you move, the more you save.': 'Sa më shumë lëviz, aq më shumë kursen.',
     'Most popular': 'Më e përzgjedhura',
     'classes': 'klasa',
+    'class': 'klasë',
     'Or just one class': 'Ose vetëm një klasë',
     'One to one': 'Një me një',
     'Not sure?': 'Nuk je e sigurt?',
@@ -554,6 +558,12 @@
     if (m) return 'Vlera ' + m[1] + ' — kursen ' + m[2];
     m = s.match(/^([\d,]+ L) \/ class$/);
     if (m) return m[1] + ' / klasë';
+    /* Packages the studio enters herself carry counts this file cannot
+       have listed: how many treatments, and what a combination holds. */
+    m = s.match(/^· (\d+) treatments?$/);
+    if (m) return '· ' + m[1] + (m[1] === '1' ? ' trajtim' : ' trajtime');
+    m = s.match(/^(\d+) Pilates \+ (\d+) Spa$/);
+    if (m) return m[1] + ' Pilates + ' + m[2] + ' Spa';
     return null;
   }
 

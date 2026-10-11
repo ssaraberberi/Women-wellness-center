@@ -93,6 +93,9 @@ const routes = [
   ['GET',  /^\/api\/bootstrap$/,   ctx => api.bootstrap(ctx.user)],
   /* No session needed: the marketing page asks this before anyone signs in. */
   ['GET',  /^\/api\/public\/settings$/, () => api.publicSettings()],
+  /* The website's own packages section reads this. No session either: it
+     is drawn for whoever walks in. */
+  ['GET',  /^\/api\/public\/packages$/, () => api.publicPackages()],
   ['GET',  /^\/api\/notices$/,     ctx => api.notices(ctx.user)],
   ['POST', /^\/api\/notices\/read$/, ctx => api.readNotices(ctx.user)],
 
