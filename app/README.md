@@ -241,10 +241,12 @@ language she was reading: the app sends `x-dua-lang` with every request.
 
 **Setting it up**, once:
 
-1. **resend.com** → sign up → **Domains** → *Add domain*, and give it
-   `mail.dua-pilates.com`, not the bare domain. A subdomain is what Resend
-   asks for, and it keeps the studio's own mail reputation separate from its
-   robots'.
+1. **resend.com** → sign up → **Domains** → *Add domain*. `dua-pilates.com`
+   is verified and sending; a subdomain such as `mail.dua-pilates.com` is
+   what Resend prefers, because it keeps the studio's own mail reputation
+   separate from its robots'. Whichever is verified, `MAIL_FROM` has to sit
+   on it — a `From` on an unverified domain is refused on every send, which
+   is the one failure that looks like a working setup.
 2. Resend shows three records to add. Add them in **Cloudflare** → DNS for
    `dua-pilates.com`, with the proxy **off** (grey cloud — these are mail
    records, not a website):
@@ -260,7 +262,7 @@ language she was reading: the app sends `x-dua-lang` with every request.
    *Settings* → *Environment Variables*:
 
        RESEND_API_KEY   re_...
-       MAIL_FROM        DUA Pilates and Spa <no-reply@mail.dua-pilates.com>
+       MAIL_FROM        DUA Pilates and Spa <no-reply@dua-pilates.com>
        SITE_URL         https://dua-pilates.com
 
    `SITE_URL` is what the links in the letters point at, so it is set

@@ -15,10 +15,11 @@ const ENDPOINT = 'https://api.resend.com/emails';
 
 export const mailConfigured = () => !!process.env.RESEND_API_KEY;
 
-/* "DUA Pilates and Spa <no-reply@mail.dua-pilates.com>" by default: a
-   subdomain, because Resend asks for one and because a studio's own
-   address should not carry the reputation of its robots. */
-const FROM = () => process.env.MAIL_FROM || 'DUA Pilates and Spa <no-reply@mail.dua-pilates.com>';
+/* The address has to be on a domain verified in Resend, or every send is
+   refused. The studio verified the apex, so that is the default; set
+   MAIL_FROM to override it, and keep the two in step — a From on an
+   unverified domain is the one failure that looks like a working setup. */
+const FROM = () => process.env.MAIL_FROM || 'DUA Pilates and Spa <no-reply@dua-pilates.com>';
 const SITE = () => (process.env.SITE_URL || 'https://dua-pilates.com').replace(/\/+$/, '');
 
 async function send({ to, subject, html, text }) {
