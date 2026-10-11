@@ -1,6 +1,7 @@
 /* The one pool, and the small helpers everything else uses. */
 import pg from 'pg';
 import { ensureSchema } from './schema.js';
+import { ensureCatalogue } from './catalogue.js';
 
 /* Postgres DATE and TIME come back as strings, not Date objects, so a
    class on the 21st is the 21st whatever timezone the server runs in. */
@@ -60,10 +61,13 @@ function build() {
 
 const get = () => (built ||= build());
 
-/* Every way into the database goes through here, so the schema is in
-   place before the first query of an instance rather than whenever
-   somebody remembers. */
-const ready = () => ensureSchema({ connect: () => get().connect() });
+/* Every way into the database goes through here, so the tables and the
+   catalogue are both in place before the first query of an instance,
+   rather than whenever somebody remembers. Both are checked once per
+   instance and then never again; the catalogue runs only on a database
+   that has never had it. */
+const lent = { connect: () => get().connect() };
+const ready = async () => { await ensureSchema(lent); await ensureCatalogue(lent); };
 
 /* Everything already asks the pool for these three, so keep the shape. */
 export const pool = {

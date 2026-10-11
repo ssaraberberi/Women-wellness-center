@@ -97,21 +97,45 @@ export const logout = token => revokeToken(token);
 */
 
 /* Sending is best effort, and the caller is told whether it worked —
-   signed-in callers are shown it, the public one is not. */
+   signed-in callers are shown it, the public one is not.
+
+   Every attempt also leaves a record in the database, because the silence
+   this is designed for cuts both ways: a letter that cannot be sent is not
+   allowed to break a registration, and a studio must still be able to find
+   out that none of them are arriving. A refused send leaves nothing at
+   Resend to look at, and a log line nobody is tailing is not an answer, so
+   the last attempt is written down and /healthz reads it out. */
 async function deliver(kind, who, meta) {
   if (!mailConfigured()) {
     console.error('email not sent (' + kind + '): RESEND_API_KEY is not set');
+    await noteMail(kind, 'RESEND_API_KEY is not set');
     return false;
   }
   try {
     const token = await issueCode(who.id, kind);
     await sendAuthEmail({ kind, to: who.email, name: firstName(who.name), token, lang: meta && meta.lang });
+    await noteMail(kind, null);
     return true;
   } catch (e) {
     console.error('email not sent (' + kind + '): ' + e.message);
+    await noteMail(kind, e.message);
     return false;
   }
 }
+
+/* One row, overwritten: the question is "are the letters going out", not
+   "what happened in March". Addresses are taken out of the message — the
+   row is read by an endpoint that answers without a session, and a
+   provider's complaint can quote the recipient back at you. */
+const noteMail = (kind, problem) => q(
+  `insert into settings (key, value) values ('mail_last', $1)
+   on conflict (key) do update set value = excluded.value`,
+  [JSON.stringify({
+    at: new Date().toISOString(),
+    kind,
+    ok: !problem,
+    problem: problem ? String(problem).replace(/[\w.+-]+@[\w.-]+/g, '<address>').slice(0, 300) : undefined
+  })]).catch(e => console.error('could not record the mail result: ' + e.message));
 
 const firstName = full => String(full || '').trim().split(/\s+/)[0] || '';
 
@@ -129,6 +153,9 @@ export async function forgotPassword(body, meta) {
 
   const who = await one('select id, name, email, active from users where lower(email) = lower($1)', [email]);
   if (who && who.active) await deliver('reset', who, meta);
+  /* Not in the answer — in the log, where the studio can see that the
+     letter nobody received was a letter nobody was owed. */
+  else console.log('reset asked for an address with no account here');
   return quiet;
 }
 

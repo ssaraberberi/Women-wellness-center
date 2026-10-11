@@ -22,6 +22,13 @@ export const mailConfigured = () => !!process.env.RESEND_API_KEY;
 const FROM = () => process.env.MAIL_FROM || 'DUA Pilates and Spa <no-reply@dua-pilates.com>';
 const SITE = () => (process.env.SITE_URL || 'https://dua-pilates.com').replace(/\/+$/, '');
 
+/* Readable from /healthz. A From on a domain Resend has not verified is
+   refused on every send and leaves no record at Resend to find, so the
+   address the deployment is actually using has to be inspectable. It is
+   the address on every letter the studio sends: there is nothing secret
+   about it. */
+export const mailFrom = () => FROM();
+
 async function send({ to, subject, html, text }) {
   if (!mailConfigured()) throw new Error('RESEND_API_KEY is not set');
   const res = await fetch(ENDPOINT, {

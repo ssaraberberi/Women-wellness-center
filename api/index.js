@@ -12,7 +12,7 @@
 import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
 import { pool, connectionProblem } from './_lib/db.js';
-import { mailConfigured } from './_lib/mail.js';
+import { mailConfigured, mailFrom } from './_lib/mail.js';
 import { VERSION as SCHEMA_VERSION } from './_lib/schema.js';
 
 const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
@@ -192,9 +192,15 @@ export default async function handler(req, res) {
                 (select count(*) from class_types) as class_types`)
         .catch(() => ({ rows: [{ schema: false }] }));
       const row = built.rows[0];
-      /* Whether the reset letters can actually go out. Nothing secret, and
-         the alternative is a studio believing a link was sent for weeks. */
+      /* Whether the reset letters can actually go out, the address they go
+         out as, and how the last attempt went. Nothing secret in any of
+         the three, and the alternative is a studio believing links were
+         sent for weeks: a refused send leaves no record at the provider,
+         so without this there is nothing to look at at all. */
       row.mail = mailConfigured();
+      row.from = mailFrom();
+      row.mailLast = await pool.raw(`select value from settings where key = 'mail_last'`)
+        .then(r => r.rows[0] ? JSON.parse(r.rows[0].value) : null, () => null);
       if (row.schema && row.version !== SCHEMA_VERSION)
         return send(res, 200, { ok: true, ...row, note: 'schema is ' + (row.version || 'older') +
           ', code wants ' + SCHEMA_VERSION + ' — the next request applies it' });

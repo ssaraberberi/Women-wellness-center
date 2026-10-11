@@ -39,7 +39,34 @@ The throttle that broke it is now best-effort for the same reason: if its
 table cannot be read or written, it says so in the log and lets the attempt
 through. A control that protects sign-in must not be able to stop it.
 
-### Filling the database
+### The database fills itself
+
+`api/_lib/catalogue.js` holds the class types, the twenty-one packages and
+what each allows, and writes them on the first request — but **only to a
+database that has never had them**. It looks for `settings.catalogue_version`
+and if anything is there it does nothing at all: the studio edits its own
+packages in the admin from that moment on, and no later deploy may reach back
+and undo an afternoon's pricing. To put these rows back exactly as the file
+writes them, `delete from settings where key = 'catalogue_version'` and the
+next request writes them again.
+
+This is the schema's lesson learned twice. The packages were a file to paste
+too, and the paste failed three times in three ways: a SQL editor that wraps
+the whole file in one prepared statement refuses more than one command, and
+one that splits the file on every semicolon tears a `do $$ … $$` block in
+half. The catalogue has no business being something a person has to get past
+a text box.
+
+The administrator registration code is the one piece that is a secret, so it
+is not in the repository: `ADMIN_REGISTRATION_CODE` if the deployment sets
+one, otherwise a random code written to the log where only the operator can
+read it. Either way it is written only when the database has none — a code
+already there belongs to the studio.
+
+`scripts/data.sql` still holds the same rows for anyone who would rather run
+them by hand, and is still safe on a live database.
+
+### Filling the database by hand
 
 `scripts/data.sql` is the half that stays yours: the administrator
 registration code, the class types and the packages. Paste it into the Neon
@@ -85,6 +112,7 @@ live without a deploy.
     api/_lib/db.js         pool, and the transaction helper
     api/_lib/auth.js       scrypt passwords, session tokens, emailed links
     api/_lib/mail.js       the two letters, through Resend
+    api/_lib/catalogue.js  the packages, written once to a new database
     api/_lib/load.js       rows → the object the rules expect
     api/_lib/api.js        the endpoints
     app/                   the browser app
@@ -126,11 +154,11 @@ no server process — `vercel.json` rewrites `/api/*` and `/healthz` into
    itself: `DATABASE_URL` from the integration, `NODE_ENV` from Vercel. Do
    not add `PORT`. The admin registration code is not a variable — it lives
    in `scripts/data.sql`.
-3. **Fill the database**, once. The tables build themselves on the first
-   request, so this is only the catalogue: open the Neon SQL Editor from
-   Vercel's Storage tab and paste in `scripts/data-single.sql` (the same
-   rows as `data.sql`, wrapped so an editor that sends one statement at a
-   time accepts them). Change the registration code at the top first.
+3. **Nothing to fill in.** The tables and the catalogue both write
+   themselves on the first request — see *The database fills itself* above.
+   The one thing to note is the administrator registration code: set
+   `ADMIN_REGISTRATION_CODE` with the other variables, or leave it and read
+   the code the first request writes to the function log.
 
    With a checkout and the connection string to hand, the same thing is:
 
@@ -268,8 +296,18 @@ language she was reading: the app sends `x-dua-lang` with every request.
    `SITE_URL` is what the links in the letters point at, so it is set
    explicitly rather than guessed from the request — a wrong value here sends
    somebody to a link that cannot work. Redeploy after adding them.
-5. Check `/healthz`: `"mail":true` means the key is there. Then use **Forgot
-   your password?** on a real address and read the letter.
+5. Check `/healthz`. It reports three things about mail: `"mail":true` that
+   the key is set, `"from"` the address the letters go out as, and
+   `"mailLast"` how the last attempt went. **`from` has to sit on a domain
+   verified in Resend** — if it does not, every send is refused with nothing
+   recorded at Resend to find, which looks exactly like a working setup that
+   nobody is using. `mailLast.ok:false` with the reason is how you tell those
+   two apart. Then use **Forgot your password?** on an address that has an
+   account and read the letter.
+
+   A reset asked for an address with *no* account sends nothing, by design,
+   and still answers `{"ok":true}` — so a letter that does not arrive may
+   simply be a letter nobody was owed. The log line says so.
 
 The free tier is 3,000 letters a month and 100 a day. A studio sends a
 handful of resets a week, so there is nothing to watch.
