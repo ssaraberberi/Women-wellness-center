@@ -1,11 +1,15 @@
 /* ============================================================
    DUA — the packages, as the studio enters them
    ------------------------------------------------------------
-   The section below ships as hand-written HTML, and stays that way
-   until there is something to put in its place: this asks the studio's
-   own database what it sells, and only if the answer has packages in it
-   does it rebuild the three panels. No JavaScript, no network, a slow
-   answer or an empty one, and the page is exactly what was written.
+   Every package on this page comes from the studio's own database.
+   There is no copy of the catalogue in index.html to fall out of step
+   with it: the three panels ship empty, and this fills them.
+
+   Which means the honest thing has to happen when there is nothing to
+   fill them with. No packages, no JavaScript, no network, a slow answer
+   or a broken one, and the section says the packages are coming — the
+   same thing the timetable and the studio photographs already say —
+   rather than showing a catalogue nobody can buy from.
 
    Everything this generates is written in English, because the page's
    own translator keys on the English source string and is watching for
@@ -27,10 +31,13 @@
   fetch('/api/public/packages', { headers: { accept: 'application/json' } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      if (!d || !d.packages || !d.packages.length) return;   // leave the page as written
+      if (!d || !d.packages || !d.packages.length) return;   // the section stays as it is: coming soon
       data = d;
       build();
       watchLanguage();
+      /* The tabs and the quiz are wired before this answer arrives, so
+         they are told when there is finally something to work with. */
+      document.dispatchEvent(new CustomEvent('dua:packages'));
     })
     .catch(function () {});
 
@@ -195,9 +202,20 @@
 
   /* ---------- putting them on the page ---------- */
 
+  var show = function (node, on) { if (node) node.hidden = !on; };
+
   function build() {
     var groups = { pilates: [], spa: [], combo: [] };
     data.packages.forEach(function (p) { groups[kindOf(p)].push(p); });
+
+    /* There is something to show, so the section stops saying there is
+       not: the tabs come back, the line goes, and the offers — which are
+       conditions on a package — come with them. */
+    show(document.querySelector('.tabs[role="tablist"]'), true);
+    show(document.querySelector('.offers'), true);
+    show(document.getElementById('which'), true);
+    var soon = document.getElementById('plans-soon');
+    if (soon) soon.remove();
 
     Object.keys(PANELS).forEach(function (kind) {
       var panel = document.getElementById(PANELS[kind]);
@@ -235,12 +253,11 @@
       panel.appendChild(grid);
     });
 
-    /* If the tab that was open has just been hidden, open one that is not. */
-    var open = document.querySelector('.tab.is-on');
-    if (!open || open.hidden) {
-      var first = document.querySelector('.tab:not([hidden])');
-      if (first) first.click();
-    }
+    /* Whichever tab is first with something behind it is the one that
+       opens — the panels arrived hidden and nothing else would open one. */
+    var open = document.querySelector('.tab.is-on:not([hidden])');
+    var first = open || document.querySelector('.tab:not([hidden])');
+    if (first) first.click();
   }
 
   /* Her own words are the one thing the page's translator cannot do, so

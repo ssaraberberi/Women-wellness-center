@@ -840,6 +840,15 @@ fieldset{border:0}
   .plans__head h2,.plans__head .eyebrow,.plans__head .lede{grid-column:1/13}
 }
 
+/* The packages section before the studio has entered any: one line, in the
+   same voice as the timetable's, where two dozen cards will go. */
+.plans__soon{
+  font-family:var(--display);font-style:italic;
+  font-size:clamp(1.15rem,2.2vw,1.6rem);line-height:1.5;
+  color:var(--ink-soft);text-align:center;max-width:36ch;
+  margin:clamp(30px,5vw,70px) auto 0;
+}
+
 /* ---------- 16b. Coming soon ----------
    The timetable and the membership tiers are not live yet. The sections keep
    their place and their grounds, so the rhythm of the scroll is unchanged when

@@ -154,12 +154,13 @@ what they bought, so it is archived and stops being offered.
 
 ### The website shows what is in there
 
-`assets/js/catalog.js` asks `/api/public/packages` and rebuilds the three
-panels on dua-pilates.com from the answer. The section ships as hand-written
-HTML and **stays that way until there is something to put in its place**: no
-JavaScript, no network, a slow answer or an empty one, and the page is
-exactly what was written. The first package entered in the admin is what
-turns the section over to the database.
+`assets/js/catalog.js` asks `/api/public/packages` and builds the three
+panels on dua-pilates.com from the answer. **There is no catalogue in
+`index.html` at all** — the panels ship empty, and what the studio has
+entered is the only thing that ever goes in them. With nothing entered, or
+with no JavaScript, no network or a broken answer, the section says the
+packages are coming, and the tabs, the quiz and the special offers wait with
+it.
 
 Each package carries, besides its name and price, the two lines the card
 shows — a headline ("The sweet spot") and a rhythm ("Around 2x per week") —
@@ -167,7 +168,8 @@ and the sentence underneath. Everything else is read off what the package
 allows, so nothing has to be kept in step by hand:
 
 - **which tab** — reformer only is *Pilates*, spa only is *Massages*, both is
-  *Combinations*. A tab with nothing behind it is taken off the page.
+  *Combinations*. A tab with nothing behind it is taken off the page, and the
+  arrow keys do not walk into it.
 - **the number on the card**, and the rule under it that grows with the
   package, and the per-class price, and the "4 Pilates + 1 Spa" line on a
   combination.
@@ -178,6 +180,12 @@ translator keys on the English source and is watching for new nodes, so
 knowing a word of it. What it cannot translate is what the studio typed, so
 each of those three texts has an optional English version and falls back to
 the other when it is blank — a studio writing in Albanian only writes once.
+
+The three **special offers** under the packages are still page copy rather
+than rows in the database — they are conditions on a package rather than
+packages of their own. None of them names a package or quotes a figure, so
+nothing there can go stale when the catalogue changes; they are hidden
+alongside everything else until there is a catalogue at all.
 
 The quiz above the packages points at a card on the page. When the package it
 had in mind is not among the studio's own, it takes the nearest by shape —

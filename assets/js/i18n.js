@@ -245,6 +245,10 @@
 
     /* ---- packages ---- */
     'Price coming soon': 'Çmimi së shpejti',
+    'Two friends join the same package together for the first time, and both pay less.':
+      'Dy shoqe marrin të njëjtën paketë bashkë për herë të parë, dhe të dyja paguajnë më pak.',
+    'Packages are coming soon. Message us and we will tell you first.':
+      'Paketat vijnë së shpejti. Na shkruaj dhe do të jesh e para që e di.',
     'The closest thing to what you described.': 'Më e afërta me atë që përshkrove.',
     'Ask us at the studio and we will put the right one together for you.':
       'Na pyet në studio dhe do ta bëjmë paketën e duhur për ty.',

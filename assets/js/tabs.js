@@ -49,5 +49,10 @@
     });
   });
 
-  show(0);
+  /* Nothing is opened here at load. The panels ship empty and hidden,
+     and the packages arrive from the database a moment later; whichever
+     tab ends up with something behind it is clicked by catalog.js, and
+     that is what opens a panel. Without that answer the section stays as
+     it is, which is the line saying the packages are coming. */
+  if (!list.hidden) show(0);
 })();
