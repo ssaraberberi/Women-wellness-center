@@ -20,7 +20,12 @@ const SQ = {
   'Choose your schedule': 'Zgjidh orarin',
   'Your details': 'Të dhënat e tua',
   'Confirmation': 'Konfirmimi',
-  'Step %s of 4': 'Hapi %s nga 4',
+  'Step %s of %s': 'Hapi %s nga %s',
+  'Pick a day, then a time.': 'Zgjidh një ditë, pastaj orën.',
+  'No need to pick times now. Once the studio confirms, you choose your classes from your reservation link, or we arrange them with you.':
+    'Nuk ke nevojë të zgjedhësh oraret tani. Pasi studioja ta konfirmojë, i zgjedh klasat nga linku i rezervimit, ose i rregullojmë bashkë.',
+  'Previous month': 'Muaji i kaluar', 'Next month': 'Muaji tjetër', 'Free places': 'Vende të lira',
+  'Regular price': 'Çmimi i rregullt', 'Discount %s': 'Zbritje %s', 'Offer saving': 'Kursimi me ofertë',
   'A single class, a monthly membership, a class pack, or one of this month’s offers.':
     'Një klasë e vetme, një abonim mujor, një paketë klasash, ose një nga ofertat e muajit.',
   'Offers': 'Oferta', 'Single class': 'Klasë e vetme', 'Monthly memberships': 'Abonime mujore', 'Class packages': 'Paketa klasash',
@@ -133,7 +138,6 @@ const ser = msg => t(String(msg || 'Something went wrong'));
 const day = d => new Date(d + 'T00:00:00');
 const longDate = d => { const x = day(d); return lang === 'sq' ? DAYS.sq[x.getDay()] + ', ' + x.getDate() + ' ' + MONTHS.sq[x.getMonth()] : DAYS.en[x.getDay()] + ', ' + MONTHS.en[x.getMonth()] + ' ' + x.getDate(); };
 const dayMonth = d => { const x = day(d); return lang === 'sq' ? x.getDate() + ' ' + MONTHS.sq[x.getMonth()] : MONTHS.en[x.getMonth()] + ' ' + x.getDate(); };
-const mon3 = d => MONTHS[lang][day(d).getMonth()].slice(0, 3);
 const plusDays = (d, n) => { const x = day(d); x.setDate(x.getDate() + n); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
 const tirana = iso => {
   const p = {};
@@ -240,9 +244,14 @@ function draw() {
   else drawDone();
 }
 
+/* A single class is booked for a day and a time. Anything bigger is
+   reserved without one: the times are arranged afterwards, from her link
+   or with the studio, so the schedule step is left out. */
+const flow = () => { const x = chosen(); return x && !x.incomplete && !x.single ? [1, 3, 4] : [1, 2, 3, 4]; };
 function header(n, title, lede) {
-  app.appendChild(h('div.steps', { 'aria-hidden': 'true' }, [1, 2, 3, 4].map(i => h('span', { class: i <= n ? 'is-on' : null }))));
-  app.appendChild(h('p.eyebrow.stepname', { text: t('Step %s of 4', n) }));
+  const steps = flow(), at = steps.indexOf(n) + 1;
+  app.appendChild(h('div.steps', { 'aria-hidden': 'true' }, steps.map((s, i) => h('span', { class: i < at ? 'is-on' : null }))));
+  app.appendChild(h('p.eyebrow.stepname', { text: t('Step %s of %s', at, steps.length) }));
   app.appendChild(h('h1.title', null, title));
   if (lede) app.appendChild(h('p.lede', { text: lede }));
 }
@@ -297,10 +306,14 @@ function drawChoose() {
         grid.appendChild(h('div.sub', null, [
           h('span.eyebrow', { text: t('Choose the package it applies to') }),
           h('div.pills', null, eligible.map(p => {
-            const price = p.price == null ? null : Math.round(p.price * (100 - (o.kind === 'discount' ? o.discountPct || 0 : 0)) / 100);
+            const pct = o.kind === 'discount' ? o.discountPct || 0 : 0;
+            const price = p.price == null ? null : Math.round(p.price * (100 - pct) / 100);
             return h('button.pill', { type: 'button', class: c.planId === p.id ? 'is-on' : null, 'aria-pressed': c.planId === p.id ? 'true' : 'false',
               onclick: () => { S.choice = { offerId: o.id, planId: p.id }; draw(); } },
-              [p.name, h('small', { text: (price != null ? money(price) + ' · ' : '') + linesText(p.lines) })]);
+              [p.name, h('small', null, [
+                price != null && pct ? h('s', { text: money(p.price) }) : null,
+                price != null ? h('b.pill__now', { text: money(price) }) : null,
+                (price != null ? ' · ' : '') + linesText(p.lines)])]);
           }))
         ]));
       }
@@ -332,7 +345,7 @@ function drawChoose() {
 
   const x = chosen();
   barWith([h('button.btn.btn--wine', { type: 'button', disabled: !x || x.incomplete, text: t('Continue'),
-    onclick: () => { S.picked = new Set(); S.step = 2; S.error = null; draw(); window.scrollTo(0, 0); } })]);
+    onclick: () => { S.picked = new Set(); S.step = x.single ? 2 : 3; S.error = null; draw(); window.scrollTo(0, 0); } })]);
 }
 const pickText = (p, f) => (lang === 'en' ? ((p.en || {})[f] || p[f]) : (p[f] || (p.en || {})[f])) || '';
 const linesText = lines => lines.map(l => (l.total == null ? '∞' : l.total) + ' ' + (l.total === 1 ? t('class') : t('classes'))).join(' + ');
@@ -356,21 +369,9 @@ function scheduler(x, max, seats, onChange) {
     h('span', null, [h('b', { text: String(S.picked.size) }), ' ', t('selected')]),
     max < 99 ? h('span', null, [h('b', { text: String(Math.max(0, max - S.picked.size)) }), ' ', t('to schedule later')]) : null
   ]);
-  box.appendChild(counter);
+  if (max > 1) box.appendChild(counter);
 
-  const strip = h('div.days', { role: 'tablist' });
-  dates.forEach(d => {
-    const n = byDate(d).length;
-    const mine = byDate(d).some(k => S.picked.has(k.id));
-    const b = h('button.day', { type: 'button', role: 'tab', class: (d === S.day ? 'is-on' : '') + (n ? '' : ' is-empty'),
-      'aria-selected': d === S.day ? 'true' : 'false', 'aria-label': longDate(d), disabled: !n,
-      onclick: () => { S.day = d; onChange(); } },
-      [h('span', { text: DAYS3[lang][day(d).getDay()] }), h('b', { text: String(day(d).getDate()) }), h('small', { text: mon3(d) }),
-       mine ? h('i', { 'aria-hidden': 'true' }) : null]);
-    strip.appendChild(b);
-  });
-  box.appendChild(strip);
-  requestAnimationFrame(() => { const on = strip.querySelector('.is-on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'center' }); });
+  box.appendChild(calendar(dates, byDate, seats, onChange));
 
   box.appendChild(h('h2.display', { style: 'font-size:1.25rem;margin-top:14px', text: longDate(S.day) }));
   const slots = h('div.slots');
@@ -404,18 +405,57 @@ function scheduler(x, max, seats, onChange) {
   }
   return box;
 }
-const typeName = id => ((S.cat && S.cat.classTypes) || []).find(t0 => t0.id === id)?.short || (id === 'spa' ? 'Spa' : 'Reformer');
+/* A month on a page, Monday first: the days with a free place carry a
+   dot, the chosen day is filled, and the arrows go no further than the
+   classes do. */
+function calendar(dates, byDate, seats, onChange) {
+  const first = dates[0].slice(0, 7), last = dates[dates.length - 1].slice(0, 7);
+  if (!S.month || S.month < first || S.month > last) S.month = S.day.slice(0, 7);
+  const y = +S.month.slice(0, 4), m = +S.month.slice(5, 7) - 1;
+  const today = tirana(new Date()).date;
+  const shift = n => {
+    const x = new Date(y, m + n, 1);
+    S.month = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0');
+    const open = dates.find(d => d.startsWith(S.month) && byDate(d).some(k => k.left >= seats));
+    if (open) S.day = open;
+    onChange();
+  };
+  const arrow = (n, label, path) => {
+    const b = h('button.cal__nav', { type: 'button', 'aria-label': label, disabled: n < 0 ? S.month <= first : S.month >= last, onclick: () => shift(n) });
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + path + '"/></svg>';
+    return b;
+  };
+  const grid = h('div.cal__grid', { role: 'grid' });
+  [1, 2, 3, 4, 5, 6, 0].forEach(i => grid.appendChild(h('span.cal__wd', { text: DAYS3[lang][i].slice(0, lang === 'sq' ? 3 : 2) })));
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7;
+  for (let i = 0; i < lead; i++) grid.appendChild(h('span.cal__pad', { 'aria-hidden': 'true' }));
+  const count = new Date(y, m + 1, 0).getDate();
+  for (let n = 1; n <= count; n++) {
+    const d = S.month + '-' + String(n).padStart(2, '0');
+    const list = dates.includes(d) ? byDate(d) : [];
+    const free = list.some(k => k.left >= seats);
+    const mine = list.some(k => S.picked.has(k.id));
+    const cls = [d === S.day ? 'is-on' : '', free ? 'has-room' : '', list.length && !free ? 'is-full' : '',
+                 mine ? 'is-picked' : '', d === today ? 'is-today' : ''].filter(Boolean).join(' ');
+    grid.appendChild(h('button.cal__day', { type: 'button', class: cls || null, disabled: !list.length,
+      'aria-label': longDate(d), 'aria-pressed': d === S.day ? 'true' : 'false',
+      onclick: () => { S.day = d; onChange(); } }, [h('span', { text: String(n) }), h('i', { 'aria-hidden': 'true' })]));
+  }
+  return h('div.cal', null, [
+    h('div.cal__head', null, [arrow(-1, t('Previous month'), 'm15 6-6 6 6 6'), h('b', { text: MONTHS[lang][m] + ' ' + y }), arrow(1, t('Next month'), 'm9 6 6 6-6 6')]),
+    grid,
+    h('div.cal__key', null, [h('span', null, [h('i.k-room'), t('Free places')]), h('span', null, [h('i.k-full'), t('Full')])])
+  ]);
+}
+const typeName = id =>((S.cat && S.cat.classTypes) || []).find(t0 => t0.id === id)?.short || (id === 'spa' ? 'Spa' : 'Reformer');
 
 function drawSchedule() {
   const x = chosen();
-  const max = x.single ? 1 : x.credits;
-  header(2, t('Choose your schedule') + '.',
-    x.single ? t('Pick your class.') : t('Pick up to %s classes. You can reserve some now and schedule the rest later.', max));
-  if (x.persons === 2 && x.together) app.appendChild(h('p.lede', { text: t('Every class you pick is booked for both of you.') }));
+  if (!x.single) { S.step = 3; return draw(); }
+  header(2, t('Choose your schedule') + '.', t('Pick a day, then a time.'));
   add(errorBox());
-  app.appendChild(scheduler(x, max, x.together ? x.persons : 1, () => draw()));
-  const go = h('button.btn.btn--wine', { type: 'button', disabled: x.single && !S.picked.size,
-    text: !S.picked.size && !x.single ? t('Reserve without a time') : t('Continue'),
+  app.appendChild(scheduler(x, 1, 1, () => draw()));
+  const go = h('button.btn.btn--wine', { type: 'button', disabled: !S.picked.size, text: t('Continue'),
     onclick: () => { S.step = 3; S.error = null; draw(); window.scrollTo(0, 0); } });
   barWith([h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => { S.step = 1; draw(); } }), go]);
 }
@@ -423,7 +463,7 @@ function drawSchedule() {
 /* ---------- 3. details ---------- */
 function drawDetails() {
   const x = chosen();
-  header(3, t('Your details') + '.');
+  header(3, t('Your details') + '.', x.single ? null : t('No need to pick times now. Once the studio confirms, you choose your classes from your reservation link, or we arrange them with you.'));
   const inputs = {};
   const fieldBox = (key, obj, prop, label, attrs, hint) => {
     const inp = h('input', { name: key, value: obj[prop] || '', ...attrs, oninput: e => { obj[prop] = e.target.value; } });
@@ -456,7 +496,7 @@ function drawDetails() {
   add(errorBox());
 
   const btn = h('button.btn.btn--wine', { type: 'button', disabled: S.busy, text: S.busy ? t('One moment…') : t('Confirm reservation'), onclick: () => submit() });
-  barWith([h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => { S.step = 2; S.error = null; draw(); } }), btn]);
+  barWith([h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => { S.step = x.single ? 2 : 1; S.error = null; draw(); } }), btn]);
 
   async function submit() {
     S.error = null;
@@ -476,7 +516,7 @@ function drawDetails() {
       const out = await api('/public/reservations', {
         planId: x.plan ? x.plan.id : null, offerId: x.offer ? x.offer.id : null,
         people: S.people.slice(0, x.persons), friend: x.friend ? S.friend : null,
-        classIds: [...S.picked], notes: S.notes
+        classIds: x.single ? [...S.picked] : [], notes: S.notes
       });
       S.result = out; S.step = 4;
       try { history.replaceState({}, '', '/book?r=' + encodeURIComponent(out.token) + '&new=1'); } catch (e) {}
@@ -484,7 +524,7 @@ function drawDetails() {
     } catch (e) {
       S.error = e.message;
       if (['full', 'already', 'cancelled', 'past', 'missing', 'before-opening'].includes(e.code)) {
-        await refreshClasses(); S.step = 2;
+        await refreshClasses(); if (x.single) S.step = 2;
       }
     }
     S.busy = false; draw(); window.scrollTo(0, 0);
@@ -498,10 +538,20 @@ function summary(x, view) {
   row(t('Package'), view ? view.title : x.title);
   const picked = view ? view.bookings.filter(b => b.status === 'booked' && (b.person === 0 || !view.together))
     : (S.cls ? S.cls.classes.filter(k => S.picked.has(k.id)).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start)) : []);
-  row(t('Classes'), picked.length ? h('ul', null, picked.map(k => h('li', { text: dayMonth(k.date) + ' · ' + k.start }))) : t('None yet'));
+  if (view || x.single) row(t('Classes'), picked.length ? h('ul', null, picked.map(k => h('li', { text: dayMonth(k.date) + ' · ' + k.start }))) : t('None yet'));
   const included = view ? view.people[0].total : (x.credits >= 99 ? null : x.credits);
   if (included != null) row(t('Included'), String(included) + (view ? '' : (x.persons === 2 ? ' × 2' : '')));
-  if (included != null) row(t('Remaining to schedule'), String(view ? view.people[0].left : Math.max(0, x.credits - S.picked.size)));
+  if (included != null && (view || x.single)) row(t('Remaining to schedule'), String(view ? view.people[0].left : Math.max(0, x.credits - S.picked.size)));
+  /* An offer shows what it saves: the regular price struck through, the
+     discount, then what she pays. */
+  const persons = view ? view.persons || 1 : x.persons;
+  const unit = view ? view.unitPrice : x.unit;
+  const orig = view ? view.originalPrice : x.original;
+  const pct = view ? view.discountPct : (x.offer && x.offer.kind === 'discount' ? x.offer.discountPct : null);
+  if (unit != null && orig && orig > unit) {
+    row(t('Regular price'), h('s', { text: money(orig * persons) }));
+    row(pct ? t('Discount %s', pct + '%') : t('Offer saving'), '−' + money((orig - unit) * persons), 'save');
+  }
   const total = view ? view.totalPrice : x.total;
   row(t('Total'), total == null ? t('Price at the studio') : money(total) + (!view && x.persons === 2 ? ' (' + t('for two') + ')' : ''), 'total');
   if (view) row(t('Status'), statusChip(view.status));

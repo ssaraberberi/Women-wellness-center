@@ -120,7 +120,9 @@ b,strong{font-weight:500}
   font-size:14px;line-height:1.25;text-align:left;
 }
 .pill.is-on{background:var(--wine);color:var(--blush);border-color:var(--wine)}
-.pill small{display:block;font-size:11.5px;opacity:.8}
+.pill small{display:block;font-size:11.5px;opacity:.85}
+.pill small s{margin-right:6px;opacity:.7}
+.pill__now{font-weight:500}
 
 /* ---------- schedule ---------- */
 .counter{
@@ -128,20 +130,32 @@ b,strong{font-weight:500}
   border-radius:var(--r-sm);background:var(--petal);font-size:14px;
 }
 .counter b{font-family:var(--display);font-weight:400;font-size:1.4rem;color:var(--wine)}
-.days{display:flex;gap:8px;overflow-x:auto;margin:22px -18px 6px;padding:2px 18px 10px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.days::-webkit-scrollbar{display:none}
-.day{
-  flex:none;scroll-snap-align:start;min-width:64px;min-height:76px;padding:10px 8px;border-radius:var(--r-sm);
-  border:1px solid var(--line);background:var(--lift);text-align:center;line-height:1.2;position:relative;
+/* The calendar: a month, Monday first, like the one on her phone. */
+.cal{margin-top:22px;padding:18px 14px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--lift)}
+.cal__head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px 14px}
+.cal__head b{font-family:var(--display);font-weight:400;font-size:1.3rem}
+.cal__nav{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--blush);display:grid;place-items:center;color:var(--wine)}
+.cal__nav:disabled{opacity:.3;cursor:not-allowed}
+.cal__grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px 2px;text-align:center}
+.cal__wd{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);padding-bottom:6px}
+.cal__day{
+  position:relative;aspect-ratio:1;max-height:56px;width:100%;margin:0 auto;border:0;border-radius:50%;background:none;
+  display:grid;place-items:center;font-variant-numeric:tabular-nums;font-size:15px;line-height:1;padding:0;
 }
-.day span{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--wine)}
-.day b{display:block;font-family:var(--display);font-weight:400;font-size:1.45rem;margin:3px 0 1px}
-.day small{display:block;font-size:10.5px;color:var(--ink-soft)}
-.day.is-on{background:var(--wine);border-color:var(--wine);color:var(--blush)}
-.day.is-on span,.day.is-on small{color:var(--rose-soft)}
-.day.is-empty{opacity:.42}
-.day i{position:absolute;top:7px;right:7px;width:6px;height:6px;border-radius:50%;background:var(--wine)}
-.day.is-on i{background:var(--blush)}
+.cal__day:disabled{color:var(--ink-soft);opacity:.35;cursor:default}
+.cal__day i{position:absolute;left:50%;bottom:14%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
+.cal__day.has-room{font-weight:500;color:var(--plum)}
+.cal__day.has-room i{background:var(--wine)}
+.cal__day.is-full{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:rgba(59,21,34,.35)}
+.cal__day.is-full i{background:var(--rose)}
+.cal__day.is-today span{box-shadow:inset 0 -1.5px 0 currentColor}
+.cal__day.is-picked{background:var(--rose-soft)}
+.cal__day.is-on{background:var(--wine);color:var(--blush);text-decoration:none}
+.cal__day.is-on i{background:var(--blush)}
+.cal__key{display:flex;gap:18px;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-soft)}
+.cal__key span{display:inline-flex;align-items:center;gap:7px}
+.cal__key i{width:6px;height:6px;border-radius:50%;background:var(--wine)}
+.cal__key i.k-full{background:var(--rose)}
 
 .slots{display:grid;gap:10px;margin-top:14px}
 .slot{
@@ -190,6 +204,8 @@ b,strong{font-weight:500}
 .summary .total span:last-child{font-family:var(--display);font-size:1.3rem}
 .summary ul{text-align:right}
 .summary ul li{font-variant-numeric:tabular-nums}
+.summary s{color:var(--ink-soft)}
+.summary .save span:last-child{color:var(--wine);font-weight:500}
 
 /* ---------- confirmation ---------- */
 .done{text-align:center;padding:12px 0 6px}
@@ -237,7 +253,7 @@ b,strong{font-weight:500}
   .card:hover{border-color:var(--rose-mid)}
   .offer:hover{border-color:var(--plum)}
   .slot:hover:not(:disabled){border-color:var(--wine)}
-  .day:hover{border-color:var(--wine)}
+  .cal__day:hover:not(:disabled):not(.is-on){background:var(--petal)}
 }
 
 /* The action, kept under the thumb. */
