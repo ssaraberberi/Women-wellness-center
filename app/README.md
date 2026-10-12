@@ -1,7 +1,24 @@
 # DUA — studio platform
 
-The booking system: administrator, instructor and client, on Postgres.
+The booking system: administrator, employees and clients, on Postgres.
 The browser talks to an API; nothing is decided in the browser.
+
+## Made for the hand
+
+Most of the time this is open on an iPhone at the desk or a tablet in the
+studio, so it is built for those first. Below 900px the sidebar becomes a
+dark top bar (the account sits behind the initials) and a tab bar under the
+thumb: the first four sections, and a **More** sheet when there are more than
+five. Dialogs rise from the bottom as sheets with the buttons pinned within
+reach, tables turn into one card per row, every control is at least 44px
+tall, and every field is 16px so iOS never zooms in when one is tapped. Safe
+areas are respected top and bottom. Tablets held upright get two cards side
+by side; on their side, and on a laptop, it is the sidebar layout.
+
+It can be added to the home screen: `app/manifest.webmanifest` and the icons
+in `app/icons/` (the studio mark, cream on wine) make it open full screen
+under its own name. Coming back to the app after a minute away reads the
+studio again, so a membership linked at the desk in the meantime is there.
 
 It deploys to Vercel as static files plus one function. `api/index.js` is
 that function — the routing table and the plumbing — and `api/_lib/` holds
@@ -205,28 +222,40 @@ JavaScript, an API that is down, a slow or unexpected answer — every one of
 those leaves the prices in. The only path that shows a price is the one where
 the studio said to.
 
-## Memberships are applied for, not bought
+## Memberships are linked at the desk
 
-A client picks a package in the app and **applies**. Nothing is charged there
-and nothing is booked: the row is written with status `requested`, and
-`membershipOf` in `shared/rules.js` leaves those out on purpose, so every rule
-that reads a membership agrees she does not have one yet. Trying to book
-answers "Waiting for the studio to confirm your package".
+There is nothing to apply for in the app. A client chooses a package at the
+studio and pays there, and the studio **links** it to her account with the
+**Link a membership** dialog — from the button on **Memberships**, or from
+**Link membership** on her row under **Clients**, which opens it with her
+already chosen. Pick the client (search by name, email or phone), the
+package and the dates — thirty days by default, and the end follows the start
+until it is set by hand — and it is `active` the moment it is saved. She can
+book straight away, and a notice tells her it is on and until when.
 
-She pays at the studio. An administrator sees the queue at the top of
-**Memberships**, confirms it, and that is the step that makes it real: status
-`active`, thirty days counted **from the day it is confirmed**, not from the
-day she asked. Whatever she held before is marked `replaced`. Both sides get a
-notice — the studio when she applies, the client when it is confirmed or
-closed.
+Whatever she held before is marked `replaced`, and the dialog says so before
+it is saved. The server holds the same line: one active membership per client
+by a partial unique index, the client's row locked while it is written, the
+package must not be retired, the person must be a client, and a membership
+that would already be over is refused.
 
-One open application per client, held by a partial unique index rather than by
-the interface, so a second tap cannot queue a second. Confirming twice answers
-that the request is not waiting any more.
+Her own **Membership** screen is read only: what she has and how much of it is
+left, the packages on offer, and how to get one — at the desk.
 
-The screens say all of this in their own words: three numbered steps in the
-client's dialog before she applies, and the line in the studio's queue that
-matters most — confirm only once she has paid, because nothing else checks.
+`POST /api/admin/memberships` is the whole of it. The old apply-and-confirm
+routes are gone; any `requested` rows a database still had from them were
+closed (`cancelled`) when this schema version applied.
+
+## Employees
+
+**Employees** (*Punonjëset*) are everyone on the staff side, and each is one
+of two kinds: an **instructor**, or a **body therapist / physiotherapist**.
+That is `users.job`; the role stays `instructor` for both, because it is what
+opens the staff dashboard. Choosing the kind when adding someone ticks what
+they can take to begin with — the reformer for an instructor, the spa for a
+therapist — and that can be changed before saving. Both are placed on classes
+the same way: by what they are qualified for, inside their hours, without a
+clash.
 
 ## What the studio sells
 
@@ -408,9 +437,9 @@ knows us in.
 
 ## Still to do before real money changes hands
 
-Payment happens at the studio and an administrator records it by confirming
-the application. Wiring a processor would mean a webhook confirming the same
-row, so the shape of this is already the shape it needs. Notices are in-app:
+Payment happens at the studio and an administrator records it by linking the
+membership. Wiring a processor would mean a webhook calling the same link, so
+the shape of this is already the shape it needs. Notices are in-app:
 email now has a sender (`api/_lib/mail.js`), so putting a notice in an inbox —
 "your membership is confirmed", "your class is tomorrow" — is a call to it
 from wherever the `notices` row is written, not new plumbing.

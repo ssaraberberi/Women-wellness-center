@@ -37,7 +37,7 @@ export async function plans() {
 
 export async function instructors() {
   const rows = await many(
-    `select u.id, u.name, u.email, u.phone, u.active,
+    `select u.id, u.name, u.email, u.phone, u.active, coalesce(u.job, 'instructor') as job,
             coalesce(array_agg(distinct q.class_type_id) filter (where q.class_type_id is not null), '{}') as quals
        from users u
        left join instructor_qualifications q on q.instructor_id = u.id
@@ -51,7 +51,7 @@ export async function instructors() {
     (a[key] = a[key] || []).push({ from: hhmm(b.starts), to: hhmm(b.ends) });
   }
   return rows.map(r => ({
-    id: r.id, name: r.name, email: r.email, phone: r.phone, active: r.active,
+    id: r.id, name: r.name, email: r.email, phone: r.phone, active: r.active, job: r.job,
     qualifications: r.quals, availability: byWho.get(r.id) || {}
   }));
 }

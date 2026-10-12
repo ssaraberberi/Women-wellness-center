@@ -121,6 +121,8 @@ const SQ = {
   'January': 'Janar', 'February': 'Shkurt', 'March': 'Mars', 'April': 'Prill',
   'May': 'Maj', 'June': 'Qershor', 'July': 'Korrik', 'August': 'Gusht',
   'September': 'Shtator', 'October': 'Tetor', 'November': 'Nëntor', 'December': 'Dhjetor',
+  'Jan': 'Jan', 'Feb': 'Shk', 'Mar': 'Mar', 'Apr': 'Pri', 'Jun': 'Qer', 'Jul': 'Kor',
+  'Aug': 'Gus', 'Sep': 'Sht', 'Oct': 'Tet', 'Nov': 'Nën', 'Dec': 'Dhj',
   'Mon': 'Hën', 'Tue': 'Mar', 'Wed': 'Mër', 'Thu': 'Enj', 'Fri': 'Pre', 'Sat': 'Sht', 'Sun': 'Die',
 
   /* ---- client ---- */
@@ -154,9 +156,6 @@ const SQ = {
   'Nothing yet.': 'Asgjë ende.',
   'No classes scheduled.': 'Asnjë klasë në orar.',
   'No membership': 'Pa abonim',
-  'Pick a membership to start booking': 'Zgjidh një abonim që të nisësh rezervimet',
-  'Choose what fits your week': 'Zgjidh atë që i përshtatet javës sate',
-  'View memberships': 'Shiko abonimet',
   'Your membership': 'Abonimi yt',
   'Current plan': 'Paketa aktuale',
   'Most chosen': 'Më e zgjedhura',
@@ -165,30 +164,139 @@ const SQ = {
   'Expired': 'Skaduar',
   'Active': 'Aktive',
 
-  /* ---- applying for a package ---- */
-  'You are applying for': 'Po aplikon për',
-  'How this works': 'Si funksionon',
-  'Apply': 'Apliko',
-  'Applied for another': 'Aplikuar për një tjetër',
-  'Waiting for the studio': 'Në pritje të studios',
-  'Waiting to be paid': 'Në pritje të pagesës',
-  'You apply here. Nothing is charged and nothing is booked yet.':
-    'Aplikon këtu. Nuk paguhet asgjë dhe nuk rezervohet asgjë ende.',
-  'You pay at the studio.': 'Paguan në studio.',
-  'We confirm it, and it becomes active for thirty days from that day — not from today.':
-    'Ne e konfirmojmë, dhe bëhet aktive për tridhjetë ditë nga ajo ditë — jo nga sot.',
-  'You apply here and pay at the studio. We confirm it there, and it runs for thirty days from that day.':
-    'Aplikon këtu dhe paguan në studio. E konfirmojmë atje, dhe zgjat tridhjetë ditë nga ajo ditë.',
-  'Nobody is waiting': 'Askush nuk është në pritje',
-  'Paid — confirm': 'Pagoi — konfirmo',
-  'Not paid': 'Nuk pagoi',
-  'She has paid — confirm': 'Ka paguar — konfirmo',
-  'Close it': 'Mbylle',
-  'Close the application': 'Mbyll aplikimin',
-  'Application closed': 'Aplikimi u mbyll',
-  'She can apply again afterwards.': 'Mund të aplikojë sërish më pas.',
-  'Do not confirm before the money is in. This is the only step that checks it.':
-    'Mos konfirmo para se të kenë hyrë paratë. Ky është i vetmi hap që e kontrollon.',
+  /* ---- the phone and tablet chrome ---- */
+  'Account': 'Llogaria',
+  'More': 'Më shumë',
+  'More sections': 'Seksione të tjera',
+  'Language': 'Gjuha',
+  'Mark all as read': 'Shënoji si të lexuara',
+  'Check your connection and try again. If it keeps happening, call or message the studio.':
+    'Kontrollo lidhjen dhe provo sërish. Nëse vazhdon, telefono ose shkruaji studios.',
+  'View': 'Pamja',
+  'Saved': 'U ruajt',
+  'Change': 'Ndrysho',
+  'From': 'Nga',
+
+  /* ---- the client's own screens ---- */
+  'Book': 'Rezervo',
+  'What you have, and what the studio offers': 'Çfarë ke, dhe çfarë ofron studioja',
+  'Ask at the studio to start one': 'Pyet në studio për ta nisur',
+  'Pay at the desk and we link it to your account. It shows here straight away and you can book.':
+    'Paguaj te banaku dhe ne e lidhim me llogarinë tënde. Shfaqet këtu menjëherë dhe mund të rezervosh.',
+  'See the packages': 'Shiko paketat',
+  'Renew it at the studio and it is linked here again straight away.':
+    'Rinovoje në studio dhe lidhet këtu sërish menjëherë.',
+  'Still to come today': 'Ende sot',
+  'Nothing else on today.': 'Asgjë tjetër sot.',
+  'Leave': 'Dil',
+  'You left the waitlist': 'Dole nga lista e pritjes',
+  'Days': 'Ditët',
+  'Nothing on the timetable for the coming days yet.': 'Ende asgjë në orar për ditët në vijim.',
+  'Did not get a place': 'Nuk mori vend',
+  'How to get one': 'Si ta marrësh',
+  'Choose a package below and tell us at the studio. Pay at the desk and we link it to your account — it shows here straight away and you can start booking.':
+    'Zgjidh një paketë më poshtë dhe na e thuaj në studio. Paguaj te banaku dhe ne e lidhim me llogarinë tënde — shfaqet këtu menjëherë dhe mund të nisësh rezervimet.',
+  'Packages at DUA': 'Paketat në DUA',
+  'The packages go up here soon.': 'Paketat ngjiten këtu së shpejti.',
+
+  /* ---- employees ---- */
+  'Employees': 'Punonjëset',
+  'Employee': 'Punonjësja',
+  'Role': 'Roli',
+  'Takes': 'Merr',
+  'Works': 'Punon',
+  'Can take': 'Mund të marrë',
+  'Body therapist / Physiotherapist': 'Terapiste trupi / Fizioterapiste',
+  'Instructors and body therapists, and what each of them takes':
+    'Instruktoret dhe terapistet, dhe çfarë merr secila',
+  'Add employee': 'Shto punonjëse',
+  'Add an employee': 'Shto një punonjëse',
+  'Remove employee': 'Hiq punonjësen',
+  'Employee added — they can sign in now': 'Punonjësja u shtua — mund të hyjë tani',
+  'No employees yet. Add the first one and they can sign in straight away.':
+    'Ende pa punonjëse. Shto të parën dhe mund të hyjë menjëherë.',
+  'They lose access to the staff dashboard straight away.': 'E humbet aksesin te paneli menjëherë.',
+  'Fill in the name, email and phone': 'Plotëso emrin, email-in dhe telefonin',
+  'That email does not look right': 'Ky email nuk duket i saktë',
+  'Pick at least one kind of class they can take': 'Zgjidh të paktën një lloj klase që mund të marrë',
+  'At least eight characters. Give it to them in person; they can change it later.':
+    'Të paktën tetë karaktere. Jepjani personalisht; mund ta ndryshojë më vonë.',
+  'Pick what they do': 'Zgjidh çfarë bën',
+  'No such employee': 'Nuk ka një punonjëse të tillë',
+  'What I do': 'Çfarë bëj',
+  'My hours': 'Orët e mia',
+  'The studio only places you on these': 'Studioja të vendos vetëm në këto',
+  'The studio only places you inside these hours': 'Studioja të vendos vetëm brenda këtyre orëve',
+  'This week': 'Këtë javë',
+  'I take': 'Marr',
+  'Nothing assigned to you yet.': 'Ende asgjë e caktuar për ty.',
+  'The studio places you once your hours are set. Check that they are right.':
+    'Studioja të vendos sapo të jenë caktuar orët. Kontrollo që të jenë të sakta.',
+  'Tick what you are happy to take on. The studio can only place you on these.':
+    'Shëno çfarë je e gatshme të marrësh. Studioja mund të të vendosë vetëm në këto.',
+  'Keep at least one': 'Mbaj të paktën një',
+  'Not working': 'Nuk punon',
+  'A class is only offered to you if it fits entirely inside your hours for that day.':
+    'Një klasë të ofrohet vetëm nëse hyn e gjitha brenda orëve të tua për atë ditë.',
+
+  /* ---- the schedule, as the desk sees it ---- */
+  'Assign someone': 'Cakto punonjëse',
+  'Who leads this class?': 'Kush e mban këtë klasë?',
+  'Take them off this class': 'Hiqe nga kjo klasë',
+  'Removed from the class': 'U hoq nga klasa',
+  'Led by': 'E mban',
+  'Places': 'Vende',
+  'Fill in the date and both times': 'Plotëso datën dhe të dyja orët',
+  'Capacity is at least one place': 'Kapaciteti është të paktën një vend',
+  'Nobody is booked yet.': 'Askush nuk ka rezervuar ende.',
+  'Nobody assigned': 'Pa punonjëse të caktuar',
+  'Nothing to fix. Every class has someone qualified and free.':
+    'Asgjë për të rregulluar. Çdo klasë ka dikë të kualifikuar dhe të lirë.',
+  'clash': 'përplasje',
+  'Removed': 'U hoq',
+  'All in order': 'Gjithçka në rregull',
+
+  /* ---- linking a membership ---- */
+  'Link a membership': 'Lidh një abonim',
+  'Link membership': 'Lidh abonimin',
+  'Change membership': 'Ndrysho abonimin',
+  'Linked here once a client has paid at the studio': 'Lidhen këtu pasi klientja paguan në studio',
+  'Paid at the desk? Link it here.': 'Pagoi te banaku? Lidhe këtu.',
+  'Pick the client and the package. It is active straight away and she can book from her phone. If she already has one, the new one replaces it.':
+    'Zgjidh klienten dhe paketën. Bëhet aktive menjëherë dhe ajo mund të rezervojë nga telefoni. Nëse ka tashmë një, e reja e zëvendëson.',
+  'Nobody has a membership yet. Link the first one once a client has paid.':
+    'Askush nuk ka ende abonim. Lidh të parin sapo një kliente të paguajë.',
+  'There are no packages yet. Add one under Packages first, then link it here.':
+    'Ende nuk ka paketa. Shto një te Paketat fillimisht, pastaj lidhe këtu.',
+  'Go to Packages': 'Shko te Paketat',
+  'Used this period': 'Përdorur këtë periudhë',
+  'Runs': 'Vlen',
+  'Search by name, email or phone': 'Kërko me emër, email ose telefon',
+  'Find a client': 'Gjej klienten',
+  'Search clients': 'Kërko klientet',
+  'No client matches that.': 'Asnjë kliente nuk përputhet.',
+  'No clients have an account yet.': 'Asnjë kliente nuk ka ende llogari.',
+  'No clients yet. They appear here as soon as they create an account in the app.':
+    'Ende pa kliente. Shfaqen këtu sapo krijojnë një llogari në aplikacion.',
+  'Pick a client first': 'Zgjidh fillimisht një kliente',
+  'Pick a package': 'Zgjidh një paketë',
+  'Pick a start and an end date': 'Zgjidh datën e fillimit dhe të mbarimit',
+  'The membership has to end after it starts': 'Abonimi duhet të mbarojë pasi të fillojë',
+  'That membership would already be over': 'Ky abonim do të kishte mbaruar tashmë',
+  'A membership is active or cancelled': 'Një abonim është aktiv ose i anuluar',
+  'No such client': 'Nuk ka një kliente të tillë',
+  'Only link it once she has paid. It is active from the start date and she can book straight away.':
+    'Lidhe vetëm pasi të ketë paguar. Është aktiv nga data e fillimit dhe ajo mund të rezervojë menjëherë.',
+  'Extending the date or changing the package takes effect immediately, including for classes already booked.':
+    'Zgjatja e datës ose ndryshimi i paketës hyn në fuqi menjëherë, edhe për klasat e rezervuara tashmë.',
+  'A new password is made now, shown once, and never shown again. Read it out, and ask them to change it after signing in.':
+    'Një fjalëkalim i ri krijohet tani, shfaqet një herë dhe nuk shfaqet më. Lexoje me zë dhe kërkoju ta ndryshojnë pasi të hyjnë.',
+  'Give the package a name': 'Jepi paketës një emër',
+
+  /* The notices the server writes, word for word. */
+  'Your membership was updated by the studio.': 'Abonimi yt u përditësua nga studioja.',
+  'Your password was reset at the studio. Ask for the new one at the desk.':
+    'Fjalëkalimi yt u rivendos në studio. Kërko të riun te banaku.',
 
   /* ---- instructor ---- */
   'Instructor': 'Instruktore',
@@ -223,7 +331,7 @@ const SQ = {
   'Cancel class': 'Anulo klasën',
   'Cancel this class': 'Anulo këtë klasë',
   'Cancel this class?': 'Të anulohet kjo klasë?',
-  'Create, move and staff the timetable': 'Krijo, zhvendos dhe cakto instruktore në orar',
+  'Create, move and staff the timetable': 'Krijo, zhvendos dhe cakto punonjëset në orar',
   'Class': 'Klasa',
   'Classes': 'Klasat',
   'Classes this week': 'Klasat këtë javë',
@@ -235,9 +343,7 @@ const SQ = {
   'Capacity': 'Kapaciteti',
   'Status': 'Statusi',
   'Who booked': 'Kush rezervoi',
-  'Who teaches this class?': 'Kush e jep këtë klasë?',
-  'Assign instructor': 'Cakto instruktore',
-  'Unassigned': 'Pa instruktore',
+  'Unassigned': 'Pa punonjëse',
   'Recommended': 'E rekomanduar',
   'Nobody qualified is free at this time.': 'Asnjë e kualifikuar nuk është e lirë në këtë orë.',
   'Nobody yet.': 'Askush ende.',
@@ -245,18 +351,8 @@ const SQ = {
     'Kontrollohet kundrejt kualifikimeve, disponueshmërisë dhe përplasjeve kur ruan.',
   'Start must be before end': 'Fillimi duhet të jetë para mbarimit',
   'The class must end after it starts': 'Klasa duhet të mbarojë pasi të ketë filluar',
-  'Remove instructor': 'Hiq instruktoren',
-  'Remove instructor from this class': 'Hiq instruktoren nga kjo klasë',
-  'Add instructor': 'Shto instruktore',
-  'Add an instructor': 'Shto një instruktore',
-  'Instructor added — they can sign in now': 'Instruktorja u shtua — mund të hyjë tani',
-  'Pick at least one class they can teach': 'Zgjidh të paktën një klasë që mund ta japë',
-  'They lose access to the instructor dashboard straight away.':
-    'E humbet aksesin te paneli i instruktores menjëherë.',
   'Things that were valid when they were set, and are not now':
     'Gjëra që ishin në rregull kur u caktuan, dhe nuk janë më',
-  'Nothing to fix. Every class has an instructor who is qualified and free.':
-    'Asgjë për të rregulluar. Çdo klasë ka një instruktore të kualifikuar dhe të lirë.',
 
   /* ---- admin: packages and memberships ---- */
   'Add package': 'Shto paketë',
@@ -295,8 +391,6 @@ const SQ = {
   'Active memberships': 'Abonime aktive',
   'Cancelled bookings': 'Rezervime të anuluara',
   'Membership updated — the client sees it now': 'Abonimi u përditësua — klientja e sheh tani',
-  'Extending the date or changing the plan takes effect immediately, including for classes already booked.':
-    'Zgjatja e datës ose ndryshimi i paketës hyn në fuqi menjëherë, edhe për klasat e rezervuara tashmë.',
   /* What shared/rules.js says, the statuses it names, and the small
      words the admin screens print raw. All of it reaches the page
      through el(), so it only needed to be written down. */
@@ -312,7 +406,6 @@ const SQ = {
   'That class no longer exists': 'Ajo klasë nuk ekziston më',
   'This class has already started': 'Kjo klasë ka filluar tashmë',
   'This class was cancelled': 'Kjo klasë u anulua',
-  'Waiting for the studio to confirm your package': 'Në pritje që studioja të konfirmojë paketën',
   'Your membership has expired': 'Abonimi yt ka skaduar',
   'recommended': 'e rekomanduar',
   'unavailable': 'e zënë',
@@ -361,7 +454,6 @@ const SQ = {
   'No such membership': 'Nuk ka një abonim të tillë',
   'No such package': 'Nuk ka një paketë të tillë',
   'No such person': 'Nuk ka një person të tillë',
-  'That request is not waiting any more': 'Ajo kërkesë nuk është më në pritje',
   'A package has to allow something': 'Një paketë duhet të lejojë diçka',
   'A package with that name already exists': 'Një paketë me atë emër ekziston tashmë',
   'A line counts per week or per month': 'Një rresht numërohet në javë ose në muaj',
@@ -373,18 +465,13 @@ const SQ = {
   'The class must end after it starts': 'Klasa duhet të mbarojë pasi të ketë filluar',
   'Start must be before end': 'Fillimi duhet të jetë para mbarimit',
   'showPrices is true or false': 'showPrices është true ose false',
-  'No instructor assigned': 'Pa instruktore të caktuar',
   'Reset password': 'Rivendos fjalëkalimin',
   'Make a new password': 'Krijo fjalëkalim të ri',
   'Done': 'U krye',
-  'A new password is made now, shown once, and never shown again. Read it out, and tell her to change it after she signs in.':
-    'Një fjalëkalim i ri krijohet tani, shfaqet një herë, dhe nuk shfaqet më. Lexoja me zë, dhe thuaji ta ndryshojë pasi të hyjë.',
   'Everywhere that account is signed in is signed out.':
     'Kudo ku ajo llogari është e kyçur, dilet.',
   'Write it down before you close this. It is not kept anywhere you can read it back.':
     'Shënoje para se ta mbyllësh. Nuk ruhet askund ku të lexohet përsëri.',
-  'A client applies in the app and pays here at the studio. Confirm it only once she has paid — confirming is what makes it active, for thirty days from that day. Until then she cannot book.':
-    'Një kliente aplikon në aplikacion dhe paguan këtu në studio. Konfirmoje vetëm pasi të ketë paguar — konfirmimi është ai që e bën aktive, për tridhjetë ditë nga ajo ditë. Deri atëherë nuk rezervon dot.',
   'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.':
     'Me të fikur, faqja dhe një kliente e kyçur këtu listojnë çdo paketë dhe çfarë përfshin, dhe thonë se çmimi vjen së shpejti. Çmimi nuk u dërgohet fare. Ti e sheh gjithmonë.',
   'Unknown client': 'Kliente e panjohur',
@@ -433,9 +520,6 @@ const SQ = {
 /* Sentences with a value in them. The English is the key, %s is where the
    value goes, and the Albanian may put it somewhere else entirely. */
 const SQ_FMT = {
-  'Apply for %s': 'Apliko për %s',
-  'Applied for %s': 'Aplikuar për %s',
-  'Confirm %s': 'Konfirmo %s',
   'Edit %s': 'Ndrysho %s',
   'Adjust %s': 'Rregullo %s',
   'Retire %s': 'Tërhiq %s',
@@ -462,10 +546,7 @@ const SQ_FMT = {
   '%s free': '%s të lira',
   '%s classes': '%s klasa',
   '%s upcoming class': '%s klasë në vijim',
-  '%s client is waiting': '%s kliente në pritje',
-  '%s clients are waiting': '%s kliente në pritje',
   'No one is on %s.': 'Askush nuk është me %s.',
-  '%s is active for %s': '%s është aktive për %s',
   '%s classes need attention': '%s klasa kërkojnë kujdes',
   '%s class needs attention': '%s klasë kërkon kujdes',
   '%s assigned': '%s u caktua',
@@ -477,12 +558,6 @@ const SQ_FMT = {
   'Class cancelled — %s client notified and refunded':
     'Klasa u anulua — %s kliente u njoftua dhe iu kthye seanca',
   'Remove %s?': 'Të hiqet %s?',
-  '%s upcoming classes will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.':
-    '%s klasa të ardhshme mbeten pa instruktore. Rezervimet ruhen, dhe ato kliente njoftohen se po vjen një instruktore e re.',
-  '%s upcoming class will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.':
-    '%s klasë e ardhshme mbetet pa instruktore. Rezervimet ruhen, dhe ato kliente njoftohen se po vjen një instruktore e re.',
-  'Removed — %s classes now need an instructor': 'U hoq — %s klasa tani kërkojnë instruktore',
-  'Removed — %s class now needs an instructor': 'U hoq — %s klasë tani kërkon instruktore',
   'Unlimited %s per %s': '%s pa limit në %s',
   '%s × %s per %s': '%s × %s në %s',
   '%s client is on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.':
@@ -490,11 +565,6 @@ const SQ_FMT = {
   '%s clients are on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.':
     '%s kliente e kanë %s tani. E mbajnë derisa t\'u mbarojë — tërheqja vetëm ndalon blerje të reja.',
   '%s retired': '%s u tërhoq',
-  'asked %s': 'kërkoi më %s',
-  '%s has paid for %s at the studio. Confirming makes it active for thirty days from today, and opens her calendar straight away.':
-    '%s ka paguar për %s në studio. Konfirmimi e bën aktive për tridhjetë ditë nga sot, dhe i hap kalendarin menjëherë.',
-  '%s has not paid for %s. The application is closed and she is told to ask at the studio. She can apply again afterwards.':
-    '%s nuk ka paguar për %s. Aplikimi mbyllet dhe asaj i thuhet të pyesë në studio. Mund të aplikojë sërish më pas.',
   'The next %s days': '%s ditët e ardhshme',
   '%s at DUA': '%s në DUA',
   '%s at the studio': '%s në studio',
@@ -506,12 +576,40 @@ const SQ_FMT = {
     'Anulim falas deri në %s. Seanca të kthehet menjëherë në bilanc.',
   'The %s deadline has passed. This class will still count against your membership.':
     'Afati i %s ka kaluar. Kjo klasë do të zbritet gjithsesi nga abonimi yt.',
-  'You applied for %s. Pay at the studio and we will confirm it — it becomes active for thirty days from the day we do, and your calendar opens then. Nothing has been charged here.':
-    'Ke aplikuar për %s. Paguaj në studio dhe ne e konfirmojmë — bëhet aktive për tridhjetë ditë nga dita që e bëjmë, dhe kalendari të hapet atëherë. Këtu nuk është paguar asgjë.',
   ' or ': ' ose ',
   'a package': 'një paketë',
   'membership': 'abonim',
-  '⚠ unassigned': '⚠ pa instruktore',
+  '⚠ unassigned': '⚠ pa caktuar',
+  'Hello, %s': 'Përshëndetje, %s',
+  'One left this %s': '1 e mbetur këtë %s',
+  '%s of %s seats booked': '%s nga %s vende të rezervuara',
+  '%s of %s booked': '%s nga %s të rezervuara',
+  'No one is on %s. It stops being offered.': 'Askush nuk e ka %s. Nuk ofrohet më.',
+  'Valid until %s': 'E vlefshme deri më %s',
+  '%s place left': '%s vend i lirë',
+  '%s places left': '%s vende të lira',
+  'with %s': 'me %s',
+  '%s day': '%s ditë',
+  '%s days': '%s ditë',
+  '%s / %s booked': '%s / %s të rezervuara',
+  '%s – %s': '%s – %s',
+  '%s client': '%s kliente',
+  '%s clients': '%s kliente',
+  '%s without a membership': '%s pa abonim',
+  'until %s': 'deri më %s',
+  'This replaces %s, which runs until %s.': 'Kjo zëvendëson %s, që vlen deri më %s.',
+  '%s is now on %s': '%s tani ka %s',
+  'Membership for %s': 'Abonim për %s',
+  '%s clients are booked. They are told, and the class goes back on their balance.':
+    '%s kliente kanë rezervuar. Njoftohen, dhe klasa u kthehet në bilanc.',
+  '%s client is booked. She is told, and the class goes back on her balance.':
+    '%s kliente ka rezervuar. Njoftohet, dhe klasa i kthehet në bilanc.',
+  '%s upcoming classes will be left unassigned. Bookings are kept, and those clients are told someone new will lead it.':
+    '%s klasa të ardhshme mbeten pa punonjëse. Rezervimet ruhen, dhe ato kliente njoftohen se do t\'i mbajë dikush tjetër.',
+  '%s upcoming class will be left unassigned. Bookings are kept, and those clients are told someone new will lead it.':
+    '%s klasë e ardhshme mbetet pa punonjëse. Rezervimet ruhen, dhe ato kliente njoftohen se do ta mbajë dikush tjetër.',
+  'Removed — %s classes now need someone': 'U hoq — %s klasa tani kërkojnë punonjëse',
+  'Removed — %s class now needs someone': 'U hoq — %s klasë tani kërkon punonjëse',
   'month': 'muaj',
   'week': 'javë'
 };
@@ -541,14 +639,30 @@ document.documentElement.lang = lang;
    beats listing one entry per number or per class type. */
 const SHAPES = [
   [/^Booking opens (\d+) days ahead$/,            (m) => 'Rezervimi hapet ' + m[1] + ' ditë përpara'],
-  [/^Does not teach (.+)$/,                        (m) => 'Nuk jep ' + m[1]],
-  [/^Already teaching (.+)$/,                      (m) => 'Tashmë jep ' + m[1]],
+  [/^Not qualified for (.+)$/,                     (m) => 'E pakualifikuar për ' + m[1]],
+  [/^Already on a class (.+)$/,                    (m) => 'Tashmë në një klasë ' + m[1]],
   [/^No (.+) classes left this (week|month)$/,     (m) => 'Nuk ka më klasa ' + m[1] + ' këtë ' + (m[2] === 'week' ? 'javë' : 'muaj')],
+  [/^No classes left this (week|month)$/,          (m) => 'Nuk ka më klasa këtë ' + (m[1] === 'week' ? 'javë' : 'muaj')],
   [/^Missing (.+)$/,                               (m) => 'Mungon ' + m[1]],
   [/^No such class type: (.+)$/,                   (m) => 'Nuk ka lloj klase: ' + m[1]],
-  [/^You have already asked for (.+)\. The studio will confirm it once you have paid\.$/,
-                                                   (m) => 'Ke kërkuar tashmë ' + m[1] + '. Studioja do ta konfirmojë sapo të kesh paguar.'],
   [/^(\d+) spots? left$/,                          (m) => m[1] === '1' ? '1 vend i lirë' : m[1] + ' vende të lira'],
+
+  /* The notices the server writes with a value inside them. Dates stay as
+     2026-10-12 here; the screen that shows a notice turns them into words. */
+  [/^Your membership (.+) is active until (\d{4}-\d{2}-\d{2})\.$/,
+                                                   (m) => 'Abonimi yt ' + m[1] + ' është aktiv deri më ' + m[2] + '.'],
+  [/^A place opened in the (\d\d:\d\d) class on (\d{4}-\d{2}-\d{2}) — you are in\.$/,
+                                                   (m) => 'U lirua një vend në klasën e orës ' + m[1] + ', ' + m[2] + ' — je brenda.'],
+  [/^Your class on (\d{4}-\d{2}-\d{2}) at (\d\d:\d\d) will be led by someone new\. Your place is safe\.$/,
+                                                   (m) => 'Klasën tënde, ' + m[1] + ' në orën ' + m[2] + ', do ta mbajë dikush tjetër. Vendi yt është i sigurt.'],
+  [/^Your class on (\d{4}-\d{2}-\d{2}) at (\d\d:\d\d) will now be led by (.+)\.$/,
+                                                   (m) => 'Klasën tënde, ' + m[1] + ' në orën ' + m[2] + ', tani e mban ' + (m[3] === 'someone new' ? 'dikush tjetër' : m[3]) + '.'],
+  [/^Your class moved to (\d{4}-\d{2}-\d{2}), (\d\d:\d\d)–(\d\d:\d\d)\.$/,
+                                                   (m) => 'Klasa jote u zhvendos: ' + m[1] + ', ' + m[2] + '–' + m[3] + '.'],
+  [/^The (\d\d:\d\d) class on (\d{4}-\d{2}-\d{2}) was cancelled\. Your session has been returned\.$/,
+                                                   (m) => 'Klasa e orës ' + m[1] + ', ' + m[2] + ', u anulua. Seanca t\'u kthye.'],
+  /* "Name — reason", as the server words a refusal about one person. */
+  [/^(.+) — (.+)$/,                                (m) => m[1] + ' — ' + t(m[2])],
 ];
 
 export function t(s, ...args) {

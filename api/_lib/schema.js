@@ -15,7 +15,7 @@
    ============================================================ */
 
 /* Bump on every change to SCHEMA below. */
-export const VERSION = '2026-10-11c';
+export const VERSION = '2026-10-12a';
 
 export const SCHEMA = `
 create table if not exists users (
@@ -30,6 +30,13 @@ create table if not exists users (
 );
 -- Added after the first release, so it has to be able to arrive late.
 alter table users add column if not exists email_verified boolean not null default false;
+-- What an employee does. The role stays 'instructor' for everyone on the
+-- staff side — it is what signs them in to the staff dashboard — and this
+-- says which kind they are: an instructor, or a body therapist /
+-- physiotherapist. Null only for admins and clients.
+alter table users add column if not exists job text
+  check (job is null or job in ('instructor', 'therapist'));
+update users set job = 'instructor' where role = 'instructor' and job is null;
 -- Email identifies an account, and case is not part of the identity.
 create unique index if not exists users_email_key on users (lower(email));
 
@@ -107,8 +114,10 @@ create table if not exists memberships (
   plan_id    text not null references plans(id),
   starts_on  date not null,
   ends_on    date not null,
-  -- 'requested' is a client asking for a package. It grants nothing: the
-  -- studio turns it active once the money has been handed over at the desk.
+  -- The studio links a membership to a client once she has paid at the desk,
+  -- and it is active from that moment. 'requested' belonged to an older flow
+  -- where the client applied in the app; it is still allowed so that rows
+  -- from then remain valid, and nothing writes it any more.
   status     text not null check (status in ('requested', 'active', 'cancelled', 'replaced')),
   created_at timestamptz not null default now(),
   check (starts_on <= ends_on)
@@ -116,9 +125,10 @@ create table if not exists memberships (
 -- A client holds at most one active membership; the rest are history.
 create unique index if not exists memberships_one_active
   on memberships (client_id) where status = 'active';
--- And asks for one package at a time, so a second tap cannot queue a second.
-create unique index if not exists memberships_one_requested
-  on memberships (client_id) where status = 'requested';
+-- Applications from the old flow are closed: there is no queue to answer
+-- them from any more, and the studio links memberships directly instead.
+update memberships set status = 'cancelled' where status = 'requested';
+drop index if exists memberships_one_requested;
 
 create table if not exists bookings (
   id         uuid primary key default gen_random_uuid(),

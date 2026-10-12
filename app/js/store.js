@@ -55,7 +55,23 @@ export async function boot() {
   }
 }
 
+/* After "Cannot reach the studio": back to the loading screen, then boot. */
+export function retry() {
+  merge({ ready: false, error: null });
+  return boot();
+}
+
+/* A phone puts the app to sleep in a pocket and wakes it an hour later.
+   Coming back to the screen reads the studio again, so a class that filled
+   or a membership linked at the desk in the meantime is already there. */
+let lastRead = Date.now();
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !state.user || Date.now() - lastRead < 60000) return;
+  refresh().catch(() => {});
+});
+
 export async function refresh() {
+  lastRead = Date.now();
   const u = state.user;
   if (!u) return;
   const notices = await api.get('/notices').catch(() => []);
@@ -128,7 +144,6 @@ const act = fn => async (...args) => { const out = await fn(...args); await refr
 export const book         = act(classId  => api.post('/client/book', { classId }));
 export const joinWaitlist = act(classId  => api.post('/client/waitlist', { classId }));
 export const cancelBooking= act(bookingId=> api.post('/client/cancel', { bookingId }));
-export const applyForPlan = act(planId   => api.post('/client/membership', { planId }));
 
 export const setQualifications = act(types => api.put('/instructor/qualifications', { types }));
 export const setAvailability   = act(availability => api.put('/instructor/availability', { availability }));
@@ -136,14 +151,13 @@ export const setAvailability   = act(availability => api.put('/instructor/availa
 export const saveClass        = act(data => api.post('/admin/classes', data));
 export const assignInstructor = act((classId, instructorId) => api.post('/admin/classes/' + classId + '/assign', { instructorId }));
 export const cancelClass      = act(classId => api.post('/admin/classes/' + classId + '/cancel'));
-export const addInstructor    = act(data => api.post('/admin/instructors', data));
-export const removeInstructor = act(id => api.del('/admin/instructors/' + id));
+export const addEmployee      = act(data => api.post('/admin/employees', data));
+export const removeEmployee   = act(id => api.del('/admin/employees/' + id));
 export const savePlan         = act(data => api.post('/admin/plans', data));
 export const archivePlan      = act(id => api.del('/admin/plans/' + id));
 export const setShowPrices    = act(on => api.put('/admin/settings', { showPrices: !!on }));
 export const resetPassword    = act(id => api.post('/admin/users/' + id + '/password'));
-export const confirmMembership = act(id => api.post('/admin/memberships/' + id + '/confirm'));
-export const declineMembership = act(id => api.post('/admin/memberships/' + id + '/decline'));
+export const linkMembership   = act(data => api.post('/admin/memberships', data));
 export const updateMembership = act((id, patch) => api.put('/admin/memberships/' + id, patch));
 export const markNoticesRead  = act(() => api.post('/notices/read'));
 

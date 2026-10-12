@@ -52,10 +52,10 @@ export function renderAuth({ go, start }) {
         toast('Welcome back');
       } catch (ex) { err.textContent = t(ex.message); err.hidden = false; busy(submit, false, 'Sign in'); }
     } }, [
-      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email' })),
+      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false' })),
       field('Password', input('password', { type: 'password', required: true, autocomplete: 'current-password' })),
       err, submit,
-      el('p', { style: 'margin-top:14px;text-align:center' },
+      el('p.center', null,
         el('button.linkish', { type: 'button', text: 'Forgot your password?', onclick: () => show('forgot') }))
     ]);
     return form;
@@ -68,7 +68,7 @@ export function renderAuth({ go, start }) {
   function forgotForm() {
     const err = el('p.notice.notice--bad', { hidden: true });
     const submit = el('button.btn.btn--block', { type: 'submit', text: 'Send me a link' });
-    const back = el('p', { style: 'margin-top:14px;text-align:center' },
+    const back = el('p.center', null,
       el('button.linkish', { type: 'button', text: 'Back to sign in', onclick: () => show('in') }));
 
     const form = el('form', { onsubmit: async e => {
@@ -87,7 +87,7 @@ export function renderAuth({ go, start }) {
     } }, [
       el('p.muted', { style: 'margin-bottom:14px;font-size:.95rem',
         text: 'Give us the address you signed up with and we will send you a link to set a new password.' }),
-      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email' })),
+      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false' })),
       err, submit, back
     ]);
     return form;
@@ -100,13 +100,13 @@ export function renderAuth({ go, start }) {
       'Issued by the studio, and checked on the server.');
     codeField.hidden = true;
 
-    const toggle = el('label.field', { style: 'flex-direction:row;align-items:center;gap:10px' }, [
-      el('input', { type: 'checkbox', name: 'isadmin', style: 'width:auto', onchange: e => {
+    const toggle = el('label.check', { style: 'margin-bottom:12px' }, [
+      el('input', { type: 'checkbox', name: 'isadmin', onchange: e => {
         asAdmin = e.target.checked;
         codeField.hidden = !asAdmin;
         if (asAdmin) codeField.querySelector('input').focus();
       } }),
-      el('span', { style: 'letter-spacing:.06em', text: 'Register as administrator' })
+      el('span', { text: 'Register as administrator' })
     ]);
 
     const submit = el('button.btn.btn--block', { type: 'submit', text: 'Create account' });
@@ -118,13 +118,13 @@ export function renderAuth({ go, start }) {
       if (asAdmin) data.code = f.get('code');
       try {
         const user = await store.register(data);
-        location.hash = user.role === 'admin' ? '' : '#/memberships';
+        location.hash = '';
         toast(user.role === 'admin' ? 'Administrator account created' : 'Welcome to DUA');
       } catch (ex) { err.textContent = t(ex.message); err.hidden = false; busy(submit, false, 'Create account'); }
     } }, [
-      field('Full name', input('name', { required: true, autocomplete: 'name' })),
-      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email' })),
-      field('Phone', input('phone', { type: 'tel', required: true, autocomplete: 'tel' })),
+      field('Full name', input('name', { required: true, autocomplete: 'name', autocapitalize: 'words' })),
+      field('Email', input('email', { type: 'email', required: true, autocomplete: 'email', inputmode: 'email', autocapitalize: 'off', spellcheck: 'false' })),
+      field('Phone', input('phone', { type: 'tel', required: true, autocomplete: 'tel', inputmode: 'tel' })),
       field('Password', input('password', { type: 'password', required: true, minlength: 8, autocomplete: 'new-password' })),
       toggle, codeField, err, submit
     ]);
@@ -141,7 +141,7 @@ export function renderAuth({ go, start }) {
     ]),
     el('div.auth__form', null, [
       el('p.eyebrow', { text: 'Studio account' }),
-      el('h1.display', { style: 'font-size:1.9rem;margin:8px 0 20px', text: 'Sign in to DUA' }),
+      el('h1.display', { text: 'Sign in to DUA' }),
       tabs, formHost
     ])
   ]);
@@ -187,7 +187,7 @@ export function renderReset({ token, done }) {
       'At least eight characters.'),
     field('Repeat the password', input('again', { type: 'password', required: true, minlength: 8, autocomplete: 'new-password' })),
     err, submit,
-    el('p', { style: 'margin-top:14px;text-align:center' },
+    el('p.center', null,
       el('button.linkish', { type: 'button', text: 'Back to sign in', onclick: () => done() }))
   ]);
 
@@ -199,7 +199,7 @@ export function renderReset({ token, done }) {
     ]),
     el('div.auth__form', null, [
       el('p.eyebrow', { text: 'Studio account' }),
-      el('h1.display', { style: 'font-size:1.9rem;margin:8px 0 20px', text: 'Set a new password' }),
+      el('h1.display', { text: 'Set a new password' }),
       form
     ])
   ]);

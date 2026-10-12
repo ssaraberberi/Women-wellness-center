@@ -46,36 +46,46 @@ export function go(hash) {
   else location.hash = hash;
 }
 
+/* The colour the phone paints its status bar and browser chrome: the wine
+   of the sign-in panel, the plum of the app's top bar, the cream of the
+   page while it loads — so the top of the screen never looks pasted on. */
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+const paint = colour => { if (themeMeta && themeMeta.content !== colour) themeMeta.content = colour; };
+
 function render() {
   const state = store.get();
   clear(root);
 
   if (!state.ready) {
-    root.appendChild(el('div', { style: 'display:grid;place-items:center;min-height:100vh' },
-      el('p.muted', { text: 'Loading…' })));
+    paint('#FFFBEA');
+    root.appendChild(el('div.splash', { role: 'status', 'aria-label': 'Loading…' },
+      el('span.splash__mark', { 'aria-hidden': 'true' })));
     return;
   }
   if (state.error && !state.user) {
-    root.appendChild(el('div', { style: 'display:grid;place-items:center;min-height:100vh;padding:24px' },
-      el('div.card', null, [
+    paint('#FFFBEA');
+    root.appendChild(el('div.splash', null,
+      el('div.card', { style: 'max-width:420px;text-align:left' }, [
         el('p.eyebrow', { text: 'Cannot reach the studio' }),
-        el('p', { style: 'margin-top:8px', text: state.error }),
-        el('button.btn.btn--sm', { type: 'button', style: 'margin-top:14px', text: 'Try again',
-          onclick: () => store.boot() })
+        el('p', { style: 'margin-top:8px', text: 'Check your connection and try again. If it keeps happening, call or message the studio.' }),
+        el('button.btn.btn--sm', { type: 'button', style: 'margin-top:16px', text: 'Try again',
+          onclick: () => { store.retry(); } })
       ])));
     return;
   }
 
   /* Before the role screens and before sign-in: whoever opened this link
      came to set a password, and that is the only thing this screen does. */
-  if (resetToken) { root.appendChild(renderReset({ token: resetToken, done: leaveReset })); return; }
+  if (resetToken) { paint('#7D2F49'); root.appendChild(renderReset({ token: resetToken, done: leaveReset })); return; }
 
   const user = state.user;
   if (!user) {
+    paint('#7D2F49');
     const start = authStart; authStart = null;
     root.appendChild(renderAuth({ go, start }));
     return;
   }
+  paint(matchMedia('(max-width: 899px)').matches ? '#2A0E18' : '#FFFBEA');
 
   const route = (location.hash || '').replace(/^#\/?/, '') || '';
   const ctx = { user, state, now: new Date(), go, route };
@@ -84,7 +94,8 @@ function render() {
   else root.appendChild(renderClient(ctx));
 }
 
-window.addEventListener('hashchange', () => { closeModal(); render(); });
+/* A new section starts at its top, the way a new page would. */
+window.addEventListener('hashchange', () => { closeModal(); render(); window.scrollTo(0, 0); });
 store.subscribe(render);
 /* Switching language rebuilds every screen from the same state: nothing is
    translated in place, so there is no half-English screen to get stuck in. */

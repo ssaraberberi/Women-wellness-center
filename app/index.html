@@ -1,12 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="sq">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DUA Studio — booking platform</title>
+<title>DUA Studio</title>
+<meta name="description" content="Book classes, see your membership, and run the studio.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#FFFBEA">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%237D2F49'/%3E%3Ctext x='16' y='24' font-family='Georgia,serif' font-size='21' fill='%23FFFBEA' text-anchor='middle'%3Ed%3C/text%3E%3C/svg%3E">
+<meta name="format-detection" content="telephone=no">
+<!-- Added to the home screen, it opens full screen with its own icon and
+     name, and the status bar sits over the app's own dark top bar. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DUA">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/app/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/app/icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/app/icons/icon-192.png">
 <link rel="preload" href="/assets/fonts/fraunces-normal-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/dm-sans-normal-300-latin.woff2" as="font" type="font/woff2" crossorigin>
 <!-- Absolute, not relative: this page is served at /app with no trailing
@@ -17,9 +27,10 @@
 <body>
 <div id="root"></div>
 <noscript>
-  <div style="padding:40px;font-family:system-ui">
-    <h1>DUA Studio</h1>
-    <p>The booking platform needs JavaScript. The studio site is at <a href="/">dua-pilates.com</a>.</p>
+  <div style="padding:40px 24px;font-family:system-ui,sans-serif;max-width:520px">
+    <h1 style="font-weight:400">DUA Studio</h1>
+    <p>Aplikacioni ka nevojë për JavaScript. · The app needs JavaScript.</p>
+    <p><a href="/">dua-pilates.com</a></p>
   </div>
 </noscript>
 <script type="module" src="/app/js/app.js"></script>

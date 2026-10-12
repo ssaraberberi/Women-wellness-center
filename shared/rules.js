@@ -20,20 +20,14 @@ export const planOf = (state, id) => (state.plans || []).find(p => p.id === id) 
 
 /* ---------- membership ---------- */
 
-/* The membership someone actually holds. A 'requested' row is a client
-   asking for a package she has not paid for yet, so it is not one of these:
-   it grants nothing until the studio confirms it, and leaving it out here is
-   what makes every rule below agree about that. pendingOf is how a screen
-   asks about it on purpose. */
+/* The membership someone holds: the active one, or failing that the most
+   recent, so an expired package can still be named. The studio links these
+   at the desk once she has paid. A 'requested' row is left over from the
+   old apply-in-the-app flow and grants nothing, so it is never one of these. */
 export function membershipOf(state, clientId) {
   const mine = (state.memberships || [])
     .filter(m => m.clientId === clientId && m.status !== 'requested');
   return mine.find(m => m.status === 'active') || mine[0] || null;
-}
-
-export function pendingOf(state, clientId) {
-  return (state.memberships || [])
-    .find(m => m.clientId === clientId && m.status === 'requested') || null;
 }
 
 export function isExpired(membership, now) {
@@ -116,9 +110,7 @@ export function canBook(state, clientId, klass, now) {
   if (bookingOf(state, clientId, klass.id)) return no('already', 'Already booked');
 
   const m = membershipOf(state, clientId);
-  if (!m) return pendingOf(state, clientId)
-    ? no('pending', 'Waiting for the studio to confirm your package')
-    : no('no-membership', 'No active membership');
+  if (!m) return no('no-membership', 'No active membership');
   if (isExpired(m, now)) return no('expired', 'Your membership has expired');
 
   const a = allowanceFor(state, m.planId, klass.typeId);
@@ -163,11 +155,11 @@ export function instructorFit(state, instructor, klass) {
   if (!instructor) return { status: 'removed', why: 'Not at the studio' };
   if (!instructor.active) return { status: 'removed', why: 'No longer at the studio' };
   if (!instructor.qualifications.includes(klass.typeId))
-    return { status: 'unqualified', why: 'Does not teach ' + typeOf(state, klass.typeId).short };
+    return { status: 'unqualified', why: 'Not qualified for ' + typeOf(state, klass.typeId).short };
   if (!availabilityCovers(instructor, klass))
     return { status: 'unavailable', why: 'Outside their availability' };
   const clash = clashFor(state, instructor, klass);
-  if (clash) return { status: 'clash', why: 'Already teaching ' + clash.start + '–' + clash.end };
+  if (clash) return { status: 'clash', why: 'Already on a class ' + clash.start + '–' + clash.end };
   return { status: 'recommended', why: 'Qualified and free' };
 }
 
@@ -188,7 +180,7 @@ export function issues(state, now) {
   const out = [];
   (state.classes || []).forEach(c => {
     if (c.cancelled || c.date < iso(now)) return;
-    if (!c.instructorId) { out.push({ kind: 'unassigned', klass: c, why: 'No instructor assigned' }); return; }
+    if (!c.instructorId) { out.push({ kind: 'unassigned', klass: c, why: 'Nobody assigned' }); return; }
     const i = (state.instructors || []).find(x => x.id === c.instructorId);
     if (!i) return;
     const fit = instructorFit(state, i, c);

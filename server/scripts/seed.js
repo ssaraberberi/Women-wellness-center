@@ -21,19 +21,33 @@ const monday = startOfWeek(today);
 const day = n => iso(addDays(monday, n));
 
 const band = (from, to) => ({ from, to });
+/* name, email, phone, job, qualifications, availability */
 const INSTRUCTORS = [
-  ['Elira Hoxha', 'elira@dua-pilates.com', '069 710 4073', ['reformer'],
+  ['Elira Hoxha', 'elira@dua-pilates.com', '069 710 4073', 'instructor', ['reformer'],
     { mon: [band('09:00','20:00')], tue: [band('09:00','20:00')], wed: [band('12:00','18:00')],
       thu: [band('09:00','20:00')], fri: [band('09:00','17:00')] }],
-  ['Ana Leka', 'ana@dua-pilates.com', '069 710 4074', ['reformer'],
+  ['Ana Leka', 'ana@dua-pilates.com', '069 710 4074', 'instructor', ['reformer'],
     { mon: [band('13:00','19:00')], tue: [band('13:00','19:00')], wed: [band('08:00','19:00')],
       thu: [band('13:00','19:00')], fri: [band('13:00','19:00')], sat: [band('09:00','14:00')] }],
-  ['Era Meta', 'era@dua-pilates.com', '069 710 4075', ['reformer'],
+  ['Era Meta', 'era@dua-pilates.com', '069 710 4075', 'instructor', ['reformer'],
     { mon: [band('11:00','15:00')], tue: [band('11:00','15:00')], wed: [band('11:00','15:00')],
       thu: [band('11:00','15:00')], fri: [band('11:00','15:00')], sun: [band('10:00','14:00')] }],
-  ['Jona Rexha', 'jona@dua-pilates.com', '069 710 4076', ['spa'],
+  ['Jona Rexha', 'jona@dua-pilates.com', '069 710 4076', 'therapist', ['spa'],
     { mon: [band('10:00','18:00')], tue: [band('10:00','18:00')], wed: [band('10:00','18:00')],
       thu: [band('10:00','18:00')], fri: [band('10:00','18:00')] }]
+];
+
+/* Demo packages, so the memberships below have something to point at.
+   Only ever inserted, never overwritten — and only by this script, which
+   is for demo databases. The app itself never writes a package.
+   id, name, price, featured, sort, [types, limit, per][] */
+const PLANS = [
+  ['start',    'DUA START',    7200,  false, 1, [[['reformer'], 4, 'month']]],
+  ['routine',  'DUA ROUTINE',  13200, true,  2, [[['reformer'], 8, 'month']]],
+  ['glow',     'DUA GLOW',     18000, false, 3, [[['reformer'], 12, 'month']]],
+  ['obsessed', 'DUA OBSESSED', 22400, false, 4, [[['reformer'], 16, 'month']]],
+  ['relax-pack', 'RELAX PACK', 10800, false, 5, [[['spa'], 3, 'month']]],
+  ['reset',    'DUA RESET',    9900,  false, 6, [[['reformer'], 4, 'month'], [['spa'], 1, 'month']]]
 ];
 
 /* weekday offset from Monday, type, start, end, capacity, instructor index */
@@ -80,19 +94,35 @@ async function main() {
       console.log('wiped existing data');
     }
 
-    const mkUser = async (role, name, email, phone) => {
+    /* What a wipe took away and everything below stands on. */
+    await c.query(`insert into class_types (id, name, short_name, sort) values
+                     ('reformer', 'Reformer Pilates', 'Reformer', 1), ('spa', 'Spa', 'Spa', 2)
+                   on conflict (id) do nothing`);
+    await c.query(`insert into settings (key, value) values ('show_prices', 'off') on conflict (key) do nothing`);
+    for (const [id, name, price, featured, sort, lines] of PLANS) {
+      const made = await c.query(
+        `insert into plans (id, name, price_all, featured, sort) values ($1,$2,$3,$4,$5)
+         on conflict (id) do nothing returning id`, [id, name, price, featured, sort]);
+      if (!made.rowCount) continue;
+      let n = 0;
+      for (const [types, limit, per] of lines)
+        await c.query(`insert into plan_allowances (plan_id, class_type_ids, limit_count, period, sort)
+                       values ($1,$2,$3,$4,$5)`, [id, types, limit, per, n++]);
+    }
+
+    const mkUser = async (role, name, email, phone, job) => {
       const r = await c.query(
-        `insert into users (role, name, email, phone, password_hash) values ($1,$2,$3,$4,$5)
-         on conflict (lower(email)) do update set name = excluded.name returning id`,
-        [role, name, email, phone, pw]);
+        `insert into users (role, job, name, email, phone, password_hash) values ($1,$2,$3,$4,$5,$6)
+         on conflict (lower(email)) do update set name = excluded.name, job = excluded.job returning id`,
+        [role, job || null, name, email, phone, pw]);
       return r.rows[0].id;
     };
 
     await mkUser('admin', 'Studio Admin', 'admin@dua-pilates.com', '069 710 4072');
 
     const instrIds = [];
-    for (const [name, email, phone, quals, avail] of INSTRUCTORS) {
-      const id = await mkUser('instructor', name, email, phone);
+    for (const [name, email, phone, job, quals, avail] of INSTRUCTORS) {
+      const id = await mkUser('instructor', name, email, phone, job);
       instrIds.push(id);
       await c.query('delete from instructor_qualifications where instructor_id = $1', [id]);
       for (const t of quals)

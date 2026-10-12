@@ -337,68 +337,38 @@ export async function cancelBooking(user, body) {
   });
 }
 
-/* Asking for a package, not buying one. Money changes hands at the studio,
-   and the studio turns the request active when it has. Until then this row
-   grants nothing: every rule reads 'active', so a request books no class. */
-export async function requestMembership(user, body) {
-  need(user, 'client');
-  const plan = await one('select id, name from plans where id=$1 and not archived', [body.planId]);
-  if (!plan) bad(404, 'No such package');
-  const now = new Date();
-  return tx(async c => {
-    const open = await c.query(
-      `select p.name from memberships m join plans p on p.id = m.plan_id
-        where m.client_id = $1 and m.status = 'requested'`, [user.id]);
-    if (open.rowCount) bad(409, 'You have already asked for ' + open.rows[0].name +
-      '. The studio will confirm it once you have paid.', 'pending');
+/* ---------- memberships ----------
+   A client pays at the desk and the studio links the package to her account
+   there and then. Nothing is asked for in the app and nothing waits in a
+   queue: the link is the confirmation, and the membership is active from
+   the moment it is saved. Whatever she held before is replaced, so she is
+   never on two at once. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-    /* The dates are provisional: the thirty days are counted from the day it
-       is confirmed, not from the day it was asked for. */
+export async function linkMembership(user, body) {
+  need(user, 'admin');
+  if (!body.clientId) bad(400, 'Pick a client first', 'client');
+  if (!body.planId) bad(400, 'Pick a package', 'plan');
+  const start = String(body.start || ''), end = String(body.end || '');
+  if (!ISO_DATE.test(start) || !ISO_DATE.test(end)) bad(400, 'Pick a start and an end date', 'dates');
+  if (end < start) bad(400, 'The membership has to end after it starts', 'dates');
+  if (end < iso(new Date())) bad(400, 'That membership would already be over', 'dates');
+
+  const client = await one(`select id, name from users where id = $1 and role = 'client' and active`, [body.clientId]);
+  if (!client) bad(404, 'No such client');
+  const plan = await one('select id, name from plans where id = $1 and not archived', [body.planId]);
+  if (!plan) bad(404, 'No such package');
+
+  return tx(async c => {
+    /* Locked so two people at the desk cannot link two at once. */
+    await c.query('select id from users where id = $1 for update', [client.id]);
+    await c.query(`update memberships set status = 'replaced' where client_id = $1 and status = 'active'`, [client.id]);
     const m = await c.query(
       `insert into memberships (client_id, plan_id, starts_on, ends_on, status)
-       values ($1,$2,$3,$4,'requested') returning id`,
-      [user.id, plan.id, iso(now), iso(addDays(now, 30))]);
-
-    const admins = await c.query(`select id from users where role='admin' and active`);
-    for (const a of admins.rows)
-      await notify(c, a.id, user.name + ' asked for ' + plan.name + ' — confirm it once she has paid', 'info');
-
+       values ($1,$2,$3,$4,'active') returning id`,
+      [client.id, plan.id, start, end]);
+    await notify(c, client.id, 'Your membership ' + plan.name + ' is active until ' + end + '.', 'good');
     return { ok: true, id: m.rows[0].id };
-  });
-}
-
-/* The studio's half of it: the client paid at the desk, so make it real.
-   The thirty days start now, and whatever she held before is replaced. */
-export async function confirmMembership(user, id) {
-  need(user, 'admin');
-  const now = new Date();
-  return tx(async c => {
-    const req = await c.query(
-      `select m.id, m.client_id, p.name from memberships m join plans p on p.id = m.plan_id
-        where m.id = $1 and m.status = 'requested' for update`, [id]);
-    if (!req.rowCount) bad(404, 'That request is not waiting any more');
-    const { client_id, name } = req.rows[0];
-
-    await c.query(`update memberships set status='replaced'
-                    where client_id=$1 and status='active'`, [client_id]);
-    await c.query(`update memberships set status='active', starts_on=$2, ends_on=$3 where id=$1`,
-                  [id, iso(now), iso(addDays(now, 30))]);
-    await notify(c, client_id, name + ' is active — thirty days from today. Your calendar is open.', 'good');
-    return { ok: true };
-  });
-}
-
-export async function declineMembership(user, id) {
-  need(user, 'admin');
-  return tx(async c => {
-    const req = await c.query(
-      `select m.client_id, p.name from memberships m join plans p on p.id = m.plan_id
-        where m.id = $1 and m.status = 'requested' for update`, [id]);
-    if (!req.rowCount) bad(404, 'That request is not waiting any more');
-    await c.query(`update memberships set status='cancelled' where id=$1`, [id]);
-    await notify(c, req.rows[0].client_id,
-      req.rows[0].name + ' was not confirmed. Ask at the studio and we will sort it out.', 'warn');
-    return { ok: true };
   });
 }
 
@@ -635,35 +605,52 @@ export async function archivePlan(user, id) {
   return { ok: true, stillOn: live.n };
 }
 
-export async function addInstructor(user, body) {
+/* Everyone on the staff side signs in as role 'instructor' — that is what
+   opens the staff dashboard — and `job` says which kind of employee they
+   are. Both kinds are placed on classes the same way: by what they are
+   qualified for, when they are free. */
+const JOBS = ['instructor', 'therapist'];
+
+export async function addEmployee(user, body) {
   need(user, 'admin');
   requireFields(body, ['name', 'email', 'phone', 'password']);
+  const job = JOBS.includes(body.job) ? body.job : bad(400, 'Pick what they do', 'job');
+  if (String(body.password).length < 8) bad(400, 'Password must be at least 8 characters', 'password');
+  const quals = Array.isArray(body.qualifications) ? body.qualifications : [];
+  if (!quals.length) bad(400, 'Pick at least one kind of class they can take', 'qualifications');
+  const types = (await many('select id from class_types')).map(r => r.id);
+  for (const t of quals) if (!types.includes(t)) bad(400, 'No such class type: ' + t, 'qualifications');
+
   const taken = await one('select 1 from users where lower(email)=lower($1)', [body.email]);
-  if (taken) bad(409, 'That email already has an account');
+  if (taken) bad(409, 'That email already has an account', 'email');
   const hash = await hashPassword(body.password);
   return tx(async c => {
     const id = (await c.query(
-      `insert into users (role, name, email, phone, password_hash) values ('instructor',$1,$2,$3,$4) returning id`,
-      [trim(body.name), trim(body.email), trim(body.phone), hash])).rows[0].id;
-    for (const t of body.qualifications || [])
+      `insert into users (role, job, name, email, phone, password_hash) values ('instructor',$1,$2,$3,$4,$5) returning id`,
+      [job, trim(body.name), trim(body.email), trim(body.phone), hash])).rows[0].id;
+    for (const t of quals)
       await c.query('insert into instructor_qualifications values ($1,$2) on conflict do nothing', [id, t]);
     const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const avail = body.availability || {};
-    for (const key of Object.keys(avail))
-      for (const b of avail[key] || [])
+    for (const key of Object.keys(avail)) {
+      if (!DAY_KEYS.includes(key)) continue;
+      for (const b of avail[key] || []) {
+        if (!b || !b.from || !b.to || b.from >= b.to) continue;
         await c.query(`insert into instructor_availability (instructor_id, weekday, starts, ends) values ($1,$2,$3,$4)`,
                       [id, DAY_KEYS.indexOf(key), b.from, b.to]);
+      }
+    }
     return { ok: true, id };
   });
 }
 
-/* Removing an instructor ends their access now and leaves their future
+/* Removing an employee ends their access now and leaves their future
    classes visibly unassigned rather than quietly wrong. */
-export async function removeInstructor(user, id) {
+export async function removeEmployee(user, id) {
   need(user, 'admin');
   return tx(async c => {
     const who = (await c.query(`update users set active=false where id=$1 and role='instructor' returning name`, [id])).rows[0];
-    if (!who) bad(404, 'No such instructor');
+    if (!who) bad(404, 'No such employee');
     await c.query('delete from auth_tokens where user_id=$1', [id]);
     const orphaned = (await c.query(
       `update classes set instructor_id = null
@@ -673,7 +660,7 @@ export async function removeInstructor(user, id) {
       const rows = (await c.query(`select client_id from bookings where class_id=$1 and status='booked'`, [k.id])).rows;
       for (const r of rows)
         await notify(c, r.client_id,
-          'Your ' + k.on_date + ' ' + hhmm(k.starts) + ' class needs a new instructor. Your place is safe.', 'warn');
+          'Your class on ' + k.on_date + ' at ' + hhmm(k.starts) + ' will be led by someone new. Your place is safe.', 'warn');
     }
     return { ok: true, orphaned: orphaned.length };
   });
@@ -693,7 +680,7 @@ export async function saveClass(user, body) {
   if (draft.instructorId) {
     const i = state.instructors.find(x => x.id === draft.instructorId);
     const fit = rules.instructorFit(state, i, draft);
-    if (fit.status !== 'recommended') bad(409, (i ? i.name : 'That instructor') + ' — ' + fit.why.toLowerCase(), fit.status);
+    if (fit.status !== 'recommended') bad(409, (i ? i.name : 'That employee') + ' — ' + fit.why, fit.status);
   }
 
   return tx(async c => {
@@ -717,7 +704,7 @@ export async function saveClass(user, body) {
           if (moved) await notify(c, r.client_id,
             'Your class moved to ' + draft.date + ', ' + draft.start + '–' + draft.end + '.', 'warn');
           if (swapped) await notify(c, r.client_id,
-            'Your ' + draft.start + ' class will now be taught by ' + (who ? who.name : 'another instructor') + '.', 'info');
+            'Your class on ' + draft.date + ' at ' + draft.start + ' will now be led by ' + (who ? who.name : 'someone new') + '.', 'info');
         }
       }
       return { ok: true, id: body.id };
@@ -739,7 +726,7 @@ export async function assignInstructor(user, classId, body) {
   if (body.instructorId) {
     const i = state.instructors.find(x => x.id === body.instructorId);
     const fit = rules.instructorFit(state, i, klass);
-    if (fit.status !== 'recommended') bad(409, (i ? i.name : 'That instructor') + ' — ' + fit.why.toLowerCase(), fit.status);
+    if (fit.status !== 'recommended') bad(409, (i ? i.name : 'That employee') + ' — ' + fit.why, fit.status);
   }
   return saveClass(user, {
     id: classId, typeId: klass.typeId, date: klass.date, start: klass.start,
@@ -775,6 +762,10 @@ export async function updateMembership(user, id, body) {
   need(user, 'admin');
   const m = await one('select * from memberships where id=$1', [id]);
   if (!m) bad(404, 'No such membership');
+  if (body.status && !['active', 'cancelled'].includes(body.status)) bad(400, 'A membership is active or cancelled', 'status');
+  if (body.end && !ISO_DATE.test(String(body.end))) bad(400, 'Pick a start and an end date', 'dates');
+  if (body.end && String(body.end) < String(m.starts_on)) bad(400, 'The membership has to end after it starts', 'dates');
+  if (body.planId && !(await one('select 1 from plans where id = $1', [body.planId]))) bad(404, 'No such package');
   return tx(async c => {
     if (body.status === 'active' && m.status !== 'active')
       await c.query(`update memberships set status='replaced' where client_id=$1 and status='active' and id<>$2`,

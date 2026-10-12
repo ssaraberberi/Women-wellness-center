@@ -1,42 +1,51 @@
-/* The studio's own side: dense, and built to answer "who is in the
-   16:00 and who can teach it" without leaving the page. */
-import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money, typeName, typeShort, range, niceDate, relDay, shortDate, startsAt, t, tw } from '../ui.js';
+/* The studio's own side: built to answer "who is in the 16:00 and who can
+   take it" without leaving the page — on a laptop at the desk or on a
+   phone in the studio. */
+import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money, typeName, typeShort,
+         range, niceDate, relDay, shortDate, dayMonth, t, tw, icon, datatable, jobLabel, touch } from '../ui.js';
 import * as store from '../store.js';
-import { iso, addDays, startOfWeek, minutes } from '../../../shared/domain.js';
-import { spots, suggestInstructors, instructorFit,
-         membershipOf, isExpired, planOf, balances } from '../../../shared/rules.js';
+import { iso, addDays, startOfWeek, minutes, WEEK_ORDER } from '../../../shared/domain.js';
+import { spots, suggestInstructors, instructorFit, membershipOf, isExpired, planOf, balances } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
 export function renderAdmin(ctx) {
   const { user, state, now, route } = ctx;
   const problems = state.issues || [];
   const nav = [
-    ['#/', 'Dashboard'],
-    ['#/schedule', 'Schedule'],
-    ['#/instructors', 'Instructors'],
-    ['#/packages', 'Packages'],
-    ['#/memberships', 'Memberships'],
-    ['#/clients', 'Clients'],
-    ['#/issues', 'Attention', problems.length || null]
+    ['#/', 'Dashboard', null, 'home'],
+    ['#/schedule', 'Schedule', null, 'calendar'],
+    ['#/clients', 'Clients', null, 'clients'],
+    ['#/memberships', 'Memberships', null, 'card'],
+    ['#/employees', 'Employees', null, 'staff'],
+    ['#/packages', 'Packages', null, 'tag'],
+    ['#/issues', 'Attention', problems.length || null, 'alert']
   ];
 
   let title = 'Dashboard', sub = '', body, actions = null;
+  const add = (label, fn) => [el('button.btn.btn--sm', { type: 'button', onclick: fn }, [icon('plus'), el('span', { text: label })])];
   if (route === 'schedule') {
     title = 'Schedule'; sub = 'Create, move and staff the timetable';
-    actions = [el('button.btn.btn--sm', { type: 'button', text: 'Add class', onclick: () => classEditor(ctx, null) })];
+    actions = add('Add class', () => classEditor(ctx, null));
     body = scheduleView(ctx);
-  } else if (route === 'instructors') {
-    title = 'Instructors';
-    actions = [el('button.btn.btn--sm', { type: 'button', text: 'Add instructor', onclick: () => instructorEditor(ctx) })];
-    body = instructorsView(ctx);
+  } else if (route === 'employees') {
+    title = 'Employees'; sub = 'Instructors and body therapists, and what each of them takes';
+    actions = add('Add employee', () => employeeEditor(ctx));
+    body = employeesView(ctx);
   } else if (route === 'packages') {
     title = 'Packages'; sub = 'What the studio sells, and what each one lets you book';
-    actions = [el('button.btn.btn--sm', { type: 'button', text: 'Add package', onclick: () => planEditor(ctx, null) })];
+    actions = add('Add package', () => planEditor(ctx, null));
     body = packagesView(ctx);
-  } else if (route === 'memberships') { title = 'Memberships'; body = membershipsView(ctx); }
-  else if (route === 'clients') { title = 'Clients'; body = clientsView(ctx); }
-  else if (route === 'issues') { title = 'Needs attention'; sub = 'Things that were valid when they were set, and are not now'; body = issuesView(ctx, problems); }
-  else { sub = relDay(iso(now), now); body = dashboard(ctx, problems); }
+  } else if (route === 'memberships') {
+    title = 'Memberships'; sub = 'Linked here once a client has paid at the studio';
+    actions = add('Link a membership', () => linkDialog(ctx, null));
+    body = membershipsView(ctx);
+  } else if (route === 'clients') {
+    title = 'Clients'; sub = t(state.clients.length === 1 ? '%s client' : '%s clients', state.clients.length);
+    body = clientsView(ctx);
+  } else if (route === 'issues') {
+    title = 'Needs attention'; sub = 'Things that were valid when they were set, and are not now';
+    body = issuesView(ctx, problems);
+  } else { sub = niceDate(iso(now)); body = dashboard(ctx, problems); }
 
   return shell({ user, route, nav, title, sub, actions, body, notices: state.notices });
 }
@@ -47,18 +56,18 @@ export function renderAdmin(ctx) {
 function mailTrouble(state) {
   const mail = state.mail;
   if (!mail) return null;
-  if (!mail.configured) return el('div.notice.notice--warn', { style: 'margin-top:18px' }, [
+  if (!mail.configured) return el('div.notice.notice--warn', { style: 'margin-top:16px' }, [
     el('span', { text: 'No reset links can be sent: the mail key is not set on the server. Clients who forget a password have to be reset at the desk.' })
   ]);
   if (!mail.last || mail.last.ok) return null;
-  return el('div.notice.notice--bad', { style: 'margin-top:18px;display:block' }, [
-    el('p', { style: 'font-weight:600', text: 'The last letter could not be sent' }),
+  return el('div.notice.notice--bad', { style: 'margin-top:16px;display:block' }, [
+    el('p', { style: 'font-weight:500', text: 'The last letter could not be sent' }),
     el('p', { style: 'margin-top:6px', text: t('Sending as %s. The provider answered: %s', mail.from, mail.last.problem || '') }),
     el('p', { style: 'margin-top:6px', text: 'Until this is fixed, nobody can get a password reset link. Reset at the desk in the meantime.' })
   ]);
 }
 
-const tile = (big, label, note) => el('div.tile', null, [
+const tile = (big, label, note, href) => el(href ? 'a.tile' : 'div.tile', href ? { href } : null, [
   el('b', { class: 'num', text: big }), el('span', { text: label }), note ? el('i', { text: note }) : null
 ]);
 
@@ -67,57 +76,61 @@ function dashboard(ctx, problems) {
   const { state, now } = ctx;
   const today = iso(now);
   const live = state.classes.filter(s => !s.cancelled);
-  const todays = live.filter(s => s.date === today).sort((a, b) => a.start.localeCompare(b.start));
+  const todays = state.classes.filter(s => s.date === today).sort((a, b) => a.start.localeCompare(b.start));
   const upcoming = live.filter(s => s.date > today && s.date <= iso(addDays(now, 7)));
   const activeMems = state.memberships.filter(m => m.status === 'active' && !isExpired(m, now));
-  const cancelled = state.bookings.filter(b => b.status === 'cancelled' || b.status === 'late').length;
-  const seatsToday = todays.reduce((a, s) => a + spots(state, s).taken, 0);
-  const capToday = todays.reduce((a, s) => a + s.capacity, 0);
+  const liveToday = todays.filter(s => !s.cancelled);
+  const seatsToday = liveToday.reduce((a, s) => a + spots(state, s).taken, 0);
+  const capToday = liveToday.reduce((a, s) => a + s.capacity, 0);
+  const noMembership = state.clients.filter(c => { const m = membershipOf(state, c.id); return !m || isExpired(m, now); }).length;
 
   return frag([
     el('div.tiles', null, [
-      tile(String(state.clients.length), 'Clients'),
-      tile(String(activeMems.length), 'Active memberships'),
-      tile(String(state.instructors.filter(i => i.active).length), 'Instructors'),
-      tile(String(todays.length), "Today's classes", t('%s of %s seats booked', seatsToday, capToday)),
-      tile(String(upcoming.length), 'Next 7 days'),
-      tile(String(cancelled), 'Cancelled bookings')
+      tile(String(liveToday.length), "Today's classes", capToday ? t('%s of %s seats booked', seatsToday, capToday) : null, '#/schedule'),
+      tile(String(upcoming.length), 'Next 7 days', null, '#/schedule'),
+      tile(String(activeMems.length), 'Active memberships', null, '#/memberships'),
+      tile(String(state.clients.length), 'Clients', noMembership ? t('%s without a membership', noMembership) : null, '#/clients'),
+      tile(String(state.instructors.filter(i => i.active).length), 'Employees', null, '#/employees'),
+      tile(String(problems.length), 'Needs attention', problems.length ? null : t('All in order'), '#/issues')
     ]),
     mailTrouble(state),
-    problems.length ? el('div', { class: 'notice notice--warn', style: 'margin-top:18px' }, [
+    problems.length ? el('div', { class: 'notice notice--warn', style: 'margin-top:16px' }, [
       el('span', { text: t(problems.length > 1 ? '%s classes need attention' : '%s class needs attention', problems.length) }),
-      el('a.linkish', { href: '#/issues', style: 'margin-left:auto', text: 'Review' })
+      el('a.linkish', { href: '#/issues', text: 'Review' })
     ]) : null,
-    el('h2.display', { style: 'font-size:1.25rem;margin:26px 0 12px', text: "Today's classes" }),
+    el('h2.section-title', { text: "Today's classes" }),
     todays.length
       ? el('div.grid', null, todays.map(s => adminSlot(ctx, s)))
-      : el('p.muted', { text: 'Nothing scheduled today.' })
+      : el('p.empty', { text: 'Nothing scheduled today.' })
   ]);
 }
 
 /* ---------- one admin class row ---------- */
 function adminSlot(ctx, s) {
-  const { state, now } = ctx;
+  const { state } = ctx;
   const cap = spots(state, s);
   const i = state.instructors.find(x => x.id === s.instructorId);
   const fit = i ? instructorFit(state, i, s) : null;
-  const bad = !i || (fit && fit.status !== 'recommended');
+  const bad = !s.cancelled && (!i || (fit && fit.status !== 'recommended'));
 
   return el('div', { class: 'slot slot--' + s.typeId + (s.cancelled ? ' slot--off' : '') }, [
     el('span.slot__time.num', { text: range(s) }),
-    el('span.slot__name', null, [dot(s.typeId), ' ', typeName(s.typeId)]),
-    el('button.slot__who.linkish', { type: 'button', style: 'text-align:left',
-      text: i ? i.name : 'Assign instructor', onclick: () => assignDialog(ctx, s) }),
-    bad ? chip(i ? fit.why : 'Unassigned', 'warn') : null,
+    el('span.slot__name', null, [dot(s.typeId), typeName(s.typeId)]),
     el('span.slot__cap.num', { text: cap.taken + ' / ' + cap.capacity }),
-    el('span.slot__act', null, el('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
+    s.cancelled
+      ? el('span.slot__who', { text: 'Cancelled' })
+      : el('button.slot__who', { type: 'button', text: i ? i.name : 'Assign someone', onclick: () => assignDialog(ctx, s) }),
+    el('span.slot__act', null, [
+      bad ? chip(i ? fit.why : 'Unassigned', 'warn') : null,
       el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Who booked', onclick: () => rosterDialog(ctx, s) }),
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => classEditor(ctx, s) })
-    ]))
+      s.cancelled ? null : el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => classEditor(ctx, s) })
+    ])
   ]);
 }
 
-/* ---------- schedule: day / week / month ---------- */
+/* ---------- schedule: day / week / month ----------
+   On a phone the week is the natural unit and the default; a day is a
+   list, and a month is four weeks of the same. */
 let schedMode = 'week';
 let schedAnchor = null;
 
@@ -125,47 +138,53 @@ function scheduleView(ctx) {
   const { state, now } = ctx;
   if (!schedAnchor) schedAnchor = iso(now);
   const anchor = new Date(schedAnchor + 'T00:00:00');
+  const step = schedMode === 'day' ? 1 : schedMode === 'week' ? 7 : 28;
+  const move = n => { schedAnchor = iso(addDays(anchor, n)); ctx.go(location.hash); };
 
-  const bar = el('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px' }, [
-    el('div.switchbar', null, ['day', 'week', 'month'].map(mode =>
-      el('button', { type: 'button', class: schedMode === mode ? 'is-on' : '', text: mode,
-        onclick: () => { schedMode = mode; ctx.go(location.hash); } }))),
-    el('div', { style: 'display:flex;gap:6px;margin-left:auto' }, [
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: '←', 'aria-label': 'Previous',
-        onclick: () => { schedAnchor = iso(addDays(anchor, schedMode === 'day' ? -1 : schedMode === 'week' ? -7 : -28)); ctx.go(location.hash); } }),
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Today',
-        onclick: () => { schedAnchor = iso(now); ctx.go(location.hash); } }),
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: '→', 'aria-label': 'Next',
-        onclick: () => { schedAnchor = iso(addDays(anchor, schedMode === 'day' ? 1 : schedMode === 'week' ? 7 : 28)); ctx.go(location.hash); } })
+  const from = schedMode === 'day' ? anchor : startOfWeek(anchor);
+  const label = schedMode === 'day' ? relDay(schedAnchor, now)
+    : t('%s – %s', shortDate(iso(from)), shortDate(iso(addDays(from, schedMode === 'week' ? 6 : 27))));
+
+  const bar = el('div.toolbar', null, [
+    el('div.switchbar', { role: 'group', 'aria-label': 'View' }, ['day', 'week', 'month'].map(mode =>
+      el('button', { type: 'button', class: schedMode === mode ? 'is-on' : null, 'aria-pressed': schedMode === mode ? 'true' : 'false',
+        text: tw(mode), onclick: () => { schedMode = mode; ctx.go(location.hash); } }))),
+    el('div.toolbar__nav', null, [
+      el('span.toolbar__label', { text: label }),
+      el('button.iconbtn', { type: 'button', 'aria-label': 'Previous', onclick: () => move(-step) }, icon('left')),
+      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Today', onclick: () => { schedAnchor = iso(now); ctx.go(location.hash); } }),
+      el('button.iconbtn', { type: 'button', 'aria-label': 'Next', onclick: () => move(step) }, icon('right'))
     ])
   ]);
 
   let grid;
   if (schedMode === 'day') {
     const list = state.classes.filter(s => s.date === schedAnchor).sort((a, b) => a.start.localeCompare(b.start));
-    grid = el('div.grid', null, list.length ? list.map(s => adminSlot(ctx, s))
-      : [el('p.muted', { text: t('Nothing on %s', niceDate(schedAnchor)) })]);
+    grid = list.length ? el('div.grid', null, list.map(s => adminSlot(ctx, s)))
+      : el('p.empty', { text: t('Nothing on %s', niceDate(schedAnchor)) });
   } else {
     const weeks = schedMode === 'week' ? 1 : 4;
-    const from = startOfWeek(anchor);
     grid = el('div.grid', { style: 'gap:10px' }, Array.from({ length: weeks }, (_, w) =>
       el('div.week', null, Array.from({ length: 7 }, (_, d) => {
         const date = iso(addDays(from, w * 7 + d));
         const list = state.classes.filter(s => s.date === date).sort((a, b) => a.start.localeCompare(b.start));
+        const [wd, n] = shortDate(date).split(' ');
         return el('div', { class: 'week__day' + (date === iso(now) ? ' is-today' : '') }, [
-          el('p.week__name', null, [shortDate(date).split(' ')[0], el('b', { text: shortDate(date).split(' ')[1] })]),
-          ...list.map(s => {
+          el('p.week__name', null, [wd, el('b', { text: n })]),
+          el('div.week__list', null, list.length ? list.map(s => {
             const cap = spots(state, s);
             const i = state.instructors.find(x => x.id === s.instructorId);
+            const fit = i ? instructorFit(state, i, s) : null;
+            const warn = !s.cancelled && (!i || fit.status !== 'recommended');
             return el('button', {
               type: 'button',
-              class: 'mini mini--' + s.typeId + (cap.full ? ' mini--full' : ''),
-              onclick: () => classEditor(ctx, s)
+              class: 'mini mini--' + s.typeId + (cap.full ? ' mini--full' : '') + (s.cancelled ? ' mini--off' : '') + (warn ? ' mini--warn' : ''),
+              onclick: () => s.cancelled ? rosterDialog(ctx, s) : classEditor(ctx, s)
             }, [
-              el('b', { text: s.start + ' ' + typeShort(s.typeId) }),
+              el('b', { text: s.start + ' · ' + typeShort(s.typeId) }),
               el('span', { text: (i ? i.name.split(' ')[0] : t('⚠ unassigned')) + ' · ' + cap.taken + '/' + cap.capacity })
             ]);
-          })
+          }) : [el('span.week__none', { text: '—' })])
         ]);
       }))));
   }
@@ -180,25 +199,23 @@ async function rosterDialog(ctx, s) {
 
   modal(typeName(s.typeId) + ' · ' + range(s), el('div', null, [
     el('p.muted', { text: niceDate(s.date) + ' · ' + t('%s of %s booked', booked.length, s.capacity) }),
-    el('div.tablewrap', { style: 'margin-top:14px' }, el('table', null, [
-      el('thead', null, el('tr', null, [el('th', { text: 'Client' }), el('th.right', { text: 'Status' })])),
-      el('tbody', null, booked.length
-        ? booked.map(r => el('tr', null, [
-            el('td', null, [el('div', { text: r.name }), el('div.muted', { style: 'font-size:12.5px', text: r.email })]),
-            el('td.right', null, chip('Booked', 'good'))]))
-        : [el('tr', null, el('td', { colspan: 2, class: 'muted', text: 'Nobody yet.' }))])
-    ])),
+    booked.length
+      ? el('div.sheetnav', { style: 'margin-top:10px' }, booked.map(r => el('div', { style: 'display:flex;align-items:center;gap:12px;min-height:56px;border-top:1px solid var(--line-soft)' }, [
+          el('div', { style: 'flex:1;min-width:0' }, [el('div', { text: r.name }), el('div.cell-sub', { text: r.email })]),
+          chip('Booked', 'good')
+        ])))
+      : el('p.empty', { text: 'Nobody yet.' }),
     waiting.length ? el('div', { style: 'margin-top:16px' }, [
       el('p.eyebrow', { text: 'Waitlist' }),
-      ...waiting.map(r => el('p', { style: 'font-size:14px', text: r.name }))
+      ...waiting.map(r => el('p', { style: 'font-size:15px;margin-top:8px', text: r.name }))
     ]) : null
-  ]), [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal })], { wide: true });
+  ]), [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal })]);
 }
 
-/* ---------- instructor assignment, with recommendations ---------- */
+/* ---------- who takes a class, with recommendations ---------- */
 function assignDialog(ctx, s) {
   const { state } = ctx;
-  const ranked = suggestInstructors(state, s);
+  const ranked = suggestInstructors(state, s).filter(r => r.instructor.active || r.instructor.id === s.instructorId);
   const tone = { recommended: 'good', clash: 'warn', unavailable: 'warn', unqualified: '', removed: 'bad' };
   const good = ranked.filter(r => r.status === 'recommended');
   const rest = ranked.filter(r => r.status !== 'recommended');
@@ -210,34 +227,31 @@ function assignDialog(ctx, s) {
       catch (ex) { closeModal(); toast(ex.message); }
     } }, [
       dot(s.typeId),
-      el('b', { text: r.instructor.name }),
-      el('small', { text: r.why }),
+      el('span.sugg__who', null, [el('b', { text: r.instructor.name }), el('small', { text: jobLabel(r.instructor.job) + ' · ' + t(r.why) })]),
       chip(r.status, tone[r.status])
     ])));
 
-  modal('Who teaches this class?', el('div', null, [
+  modal('Who leads this class?', el('div', null, [
     el('p.muted', { text: typeName(s.typeId) + ' · ' + niceDate(s.date) + ' · ' + range(s) }),
     el('p.eyebrow', { style: 'margin:18px 0 8px', text: 'Recommended' }),
     good.length ? list(good) : el('p.muted', { text: 'Nobody qualified is free at this time.' }),
-    rest.length ? frag([
-      el('p.eyebrow', { style: 'margin:18px 0 8px', text: 'Not available' }),
-      list(rest)
-    ]) : null,
-    s.instructorId ? el('button.linkish', { type: 'button', style: 'margin-top:16px', text: 'Remove instructor from this class',
-      onclick: async () => { try { await store.assignInstructor(s.id, null); closeModal(); toast('Instructor removed'); }
-                             catch (ex) { closeModal(); toast(ex.message); } } }) : null
-  ]), null, { wide: true });
+    rest.length ? frag([el('p.eyebrow', { style: 'margin:18px 0 8px', text: 'Not available' }), list(rest)]) : null
+  ]), s.instructorId ? [
+    el('button.linkish', { type: 'button', text: 'Take them off this class',
+      onclick: async () => { try { await store.assignInstructor(s.id, null); closeModal(); toast('Removed from the class'); }
+                             catch (ex) { closeModal(); toast(ex.message); } } })
+  ] : null, { wide: true });
 }
 
 /* ---------- class editor ---------- */
 function classEditor(ctx, s) {
   const { state, now } = ctx;
-  const CLASS_TYPES = state.classTypes;
   const editing = !!s;
-  const v = s || { typeId: 'reformer', date: iso(now), start: '18:00', end: '19:00', capacity: 10, instructorId: null };
+  const v = s || { typeId: (state.classTypes[0] || {}).id || 'reformer', date: iso(now), start: '18:00', end: '19:00', capacity: 10, instructorId: null };
   const err = el('p.notice.notice--bad', { hidden: true });
+  const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
 
-  const form = el('form', { onsubmit: async e => {
+  const form = el('form', { novalidate: true, onsubmit: async e => {
     e.preventDefault();
     err.hidden = true;
     const f = new FormData(form);
@@ -248,209 +262,221 @@ function classEditor(ctx, s) {
       capacity: Number(f.get('capacity')),
       instructorId: f.get('instructorId') || null
     };
+    if (!data.date || !data.start || !data.end) return fail('Fill in the date and both times');
+    if (!Number.isInteger(data.capacity) || data.capacity < 1) return fail('Capacity is at least one place');
     /* Checked here so the answer is instant, and again on the server,
        which is the one that counts. */
-    if (minutes(data.start) >= minutes(data.end)) { err.textContent = 'The class must end after it starts'; err.hidden = false; return; }
+    if (minutes(data.start) >= minutes(data.end)) return fail('The class must end after it starts');
     if (data.instructorId) {
       const i = state.instructors.find(x => x.id === data.instructorId);
       const fit = instructorFit(state, i, { ...data, id: s ? s.id : 'new', cancelled: false });
-      if (fit.status !== 'recommended') { err.textContent = t('%s — %s', i.name, t(fit.why).toLowerCase()); err.hidden = false; return; }
+      if (fit.status !== 'recommended') return fail(t('%s — %s', i.name, t(fit.why)));
     }
     const booked = s ? spots(state, s).taken : 0;
-    if (data.capacity < booked) { err.textContent = t('%s people are already booked; capacity cannot go below that', booked); err.hidden = false; return; }
+    if (data.capacity < booked) return fail(t('%s people are already booked; capacity cannot go below that', booked));
+    save.disabled = true;
     try { await store.saveClass(data); closeModal(); toast(editing ? 'Class updated' : 'Class added'); }
-    catch (ex) { err.textContent = t(ex.message); err.hidden = false; }
+    catch (ex) { save.disabled = false; fail(ex.message); }
   } }, [
-    field('Class', select('typeId', CLASS_TYPES.map(t => ({ value: t.id, label: t.name })), v.typeId)),
-    el('div.row', null, [
+    field('Class', select('typeId', state.classTypes.map(c => ({ value: c.id, label: c.name })), v.typeId)),
+    el('div.row.row--keep', null, [
       field('Date', input('date', { type: 'date', value: v.date, required: true })),
-      field('Capacity', input('capacity', { type: 'number', min: 1, max: 40, value: v.capacity, required: true }))
+      field('Places', input('capacity', { type: 'number', inputmode: 'numeric', min: 1, max: 40, value: v.capacity, required: true }))
     ]),
-    el('div.row', null, [
+    el('div.row.row--keep', null, [
       field('Starts', input('start', { type: 'time', value: v.start, required: true })),
       field('Ends', input('end', { type: 'time', value: v.end, required: true }))
     ]),
-    field('Instructor', select('instructorId',
+    field('Led by', select('instructorId',
       [{ value: '', label: 'Decide later' }].concat(
-        state.instructors.filter(i => i.active).map(i => ({ value: i.id, label: i.name }))), v.instructorId || ''),
+        state.instructors.filter(i => i.active).map(i => ({ value: i.id, label: i.name + ' · ' + jobLabel(i.job) }))), v.instructorId || ''),
       'Checked against qualifications, availability and clashes when you save.'),
     err
   ]);
 
+  const save = el('button.btn', { type: 'button', text: editing ? 'Save changes' : 'Add class', onclick: () => form.requestSubmit() });
   const foot = [
-    editing ? el('button.linkish', { type: 'button', style: 'margin-right:auto', text: 'Cancel this class',
-      onclick: async () => {
-        try {
-          const r = await store.cancelClass(s.id);
-          closeModal();
-          toast(r.affected ? t(r.affected > 1 ? 'Class cancelled — %s clients notified and refunded' : 'Class cancelled — %s client notified and refunded', r.affected)
-                           : 'Class cancelled');
-        } catch (ex) { closeModal(); toast(ex.message); }
-      } }) : null,
+    editing ? el('button.linkish', { type: 'button', text: 'Cancel this class', onclick: () => cancelDialog(ctx, s) }) : null,
     el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: editing ? 'Save changes' : 'Add class',
-      onclick: () => form.requestSubmit() })
+    save
   ];
-
   modal(editing ? 'Edit class' : 'Add a class', form, foot);
 }
 
-/* ---------- instructors ---------- */
-function instructorsView(ctx) {
-  const { state, now } = ctx;
-  const today = iso(now);
-  return el('div.tablewrap', null, el('table', null, [
-    el('thead', null, el('tr', null, [
-      el('th', { text: 'Instructor' }), el('th', { text: 'Teaches' }), el('th', { text: 'Available' }),
-      el('th.right', { text: 'Upcoming' }), el('th.right', { text: '' })
-    ])),
-    el('tbody', null, state.instructors.map(i => {
-      const upcoming = state.classes.filter(s => s.instructorId === i.id && !s.cancelled && s.date >= today).length;
-      const days = ['mon','tue','wed','thu','fri','sat','sun'].filter(d => (i.availability[d] || []).length);
-      return el('tr', null, [
-        el('td', null, [
-          el('div', { text: i.name }),
-          el('div.muted', { style: 'font-size:12.5px', text: i.email + ' · ' + i.phone })
-        ]),
-        el('td', null, el('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' },
-          i.qualifications.map(q => chip(typeShort(q))))),
-        el('td.muted', { style: 'font-size:13px',
-          text: days.length ? days.map(d => t(d)).join(', ') : t('none set') }),
-        el('td.right.num', { text: String(upcoming) }),
-        el('td.right', null, i.active
-          ? el('div.rowend', null, [
-              el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password',
-                onclick: () => resetFor(ctx, i) }),
-              el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove',
-                onclick: () => removeDialog(ctx, i, upcoming) })
-            ])
-          : chip('Removed', 'bad'))
-      ]);
-    }))
-  ]));
-}
-
-function removeDialog(ctx, i, upcoming) {
-  modal(t('Remove %s?', i.name), el('div', null, [
-    el('p', { text: 'They lose access to the instructor dashboard straight away.' }),
-    upcoming ? el('div', { class: 'notice notice--warn', style: 'margin-top:14px',
-      text: t(upcoming > 1 ? '%s upcoming classes will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.' : '%s upcoming class will be left unassigned. Bookings are kept, and those clients are told a new instructor is coming.', upcoming) }) : null
+/* Cancelling tells every client on it, so it is asked twice. */
+function cancelDialog(ctx, s) {
+  const booked = spots(ctx.state, s).taken;
+  modal('Cancel this class?', el('div', null, [
+    el('p', { text: typeName(s.typeId) + ' · ' + niceDate(s.date) + ' · ' + range(s) }),
+    el('div.notice.notice--warn', { style: 'margin-top:14px',
+      text: booked ? t(booked > 1 ? '%s clients are booked. They are told, and the class goes back on their balance.'
+                                  : '%s client is booked. She is told, and the class goes back on her balance.', booked)
+                   : 'Nobody is booked yet.' })
   ]), [
-    el('button.btn.btn--ghost', { type: 'button', text: 'Keep', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: 'Remove instructor', onclick: async ev => {
+    el('button.btn.btn--ghost', { type: 'button', text: 'Keep it', onclick: closeModal }),
+    el('button.btn', { type: 'button', text: 'Cancel class', onclick: async ev => {
       ev.currentTarget.disabled = true;
       try {
-        const r = await store.removeInstructor(i.id);
+        const r = await store.cancelClass(s.id);
         closeModal();
-        toast(r.orphaned ? t(r.orphaned > 1 ? 'Removed — %s classes now need an instructor' : 'Removed — %s class now needs an instructor', r.orphaned) : t('Removed'));
+        toast(r.affected ? t(r.affected > 1 ? 'Class cancelled — %s clients notified and refunded' : 'Class cancelled — %s client notified and refunded', r.affected)
+                         : 'Class cancelled');
       } catch (ex) { closeModal(); toast(ex.message); }
     } })
   ]);
 }
 
-function instructorEditor(ctx) {
-  const CLASS_TYPES = ctx.state.classTypes;
-  const err = el('p.notice.notice--bad', { hidden: true });
-  const quals = el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, CLASS_TYPES.map(t =>
-    el('label', { style: 'display:flex;align-items:center;gap:7px;font-size:14px' }, [
-      el('input', { type: 'checkbox', name: 'q', value: t.id, style: 'width:auto' }), t.short ])));
+/* ---------- employees ---------- */
+function employeesView(ctx) {
+  const { state, now } = ctx;
+  const today = iso(now);
+  const people = state.instructors.slice().sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
+  return datatable([
+    { label: 'Employee' }, { label: 'Role' }, { label: 'Takes' }, { label: 'Works' },
+    { label: 'Upcoming', cls: 'right' }, { label: '', cls: 'right' }
+  ], people.map(i => {
+    const upcoming = state.classes.filter(s => s.instructorId === i.id && !s.cancelled && s.date >= today).length;
+    const days = WEEK_ORDER.filter(d => (i.availability[d] || []).length);
+    return [
+      [el('div', { text: i.name }), el('div.cell-sub', { text: [i.email, i.phone].filter(Boolean).join(' · ') })],
+      jobLabel(i.job),
+      el('div.chips', null, i.qualifications.length ? i.qualifications.map(q => chip(typeShort(q))) : [el('span.muted', { text: '—' })]),
+      el('span.small.muted', { text: days.length ? days.map(d => t(d)).join(', ') : t('none set') }),
+      el('span.num', { text: String(upcoming) }),
+      i.active
+        ? el('div.rowend', null, [
+            el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password', onclick: () => resetFor(ctx, i) }),
+            el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove', onclick: () => removeDialog(ctx, i, upcoming) })
+          ])
+        : chip('Removed', 'bad')
+    ];
+  }), 'No employees yet. Add the first one and they can sign in straight away.');
+}
 
-  const form = el('form', { onsubmit: async e => {
+function removeDialog(ctx, i, upcoming) {
+  modal(t('Remove %s?', i.name), el('div', null, [
+    el('p', { text: 'They lose access to the staff dashboard straight away.' }),
+    upcoming ? el('div', { class: 'notice notice--warn', style: 'margin-top:14px',
+      text: t(upcoming > 1 ? '%s upcoming classes will be left unassigned. Bookings are kept, and those clients are told someone new will lead it.'
+                           : '%s upcoming class will be left unassigned. Bookings are kept, and those clients are told someone new will lead it.', upcoming) }) : null
+  ]), [
+    el('button.btn.btn--ghost', { type: 'button', text: 'Keep', onclick: closeModal }),
+    el('button.btn', { type: 'button', text: 'Remove employee', onclick: async ev => {
+      ev.currentTarget.disabled = true;
+      try {
+        const r = await store.removeEmployee(i.id);
+        closeModal();
+        toast(r.orphaned ? t(r.orphaned > 1 ? 'Removed — %s classes now need someone' : 'Removed — %s class now needs someone', r.orphaned) : t('Removed'));
+      } catch (ex) { closeModal(); toast(ex.message); }
+    } })
+  ]);
+}
+
+/* What they do decides what they are qualified for to begin with — an
+   instructor the reformer, a therapist the treatments — and the boxes can
+   be changed before saving. */
+function employeeEditor(ctx) {
+  const types = ctx.state.classTypes;
+  const DEFAULTS = { instructor: ['reformer'], therapist: ['spa'] };
+  const err = el('p.notice.notice--bad', { hidden: true });
+  const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
+
+  const quals = el('div.boxes', null, types.map(c =>
+    el('label', null, [el('input', { type: 'checkbox', name: 'q', value: c.id, checked: DEFAULTS.instructor.includes(c.id) }), el('span', { text: c.name })])));
+  const pickJob = job => quals.querySelectorAll('input').forEach(b => { b.checked = (DEFAULTS[job] || []).includes(b.value); });
+
+  const jobs = el('div.segments', { role: 'radiogroup', 'aria-label': 'Role' }, ['instructor', 'therapist'].map(job =>
+    el('label', null, [
+      el('input', { type: 'radio', name: 'job', value: job, checked: job === 'instructor', onchange: () => pickJob(job) }),
+      el('span', { text: jobLabel(job) })
+    ])));
+
+  const form = el('form', { novalidate: true, onsubmit: async e => {
     e.preventDefault();
     err.hidden = true;
     const f = new FormData(form);
+    const name = String(f.get('name') || '').trim(), email = String(f.get('email') || '').trim();
+    const phone = String(f.get('phone') || '').trim(), password = String(f.get('password') || '');
+    if (!name || !email || !phone) return fail('Fill in the name, email and phone');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('That email does not look right');
+    if (password.length < 8) return fail('Password must be at least 8 characters');
     const qualifications = f.getAll('q');
-    if (!qualifications.length) { err.textContent = 'Pick at least one class they can teach'; err.hidden = false; return; }
+    if (!qualifications.length) return fail('Pick at least one kind of class they can take');
     const from = f.get('from'), to = f.get('to');
+    if (!from || !to || minutes(from) >= minutes(to)) return fail('Start must be before end');
     const availability = {};
-    ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => { availability[d] = f.getAll('day').includes(d) ? [{ from, to }] : []; });
+    WEEK_ORDER.forEach(d => { availability[d] = f.getAll('day').includes(d) ? [{ from, to }] : []; });
+    save.disabled = true;
     try {
-      await store.addInstructor({
-        name: f.get('name'), email: f.get('email'), phone: f.get('phone'),
-        password: f.get('password'), qualifications, availability
-      });
+      await store.addEmployee({ name, email, phone, password, job: f.get('job'), qualifications, availability });
       closeModal();
-      toast('Instructor added — they can sign in now');
-    } catch (ex) { err.textContent = t(ex.message); err.hidden = false; }
+      toast('Employee added — they can sign in now');
+    } catch (ex) { save.disabled = false; fail(ex.message); }
   } }, [
-    field('Full name', input('name', { required: true })),
+    el('label.field', null, [el('span', { text: 'Role' }), jobs]),
+    field('Full name', input('name', { required: true, autocomplete: 'off', autocapitalize: 'words' })),
     el('div.row', null, [
-      field('Email', input('email', { type: 'email', required: true })),
-      field('Phone', input('phone', { type: 'tel', required: true }))
+      field('Email', input('email', { type: 'email', required: true, inputmode: 'email', autocapitalize: 'off' })),
+      field('Phone', input('phone', { type: 'tel', required: true, inputmode: 'tel' }))
     ]),
-    field('Temporary password', input('password', { value: 'dua1234', required: true }), 'They can change it later.'),
-    el('label.field', null, [el('span', { text: 'Qualified to teach' }), quals]),
-    el('label.field', null, [el('span', { text: 'Working days' }),
-      el('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, ['mon','tue','wed','thu','fri','sat','sun'].map(d =>
-        el('label', { style: 'display:flex;align-items:center;gap:6px;font-size:14px' }, [
-          el('input', { type: 'checkbox', name: 'day', value: d, checked: d !== 'sat' && d !== 'sun', style: 'width:auto' }),
-          d ])))]),
-    el('div.row', null, [
+    field('Temporary password', input('password', { required: true, minlength: 8, autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
+      'At least eight characters. Give it to them in person; they can change it later.'),
+    el('div.field', null, [el('span', { text: 'Can take' }), quals]),
+    el('div.field', null, [el('span', { text: 'Working days' }),
+      el('div.boxes', null, WEEK_ORDER.map(d =>
+        el('label', null, [el('input', { type: 'checkbox', name: 'day', value: d, checked: d !== 'sat' && d !== 'sun' }), el('span', { text: t(d) })])))]),
+    el('div.row.row--keep', null, [
       field('Available from', input('from', { type: 'time', value: '09:00', required: true })),
       field('Until', input('to', { type: 'time', value: '18:00', required: true }))
     ]),
     err
   ]);
 
-  modal('Add an instructor', form, [
-    el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: 'Add instructor', onclick: () => form.requestSubmit() })
-  ]);
+  const save = el('button.btn', { type: 'button', text: 'Add employee', onclick: () => form.requestSubmit() });
+  modal('Add an employee', form, [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save]);
 }
 
 /* ---------- packages ---------- */
 function packagesView(ctx) {
-  const { state } = ctx;
+  const { state, now } = ctx;
   const plans = state.plans || [];
 
   /* The switch the website reads. Off is the safe side and the side it
      starts on, so prices stay in until someone here says otherwise. */
-  const on = !!state.showPrices;
-  const box = el('input', { type: 'checkbox', checked: on, onchange: async e => {
+  const box = el('input', { type: 'checkbox', checked: !!state.showPrices, onchange: async e => {
     const want = e.target.checked;
+    e.target.disabled = true;
     try {
       await store.setShowPrices(want);
       toast(want ? 'Prices are on the website now' : 'Prices are hidden on the website');
-    } catch (ex) { e.target.checked = !want; toast(ex.message); }
+    } catch (ex) { e.target.checked = !want; e.target.disabled = false; toast(ex.message); }
   } });
   const toggle = el('div.pricesw', null, [
     el('label.check', null, [box, el('span', { text: 'Show prices to clients' })]),
-    el('p.muted', { style: 'font-size:13px;margin-top:4px',
-      text: 'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.' })
+    el('p.muted', { text: 'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.' })
   ]);
-
-  if (!plans.length)
-    return el('div', null, [toggle, el('p.muted', { text: 'No packages yet. Add one and it appears to clients straight away.' })]);
 
   const line = a => a.limit == null
     ? t('Unlimited %s per %s', a.types.map(typeName).join(t(' or ')), tw(a.per))
     : t('%s × %s per %s', a.limit, a.types.map(typeName).join(t(' or ')), tw(a.per));
 
-  return el('div', null, [toggle, el('div.tablewrap', null, el('table', null, [
-    el('thead', null, el('tr', null, [
-      el('th', { text: 'Package' }), el('th.num', { text: 'Price' }),
-      el('th', { text: 'What it allows' }), el('th', { text: 'On it now' }),
-      el('th.right', { text: '' })
-    ])),
-    el('tbody', null, plans.map(p => {
-      const on = (state.memberships || []).filter(m => m.planId === p.id && m.status === 'active').length;
-      return el('tr', null, [
-        el('td', null, [
-          el('b', { text: p.name }),
-          p.featured ? chip('Most popular', 'good') : null,
-          p.blurb ? el('div.muted', { style: 'font-size:13px;margin-top:3px', text: p.blurb }) : null
-        ]),
-        el('td.num', { text: money(p.price) }),
-        el('td.muted', { style: 'font-size:13px', text: p.allowances.map(line).join(' · ') }),
-        el('td.num', { text: String(on) }),
-        el('td.right', null, el('div.rowend', null, [
-          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => planEditor(ctx, p) }),
-          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Retire',
-            onclick: () => retirePlan(ctx, p, on) })
-        ]))
-      ]);
-    }))
-  ]))]);
+  return el('div', null, [toggle, datatable([
+    { label: 'Package' }, { label: 'Price', cls: 'right' }, { label: 'What it allows' },
+    { label: 'On it now', cls: 'right' }, { label: '', cls: 'right' }
+  ], plans.map(p => {
+    const on = (state.memberships || []).filter(m => m.planId === p.id && m.status === 'active' && !isExpired(m, now)).length;
+    return [
+      [el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [el('b', { text: p.name }), p.featured ? chip('Most popular', 'good') : null]),
+       p.blurb ? el('div.cell-sub', { text: p.blurb }) : null],
+      el('span.num', { text: money(p.price) }),
+      el('span.small.muted', { text: p.allowances.map(line).join(' · ') }),
+      el('span.num', { text: String(on) }),
+      el('div.rowend', null, [
+        el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => planEditor(ctx, p) }),
+        el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Retire', onclick: () => retirePlan(ctx, p, on) })
+      ])
+    ];
+  }), 'No packages yet. Add one and it appears to clients straight away.')]);
 }
 
 /* Add and edit are one form: the only difference is whether it starts with
@@ -462,20 +488,15 @@ function planEditor(ctx, plan) {
   function addRow(a) {
     const picked = a ? a.types : (types[0] ? [types[0].id] : []);
     const row = el('div.allow__row', null, [
-      el('div.allow__types', null, types.map(t => {
-        const id = 'ty' + Math.random().toString(36).slice(2);
-        return el('label.allow__type', { for: id }, [
-          el('input', { type: 'checkbox', id, value: t.id, checked: picked.includes(t.id) }),
-          el('span', { text: t.name })
-        ]);
-      })),
+      el('div.allow__types', null, types.map(c => el('label.allow__type', null, [
+        el('input', { type: 'checkbox', value: c.id, checked: picked.includes(c.id) }),
+        el('span', { text: c.name })
+      ]))),
       field('Classes', input('limit', {
-        type: 'number', min: '1', step: '1', placeholder: 'no limit',
+        type: 'number', inputmode: 'numeric', min: '1', step: '1', placeholder: 'no limit',
         value: a && a.limit != null ? String(a.limit) : ''
       })),
-      field('Per', select('per', [
-        { value: 'month', label: 'month' }, { value: 'week', label: 'week' }
-      ], a ? a.per : 'month')),
+      field('Per', select('per', [{ value: 'month', label: tw('month') }, { value: 'week', label: tw('week') }], a ? a.per : 'month')),
       el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove',
         onclick: () => { row.remove(); if (!rows.children.length) addRow(null); } })
     ]);
@@ -483,19 +504,26 @@ function planEditor(ctx, plan) {
   }
   (plan && plan.allowances.length ? plan.allowances : [null]).forEach(addRow);
 
-  const err = el('p.err', { hidden: true });
-  const form = el('form', { onsubmit: async e => {
+  const err = el('p.notice.notice--bad', { hidden: true });
+  const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
+  const form = el('form', { novalidate: true, onsubmit: async e => {
     e.preventDefault();
+    err.hidden = true;
     const f = new FormData(form);
+    if (!String(f.get('name') || '').trim()) return fail('Give the package a name');
+    const price = String(f.get('price') || '');
+    if (!/^\d+$/.test(price)) return fail('Price must be a whole number of lek');
     const allowances = [...rows.children].map(row => ({
       types: [...row.querySelectorAll('.allow__types input:checked')].map(i => i.value),
       limit: row.querySelector('[name=limit]').value,
       per: row.querySelector('[name=per]').value
     }));
+    if (allowances.some(a => !a.types.length)) return fail('Every line needs at least one class type');
+    save.disabled = true;
     try {
       await store.savePlan({
         id: plan ? plan.id : '',
-        name: f.get('name'), price: f.get('price'), blurb: f.get('blurb'),
+        name: f.get('name'), price, blurb: f.get('blurb'),
         tagline: f.get('tagline'), rhythm: f.get('rhythm'),
         taglineEn: f.get('taglineEn'), rhythmEn: f.get('rhythmEn'), blurbEn: f.get('blurbEn'),
         sort: f.get('sort'), featured: form.querySelector('[name=featured]').checked,
@@ -503,46 +531,46 @@ function planEditor(ctx, plan) {
       });
       closeModal();
       toast(plan ? 'Package updated' : 'Package added — clients see it now');
-    } catch (ex) { err.hidden = false; err.textContent = t(ex.message); }
+    } catch (ex) { save.disabled = false; fail(ex.message); }
   } }, [
-    field('Name', input('name', { value: plan ? plan.name : '', required: true, maxlength: '60' })),
-    el('div.row', null, [
-      field('Price', input('price', { type: 'number', min: '0', step: '1', required: true,
+    field('Name', input('name', { value: plan ? plan.name : '', required: true, maxlength: '60', autocapitalize: 'characters' })),
+    el('div.row.row--keep', null, [
+      field('Price', input('price', { type: 'number', inputmode: 'numeric', min: '0', step: '1', required: true,
         value: plan ? String(plan.price) : '' }), 'In lek, whole numbers'),
-      field('Order', input('sort', { type: 'number', step: '1', value: plan ? '' : '', placeholder: '0' }),
+      field('Order', input('sort', { type: 'number', inputmode: 'numeric', step: '1', value: plan && plan.sort ? String(plan.sort) : '', placeholder: '0' }),
         'Lowest first')
     ]),
-    el('p.eyebrow', { style: 'margin-top:22px', text: 'How it reads on the website' }),
+    el('label.check', null, [
+      el('input', { type: 'checkbox', name: 'featured', checked: !!(plan && plan.featured) }),
+      el('span', { text: 'Show as the most popular package' })
+    ]),
+    el('p.eyebrow.formsection', { text: 'What it allows' }),
+    rows,
+    el('button.btn.btn--ghost.btn--sm', { type: 'button', onclick: () => addRow(null) }, [icon('plus'), el('span', { text: 'Add a line' })]),
+    el('p.eyebrow.formsection', { text: 'How it reads on the website' }),
     field('Headline', input('tagline', { value: plan && plan.tagline ? plan.tagline : '', maxlength: '60' }),
       'The short line under the name — "The sweet spot"'),
     field('Rhythm', input('rhythm', { value: plan && plan.rhythm ? plan.rhythm : '', maxlength: '60' }),
       'How often it works out at — "Around 2x per week"'),
     field('Line underneath', input('blurb', { value: plan && plan.blurb ? plan.blurb : '', maxlength: '120' }),
       'The sentence at the foot of the card'),
-
     /* Optional, and the site falls back to what is above when one is left
        blank — so a studio that writes in Albanian only writes once. */
-    el('details.en', { style: 'margin-top:14px' }, [
-      el('summary', { style: 'cursor:pointer', text: 'In English (optional)' }),
-      el('div', { style: 'margin-top:12px' }, [
+    el('details.en', null, [
+      el('summary', { text: 'In English (optional)' }),
+      el('div', { style: 'margin-top:8px' }, [
         field('Headline', input('taglineEn', { value: plan && plan.en && plan.en.tagline ? plan.en.tagline : '', maxlength: '60' })),
         field('Rhythm', input('rhythmEn', { value: plan && plan.en && plan.en.rhythm ? plan.en.rhythm : '', maxlength: '60' })),
         field('Line underneath', input('blurbEn', { value: plan && plan.en && plan.en.blurb ? plan.en.blurb : '', maxlength: '120' })),
-        el('p.muted', { style: 'font-size:.85rem', text: 'Left blank, the website shows the text above in both languages.' })
+        el('p.muted.small', { text: 'Left blank, the website shows the text above in both languages.' })
       ])
     ]),
-    el('label.check', null, [
-      el('input', { type: 'checkbox', name: 'featured', checked: !!(plan && plan.featured) }),
-      el('span', { text: 'Show as the most popular package' })
-    ]),
-    el('p.eyebrow', { style: 'margin-top:22px', text: 'What it allows' }),
-    rows,
-    el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Add a line', onclick: () => addRow(null) }),
     err
   ]);
 
+  const save = el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() });
   modal(plan ? t('Edit %s', plan.name) : t('New package'), form,
-    el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() }));
+    [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save], { wide: true });
 }
 
 function retirePlan(ctx, plan, on) {
@@ -551,196 +579,299 @@ function retirePlan(ctx, plan, on) {
       ? t(on === 1 ? '%s client is on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.'
                    : '%s clients are on %s right now. They keep it until it runs out — retiring only stops anyone new from buying it.', on, plan.name)
       : t('No one is on %s. It stops being offered.', plan.name) }),
-    el('p.muted', { style: 'font-size:13px;margin-top:10px',
-      text: 'Nothing is deleted. The package stays on every membership that already names it.' })
+    el('p.muted.small', { style: 'margin-top:10px', text: 'Nothing is deleted. The package stays on every membership that already names it.' })
   ]);
-  modal('Retire ' + plan.name, body, el('button.btn', { type: 'button', text: 'Retire it', onclick: async () => {
-    try { await store.archivePlan(plan.id); closeModal(); toast(t('%s retired', plan.name)); }
-    catch (ex) { closeModal(); toast(ex.message); }
-  } }));
+  modal(t('Retire %s', plan.name), body, [
+    el('button.btn.btn--ghost', { type: 'button', text: 'Keep', onclick: closeModal }),
+    el('button.btn', { type: 'button', text: 'Retire it', onclick: async ev => {
+      ev.currentTarget.disabled = true;
+      try { await store.archivePlan(plan.id); closeModal(); toast(t('%s retired', plan.name)); }
+      catch (ex) { closeModal(); toast(ex.message); }
+    } })
+  ]);
 }
 
 /* ---------- memberships ---------- */
-function membershipsView(ctx) {
-  const { state, now } = ctx;
-  const waiting = state.memberships.filter(m => m.status === 'requested');
-
-  /* The queue first, because it is the only part with something to do in it,
-     and because the one rule that matters is easy to get wrong in a hurry. */
-  const queue = el('div.queue', null, [
-    el('p.queue__title', { text: waiting.length
-      ? waiting.length + (waiting.length === 1 ? ' client is waiting' : ' clients are waiting')
-      : 'Nobody is waiting' }),
-    el('p.muted', { style: 'font-size:13px',
-      text: 'A client applies in the app and pays here at the studio. Confirm it only once she has paid — '
-          + 'confirming is what makes it active, for thirty days from that day. Until then she cannot book.' }),
-    waiting.length ? el('div.queue__list', null, waiting.map(m => {
-      const c = state.clients.find(x => x.id === m.clientId);
-      const plan = planOf(state, m.planId);
-      return el('div.queue__row', null, [
-        el('div', null, [
-          el('b', { text: c ? c.name : 'Unknown client' }),
-          el('div.muted', { style: 'font-size:13px',
-            text: (plan ? plan.name : m.planId) + ' · ' + t('asked %s', shortDate(m.start)) })
-        ]),
-        el('div.rowend', null, [
-          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Not paid',
-            onclick: () => decideMembership(ctx, m, c, plan, false) }),
-          el('button.btn.btn--sm', { type: 'button', text: 'Paid — confirm',
-            onclick: () => decideMembership(ctx, m, c, plan, true) })
-        ])
-      ]);
-    })) : null
-  ]);
-
-  return el('div', null, [queue, el('div.tablewrap', null, el('table', null, [
-    el('thead', null, el('tr', null, [
-      el('th', { text: 'Client' }), el('th', { text: 'Plan' }), el('th', { text: 'Usage this month' }),
-      el('th', { text: 'Expires' }), el('th.right', { text: 'Status' }), el('th.right', { text: '' })
-    ])),
-    el('tbody', null, state.memberships.map(m => {
-      const c = state.clients.find(x => x.id === m.clientId);
-      const plan = planOf(state, m.planId);
-      const rows = c ? balances(state, c.id, now) : [];
-      const expired = isExpired(m, now);
-      return el('tr', null, [
-        el('td', { text: c ? c.name : '—' }),
-        el('td', { text: plan ? plan.name : m.planId }),
-        el('td.muted', { style: 'font-size:13px', text: rows.map(b =>
-          b.label + ': ' + (b.unlimited ? '∞' : b.used + '/' + b.allowance.limit)).join(' · ') || '—' }),
-        el('td.num', { text: shortDate(m.end) }),
-        el('td.right', null, m.status === 'requested'
-          ? chip('Waiting to be paid', 'warn')
-          : chip(m.status === 'active' && !expired ? 'Active' : m.status === 'active' ? 'Expired' : m.status,
-                 m.status === 'active' && !expired ? 'good' : 'warn')),
-        el('td.right', null, el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Adjust',
-          onclick: () => membershipEditor(ctx, m, c) }))
-      ]);
-    }))
-  ]))]);
+function statusChip(m, now) {
+  if (m.status === 'active' && !isExpired(m, now)) return chip('Active', 'good');
+  if (m.status === 'active') return chip('Expired', 'warn');
+  return chip(m.status, m.status === 'cancelled' ? 'bad' : '');
 }
 
-function decideMembership(ctx, m, c, plan, paid) {
-  const who = c ? c.name : 'this client';
-  const what = plan ? plan.name : 'the package';
-  const body = el('div', null, [
-    el('p', { text: paid
-      ? t('%s has paid for %s at the studio. Confirming makes it active for thirty days from today, and opens her calendar straight away.', who, what)
-      : t('%s has not paid for %s. The application is closed and she is told to ask at the studio. She can apply again afterwards.', who, what) }),
-    paid ? el('p.muted', { style: 'font-size:13px;margin-top:10px',
-      text: 'Do not confirm before the money is in. This is the only step that checks it.' }) : null
+function membershipsView(ctx) {
+  const { state, now } = ctx;
+  /* The live ones first, soonest to run out at the top: that is the list
+     somebody at the desk is working through. History underneath. */
+  const live = state.memberships.filter(m => m.status === 'active')
+    .sort((a, b) => a.end.localeCompare(b.end));
+  const past = state.memberships.filter(m => m.status !== 'active' && m.status !== 'requested');
+
+  const rowsFor = list => list.map(m => {
+    const c = state.clients.find(x => x.id === m.clientId);
+    const plan = planOf(state, m.planId);
+    const use = c && m.status === 'active' && !isExpired(m, now) ? balances(state, c.id, now) : [];
+    return [
+      [el('div', { text: c ? c.name : t('Unknown client') }), c ? el('div.cell-sub', { text: c.phone || c.email }) : null],
+      plan ? plan.name : m.planId,
+      el('span.small.muted', { text: use.map(b => b.label + ': ' + (b.unlimited ? '∞' : b.used + '/' + b.allowance.limit)).join(' · ') || '—' }),
+      el('span.num', { text: dayMonth(m.start) + ' – ' + dayMonth(m.end) }),
+      statusChip(m, now),
+      m.status === 'active' ? el('div.rowend', null, [
+        el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Adjust', onclick: () => membershipEditor(ctx, m, c) })
+      ]) : null
+    ];
+  });
+  const cols = [
+    { label: 'Client' }, { label: 'Package' }, { label: 'Used this period' },
+    { label: 'Runs' }, { label: 'Status', cls: 'right' }, { label: '', cls: 'right' }
+  ];
+
+  return frag([
+    el('div.howto', { style: 'margin:0 0 22px' }, [
+      el('b', { text: 'Paid at the desk? Link it here.' }),
+      el('span', { text: 'Pick the client and the package. It is active straight away and she can book from her phone. If she already has one, the new one replaces it.' })
+    ]),
+    datatable(cols, rowsFor(live), 'Nobody has a membership yet. Link the first one once a client has paid.'),
+    past.length ? el('h2.section-title', { text: 'History' }) : null,
+    past.length ? datatable(cols, rowsFor(past.slice(0, 40))) : null
   ]);
-  modal(paid ? t('Confirm %s', what) : t('Close the application'), body,
-    el('button.btn', { type: 'button', text: paid ? 'She has paid — confirm' : 'Close it', onclick: async () => {
-      try {
-        await (paid ? store.confirmMembership(m.id) : store.declineMembership(m.id));
-        closeModal();
-        toast(paid ? t('%s is active for %s', what, who) : t('Application closed'));
-      } catch (ex) { closeModal(); toast(ex.message); }
-    } }));
+}
+
+/* ---------- linking a membership ----------
+   The one way a membership comes into being. Paid at the desk, linked
+   here, active the moment it is saved. Opened from Memberships with the
+   client still to choose, or from a client's own row with her chosen. */
+function linkDialog(ctx, preset) {
+  const { state, now } = ctx;
+  const plans = state.plans || [];
+  if (!plans.length) {
+    modal('Link a membership', el('p', { text: 'There are no packages yet. Add one under Packages first, then link it here.' }), [
+      el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
+      el('a.btn', { href: '#/packages', text: 'Go to Packages', onclick: closeModal })
+    ]);
+    return;
+  }
+
+  let client = preset || null;
+  const err = el('p.notice.notice--bad', { hidden: true });
+  const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
+  const who = el('div');
+  const replaces = el('p.notice', { hidden: true });
+
+  const showReplaces = () => {
+    const m = client ? membershipOf(state, client.id) : null;
+    const live = m && m.status === 'active' && !isExpired(m, now);
+    replaces.hidden = !live;
+    if (live) {
+      const p = planOf(state, m.planId);
+      replaces.textContent = t('This replaces %s, which runs until %s.', p ? p.name : m.planId, niceDate(m.end));
+    }
+  };
+
+  const avatar = name => el('span.avatar', { 'aria-hidden': 'true',
+    text: String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() });
+
+  function drawWho() {
+    who.textContent = '';
+    showReplaces();
+    if (client) {
+      who.appendChild(el('div.picked', null, [
+        avatar(client.name),
+        el('div', null, [el('b', { text: client.name }), el('span', { text: [client.phone, client.email].filter(Boolean).join(' · ') })]),
+        preset ? null : el('button.linkish', { type: 'button', text: 'Change', onclick: () => { client = null; drawWho(); } })
+      ]));
+      return;
+    }
+    const list = el('div.picker__list', { role: 'listbox', 'aria-label': 'Clients' });
+    const search = el('input', { type: 'search', placeholder: 'Search by name, email or phone', 'aria-label': 'Find a client',
+      autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search' });
+    const fill = () => {
+      const q = search.value.trim().toLowerCase();
+      const hits = state.clients.filter(c => !q || [c.name, c.email, c.phone].some(v => String(v || '').toLowerCase().includes(q))).slice(0, 60);
+      list.textContent = '';
+      if (!hits.length) { list.appendChild(el('p.picker__none', { text: state.clients.length ? 'No client matches that.' : 'No clients have an account yet.' })); return; }
+      hits.forEach(c => {
+        const m = membershipOf(state, c.id);
+        const has = m && m.status === 'active' && !isExpired(m, now) ? planOf(state, m.planId) : null;
+        list.appendChild(el('button', { type: 'button', role: 'option', onclick: () => { client = c; drawWho(); } }, [
+          avatar(c.name),
+          el('div', null, [el('b', { text: c.name }), el('span', { text: [c.phone, c.email].filter(Boolean).join(' · ') })]),
+          has ? chip(has.name, 'good') : null
+        ]));
+      });
+    };
+    search.addEventListener('input', fill);
+    fill();
+    who.appendChild(el('div.picker', null, [el('div.picker__search', null, [icon('search'), search]), list]));
+    if (!touch()) setTimeout(() => search.focus(), 0);
+  }
+  drawWho();
+
+  /* Thirty days by default, and the end follows the start until somebody
+     sets it by hand. */
+  const start = input('start', { type: 'date', value: iso(now), required: true });
+  const end = input('end', { type: 'date', value: iso(addDays(now, 30)), required: true });
+  let endTouched = false;
+  end.addEventListener('input', () => { endTouched = true; });
+  start.addEventListener('input', () => {
+    if (endTouched || !start.value) return;
+    end.value = iso(addDays(new Date(start.value + 'T00:00:00'), 30));
+  });
+
+  const live = plans.filter(p => p);
+  const planSel = select('planId', live.map(p => ({ value: p.id, label: p.name + (p.price != null ? ' · ' + money(p.price) : '') })),
+    (live.find(p => p.featured) || live[0]).id);
+
+  const form = el('form', { novalidate: true, onsubmit: async e => {
+    e.preventDefault();
+    err.hidden = true;
+    if (!client) return fail('Pick a client first');
+    if (!start.value || !end.value) return fail('Pick a start and an end date');
+    if (end.value < start.value) return fail('The membership has to end after it starts');
+    if (end.value < iso(now)) return fail('That membership would already be over');
+    save.disabled = true;
+    try {
+      await store.linkMembership({ clientId: client.id, planId: planSel.value, start: start.value, end: end.value });
+      const p = planOf(state, planSel.value);
+      closeModal();
+      toast(t('%s is now on %s', client.name, p ? p.name : ''));
+    } catch (ex) { save.disabled = false; fail(ex.message); }
+  } }, [
+    el('div.field', null, [el('span', { text: 'Client' }), who]),
+    field('Package', planSel),
+    el('div.row.row--keep', null, [field('Starts', start), field('Ends', end)]),
+    replaces,
+    el('p.muted.small', { style: 'margin-top:4px', text: 'Only link it once she has paid. It is active from the start date and she can book straight away.' }),
+    err
+  ]);
+
+  const save = el('button.btn', { type: 'button', text: 'Link membership', onclick: () => form.requestSubmit() });
+  modal(preset ? t('Membership for %s', preset.name) : 'Link a membership', form,
+    [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save]);
 }
 
 function membershipEditor(ctx, m, c) {
-  const PLANS = ctx.state.plans;
-  const form = el('form', { onsubmit: async e => {
+  const plans = ctx.state.plans;
+  const err = el('p.notice.notice--bad', { hidden: true });
+  const form = el('form', { novalidate: true, onsubmit: async e => {
     e.preventDefault();
     const f = new FormData(form);
+    const end = String(f.get('end') || '');
+    if (!end || end < m.start) { err.textContent = t('The membership has to end after it starts'); err.hidden = false; return; }
+    save.disabled = true;
     try {
-      await store.updateMembership(m.id, { planId: f.get('planId'), end: f.get('end'), status: f.get('status') });
+      await store.updateMembership(m.id, { planId: f.get('planId'), end, status: f.get('status') });
       closeModal();
       toast('Membership updated — the client sees it now');
-    } catch (ex) { closeModal(); toast(ex.message); }
+    } catch (ex) { save.disabled = false; err.textContent = t(ex.message); err.hidden = false; }
   } }, [
-    field('Plan', select('planId', PLANS.map(p => ({ value: p.id, label: p.name })), m.planId)),
-    el('div.row', null, [
-      field('Expires', input('end', { type: 'date', value: m.end, required: true })),
+    field('Package', select('planId', plans.some(p => p.id === m.planId) ? plans.map(p => ({ value: p.id, label: p.name }))
+      : [{ value: m.planId, label: m.planId }].concat(plans.map(p => ({ value: p.id, label: p.name }))), m.planId)),
+    el('div.row.row--keep', null, [
+      field('Ends', input('end', { type: 'date', value: m.end, min: m.start, required: true })),
       field('Status', select('status', [
         { value: 'active', label: t('Active') }, { value: 'cancelled', label: t('Cancelled') }
       ], m.status))
     ]),
-    el('p.muted', { style: 'font-size:13px', text: 'Extending the date or changing the plan takes effect immediately, including for classes already booked.' })
+    el('p.muted.small', { text: 'Extending the date or changing the package takes effect immediately, including for classes already booked.' }),
+    err
   ]);
-
+  const save = el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() });
   modal(t('Adjust %s', c ? c.name : t('membership')), form, [
-    el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() })
+    el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save
   ]);
 }
 
 /* ---------- clients ---------- */
-/* No email goes out from here, so a reset is a person at a desk: a new
-   password, shown once, read out, and gone from the screen when the
-   dialog closes. Everything that account was signed in to is signed out. */
+/* A reset at the desk: a new password, shown once, read out, and gone
+   from the screen when the dialog closes. Everything that account was
+   signed in to is signed out. */
 function resetFor(ctx, who) {
   const body = el('div', null, [
-    el('p', { text: 'A new password is made now, shown once, and never shown again. Read it out, and tell her to change it after she signs in.' }),
-    el('p.muted', { style: 'font-size:13px;margin-top:10px',
-      text: 'Everywhere that account is signed in is signed out.' })
+    el('p', { text: 'A new password is made now, shown once, and never shown again. Read it out, and ask them to change it after signing in.' }),
+    el('p.muted.small', { style: 'margin-top:10px', text: 'Everywhere that account is signed in is signed out.' })
   ]);
-  modal(t('Reset the password for %s', who.name), body,
+  modal(t('Reset the password for %s', who.name), body, [
+    el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
     el('button.btn', { type: 'button', text: 'Make a new password', onclick: async e => {
-      e.target.disabled = true; e.target.textContent = t('One moment…');
+      e.currentTarget.disabled = true; e.currentTarget.textContent = t('One moment…');
       try {
         const r = await store.resetPassword(who.id);
         closeModal();
         modal(t('New password for %s', who.name), el('div', null, [
           el('p.fresh', { text: r.password }),
-          el('p.muted', { style: 'font-size:13px;margin-top:12px',
-            text: 'Write it down before you close this. It is not kept anywhere you can read it back.' })
-        ]), el('button.btn', { type: 'button', text: 'Done', onclick: closeModal }));
+          el('p.muted.small', { style: 'margin-top:12px', text: 'Write it down before you close this. It is not kept anywhere you can read it back.' })
+        ]), [el('button.btn', { type: 'button', text: 'Done', onclick: closeModal })]);
       } catch (ex) { closeModal(); toast(ex.message); }
-    } }));
+    } })
+  ]);
 }
 
+let clientQuery = '';
 function clientsView(ctx) {
   const { state, now } = ctx;
   const today = iso(now);
-  return el('div.tablewrap', null, el('table', null, [
-    el('thead', null, el('tr', null, [
-      el('th', { text: 'Client' }), el('th', { text: 'Membership' }),
-      el('th.right', { text: 'Upcoming' }), el('th.right', { text: 'Attended' }),
-      el('th.right', { text: '' })
-    ])),
-    el('tbody', null, state.clients.map(c => {
+  const table = el('div');
+
+  const draw = () => {
+    const q = clientQuery.trim().toLowerCase();
+    const list = state.clients.filter(c => !q || [c.name, c.email, c.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    table.textContent = '';
+    table.appendChild(datatable([
+      { label: 'Client' }, { label: 'Membership' }, { label: 'Upcoming', cls: 'right' }, { label: 'Attended', cls: 'right' }, { label: '', cls: 'right' }
+    ], list.map(c => {
       const m = membershipOf(state, c.id);
+      const live = m && m.status === 'active' && !isExpired(m, now);
       const plan = m ? planOf(state, m.planId) : null;
-      const bk = state.bookings.filter(b => b.clientId === c.id);
-      const up = bk.filter(b => b.status === 'booked' &&
-        (state.classes.find(s => s.id === b.classId) || {}).date >= today).length;
-      const done = bk.filter(b => b.status === 'booked' &&
-        (state.classes.find(s => s.id === b.classId) || {}).date < today).length;
-      return el('tr', null, [
-        el('td', null, [el('div', { text: c.name }), el('div.muted', { style: 'font-size:12.5px', text: c.email })]),
-        el('td', null, plan && !isExpired(m, now) ? chip(plan.name, 'good') : chip('None', 'warn')),
-        el('td.right.num', { text: String(up) }),
-        el('td.right.num', { text: String(done) }),
-        el('td.right', null, el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password',
-          onclick: () => resetFor(ctx, c) }))
-      ]);
-    }))
-  ]));
+      const bk = state.bookings.filter(b => b.clientId === c.id && b.status === 'booked');
+      const dateOf = b => (state.classes.find(s => s.id === b.classId) || {}).date;
+      const up = bk.filter(b => dateOf(b) >= today).length;
+      const done = bk.filter(b => dateOf(b) && dateOf(b) < today).length;
+      return [
+        [el('div', { text: c.name }), el('div.cell-sub', { text: [c.phone, c.email].filter(Boolean).join(' · ') })],
+        live ? el('div', null, [chip(plan ? plan.name : m.planId, 'good'), el('div.cell-sub', { text: t('until %s', dayMonth(m.end)) })])
+             : chip(m && m.status === 'active' ? 'Expired' : 'None', 'warn'),
+        el('span.num', { text: String(up) }),
+        el('span.num', { text: String(done) }),
+        el('div.rowend', null, [
+          el('button.btn.btn--sm' + (live ? '.btn--ghost' : ''), { type: 'button', text: live ? 'Change membership' : 'Link membership',
+            onclick: () => linkDialog(ctx, c) }),
+          el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password', onclick: () => resetFor(ctx, c) })
+        ])
+      ];
+    }), state.clients.length ? 'No client matches that.' : 'No clients yet. They appear here as soon as they create an account in the app.'));
+  };
+
+  const search = el('input.input', { type: 'search', value: clientQuery, placeholder: 'Search by name, email or phone',
+    'aria-label': 'Search clients', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search',
+    oninput: e => { clientQuery = e.target.value; draw(); } });
+  draw();
+  return frag([el('div', { style: 'margin-bottom:16px;max-width:460px' }, search), table]);
 }
 
 /* ---------- attention ---------- */
 /* rules.js hands over the pieces; the words are this screen's job. */
 function problemText(p) {
-  if (p.kind === 'unassigned') return t('No instructor assigned');
+  if (p.kind === 'unassigned') return t('Nobody assigned');
   if (p.kind === 'expired-booked')
     return t(p.count > 1 ? 'Membership expired with %s classes still booked'
                          : 'Membership expired with %s class still booked', p.count);
-  return t('%s — %s', p.who, t(p.why).toLowerCase());
+  return t('%s — %s', p.who, t(p.why));
 }
 
 function issuesView(ctx, problems) {
-  if (!problems.length) return el('p.muted', { text: 'Nothing to fix. Every class has an instructor who is qualified and free.' });
+  if (!problems.length) return el('p.empty', { text: 'Nothing to fix. Every class has someone qualified and free.' });
   return el('div.grid', null, problems.map(p => {
     if (p.klass) return el('div', { class: 'slot slot--' + p.klass.typeId }, [
       el('span.slot__time.num', { text: shortDate(p.klass.date) + ' · ' + range(p.klass) }),
-      el('span.slot__name', { text: typeName(p.klass.typeId) }),
-      el('span.muted', { style: 'flex:1;font-size:13px', text: problemText(p) }),
-      el('span.slot__act', null, el('button.btn.btn--sm', { type: 'button', text: 'Fix',
-        onclick: () => assignDialog(ctx, p.klass) }))
+      el('span.slot__name', null, [dot(p.klass.typeId), typeName(p.klass.typeId)]),
+      el('span.slot__who', { style: 'white-space:normal', text: problemText(p) }),
+      el('span.slot__act', null, el('button.btn.btn--sm', { type: 'button', text: 'Fix', onclick: () => assignDialog(ctx, p.klass) }))
     ]);
-    return el('div.notice.notice--warn', { text: problemText(p) });
+    const c = p.membership && ctx.state.clients.find(x => x.id === p.membership.clientId);
+    return el('div.notice.notice--warn', null, [
+      el('span', { text: (c ? c.name + ' — ' : '') + problemText(p) }),
+      c ? el('button.linkish', { type: 'button', text: 'Link membership', onclick: () => linkDialog(ctx, c) }) : null
+    ]);
   }));
 }
