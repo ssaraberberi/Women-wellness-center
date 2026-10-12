@@ -124,6 +124,44 @@
     return { pack: 'routine-relax', why: 'Eight classes and two massages — the one most people settle on.' };
   }
 
+  /* The shape of each answer, for the day the studio's own packages are
+     on the page and none of them is called "routine". decide() names the
+     package it would pick from the catalogue the site shipped with; this
+     says what that package *is*, so a card can be found by what it
+     allows instead of by its name. */
+  var SHAPE = {
+    'personal': { k: 'pilates', c: 1, s: 0 }, 'try-dua': { k: 'pilates', c: 1, s: 0 },
+    'single': { k: 'pilates', c: 1, s: 0 }, 'start': { k: 'pilates', c: 4, s: 0 },
+    'routine': { k: 'pilates', c: 8, s: 0 }, 'glow': { k: 'pilates', c: 12, s: 0 },
+    'obsessed': { k: 'pilates', c: 16, s: 0 },
+    'relax': { k: 'spa', c: 0, s: 1 }, 'lymph': { k: 'spa', c: 0, s: 1 },
+    'sculpt': { k: 'spa', c: 0, s: 1 }, 'deep': { k: 'spa', c: 0, s: 1 },
+    'signature': { k: 'spa', c: 0, s: 1 }, 'relax-pack': { k: 'spa', c: 0, s: 3 },
+    'lymph-pack': { k: 'spa', c: 0, s: 5 }, 'sculpt-pack': { k: 'spa', c: 0, s: 5 },
+    'weekend': { k: 'combo', c: 1, s: 1 }, 'duo': { k: 'combo', c: 1, s: 1 },
+    'reset': { k: 'combo', c: 4, s: 1 }, 'routine-relax': { k: 'combo', c: 8, s: 2 },
+    'balance': { k: 'combo', c: 8, s: 2 }, 'sculpt-combo': { k: 'combo', c: 8, s: 4 },
+    'light-lean': { k: 'combo', c: 12, s: 4 }
+  };
+
+  /* The nearest thing the studio actually sells: same kind first, then
+     the smallest distance in how much of each it gives you. */
+  function nearest(pack) {
+    var want = SHAPE[pack];
+    if (!want) return null;
+    var cards = Array.prototype.slice.call(document.querySelectorAll('[data-pack][data-kind]'));
+    if (!cards.length) return null;
+    var same = cards.filter(function (c) { return c.getAttribute('data-kind') === want.k; });
+    var pool = same.length ? same : cards;
+    var best = null, score = Infinity;
+    pool.forEach(function (c) {
+      var d = Math.abs((+c.getAttribute('data-classes') || 0) - want.c) +
+              Math.abs((+c.getAttribute('data-spa') || 0) - want.s);
+      if (d < score) { score = d; best = c; }
+    });
+    return best;
+  }
+
   /* ---------- the screen ---------- */
   var answers = {}, trail = [], step = 'start';
   var el = function (tag, cls, text) {
@@ -184,12 +222,34 @@
   function result() {
     var r = decide(answers);
     var card = document.querySelector('[data-pack="' + r.pack + '"]');
+    /* The packages on the page are the studio's own now, so the one this
+       had in mind may not be among them. Then the closest is the answer —
+       and the reason given goes back to something that is true of it,
+       rather than describing a package nobody can buy. */
+    var why = r.why;
+    if (!card) {
+      card = nearest(r.pack);
+      why = 'The closest thing to what you described.';
+    }
     var name = card ? (card.querySelector('h3') || {}).textContent : null;
+
+    /* Nothing to point at at all: say so plainly rather than show an
+       empty answer. */
+    if (!card) {
+      root.innerHTML = '';
+      root.appendChild(el('p', 'quiz__step', 'Yours'));
+      root.appendChild(el('p', 'quiz__why', 'Ask us at the studio and we will put the right one together for you.'));
+      var only = el('button', 'quiz__back', 'Start again');
+      only.type = 'button';
+      only.addEventListener('click', function () { answers = {}; trail = []; step = 'start'; draw(); });
+      root.appendChild(only);
+      return;
+    }
 
     root.innerHTML = '';
     root.appendChild(el('p', 'quiz__step', 'Yours'));
     root.appendChild(el('h3', 'quiz__name', (name || '').trim()));
-    root.appendChild(el('p', 'quiz__why', r.why));
+    root.appendChild(el('p', 'quiz__why', why));
 
     var row = el('div', 'quiz__row');
     if (card) {

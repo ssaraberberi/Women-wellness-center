@@ -259,6 +259,36 @@ vercel --prod   # production
 renders when the site gets shared. Change both if the domain ever changes.
 
 
+## The packages come from the studio
+
+There is no catalogue in `index.html`. The three panels ship empty and
+`assets/js/catalog.js` fills them from `/api/public/packages` — whatever the
+studio has entered in the admin at `/app`, and nothing else. A package is
+renamed, repriced or retired there and the website says so on the next load,
+with no file to edit and nothing here that can fall out of step.
+
+With nothing entered — or no JavaScript, no network, a slow answer or a
+broken one — the section says the packages are coming, in the same voice the
+timetable and the studio photographs already use. That is the honest failure:
+an empty shelf, or worse a catalogue nobody can buy from, would be the
+alternative. The tabs, the quiz and the special offers all wait with it, and
+appear together the moment there is a package to show.
+
+Which tab a package lands in, the number on its card, the rule that grows
+with it, the per-class price and the "4 Pilates + 1 Spa" of a combination are
+all read off what the package allows. The studio writes a name, a price, a
+headline and a rhythm; the rest follows, so the card cannot promise something
+a booking would refuse.
+
+**On search.** Those cards are no longer in the HTML a crawler is served.
+Google renders JavaScript and will see them; crawlers that do not will see
+the section's heading and its coming-soon line. The page's own standing —
+the headings, the FAQ, the structured data describing the two services — is
+unchanged, and none of it was ever the package list.
+
+See `app/README.md` for the fields each package carries and how a card is
+built from them.
+
 ## What is live, and what is parked
 
 The studio offers **reformer Pilates** and the **spa**, and has not opened, so the

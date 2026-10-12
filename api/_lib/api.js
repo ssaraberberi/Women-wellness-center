@@ -520,6 +520,35 @@ export async function publicSettings() {
   return { showPrices: !!row && row.value === 'on' };
 }
 
+/* ---------- what the website asks for ----------
+   The packages as the public page draws them: no session, no names, no
+   anything but what is on a card. Prices are held back on exactly the
+   same terms as everywhere else — while the switch is off they are not
+   in the answer at all, rather than hidden once they have arrived. */
+export async function publicPackages() {
+  const [plans, { showPrices }] = await Promise.all([load.plans(), publicSettings()]);
+  return {
+    showPrices,
+    packages: plans
+      .slice()
+      .sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name))
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        price: showPrices ? p.price : null,
+        featured: p.featured,
+        tagline: p.tagline,
+        rhythm: p.rhythm,
+        blurb: p.blurb,
+        en: p.en,
+        /* The card's number and the tab it belongs in are both read off
+           this, so a package that allows eight reformer classes says so
+           without the studio writing "8" anywhere. */
+        allowances: p.allowances.map(a => ({ types: a.types, limit: a.limit, per: a.per }))
+      }))
+  };
+}
+
 export async function setSettings(user, body) {
   need(user, 'admin');
   if (typeof body.showPrices !== 'boolean') bad(400, 'showPrices is true or false');
@@ -566,12 +595,17 @@ export async function savePlan(user, body) {
       if (clash.rowCount) bad(409, 'A package with that name already exists', 'name');
     }
     await c.query(
-      `insert into plans (id, name, price_all, blurb, featured, sort, archived)
-       values ($1,$2,$3,$4,$5,$6,false)
+      `insert into plans (id, name, price_all, blurb, featured, sort, archived,
+                          tagline, rhythm, tagline_en, rhythm_en, blurb_en)
+       values ($1,$2,$3,$4,$5,$6,false,$7,$8,$9,$10,$11)
        on conflict (id) do update set name = excluded.name, price_all = excluded.price_all,
          blurb = excluded.blurb, featured = excluded.featured, sort = excluded.sort,
-         archived = false`,
-      [id, trim(body.name), price, trim(body.blurb) || null, !!body.featured, Number(body.sort) || 0]);
+         archived = false, tagline = excluded.tagline, rhythm = excluded.rhythm,
+         tagline_en = excluded.tagline_en, rhythm_en = excluded.rhythm_en,
+         blurb_en = excluded.blurb_en`,
+      [id, trim(body.name), price, trim(body.blurb) || null, !!body.featured, Number(body.sort) || 0,
+       trim(body.tagline) || null, trim(body.rhythm) || null,
+       trim(body.taglineEn) || null, trim(body.rhythmEn) || null, trim(body.blurbEn) || null]);
 
     /* Only one package can be the one we point at. */
     if (body.featured) await c.query('update plans set featured = false where id <> $1', [id]);

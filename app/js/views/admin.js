@@ -496,6 +496,8 @@ function planEditor(ctx, plan) {
       await store.savePlan({
         id: plan ? plan.id : '',
         name: f.get('name'), price: f.get('price'), blurb: f.get('blurb'),
+        tagline: f.get('tagline'), rhythm: f.get('rhythm'),
+        taglineEn: f.get('taglineEn'), rhythmEn: f.get('rhythmEn'), blurbEn: f.get('blurbEn'),
         sort: f.get('sort'), featured: form.querySelector('[name=featured]').checked,
         allowances
       });
@@ -510,7 +512,25 @@ function planEditor(ctx, plan) {
       field('Order', input('sort', { type: 'number', step: '1', value: plan ? '' : '', placeholder: '0' }),
         'Lowest first')
     ]),
-    field('Line underneath', input('blurb', { value: plan && plan.blurb ? plan.blurb : '', maxlength: '120' })),
+    el('p.eyebrow', { style: 'margin-top:22px', text: 'How it reads on the website' }),
+    field('Headline', input('tagline', { value: plan && plan.tagline ? plan.tagline : '', maxlength: '60' }),
+      'The short line under the name — "The sweet spot"'),
+    field('Rhythm', input('rhythm', { value: plan && plan.rhythm ? plan.rhythm : '', maxlength: '60' }),
+      'How often it works out at — "Around 2x per week"'),
+    field('Line underneath', input('blurb', { value: plan && plan.blurb ? plan.blurb : '', maxlength: '120' }),
+      'The sentence at the foot of the card'),
+
+    /* Optional, and the site falls back to what is above when one is left
+       blank — so a studio that writes in Albanian only writes once. */
+    el('details.en', { style: 'margin-top:14px' }, [
+      el('summary', { style: 'cursor:pointer', text: 'In English (optional)' }),
+      el('div', { style: 'margin-top:12px' }, [
+        field('Headline', input('taglineEn', { value: plan && plan.en && plan.en.tagline ? plan.en.tagline : '', maxlength: '60' })),
+        field('Rhythm', input('rhythmEn', { value: plan && plan.en && plan.en.rhythm ? plan.en.rhythm : '', maxlength: '60' })),
+        field('Line underneath', input('blurbEn', { value: plan && plan.en && plan.en.blurb ? plan.en.blurb : '', maxlength: '120' })),
+        el('p.muted', { style: 'font-size:.85rem', text: 'Left blank, the website shows the text above in both languages.' })
+      ])
+    ]),
     el('label.check', null, [
       el('input', { type: 'checkbox', name: 'featured', checked: !!(plan && plan.featured) }),
       el('span', { text: 'Show as the most popular package' })

@@ -15,7 +15,7 @@
    ============================================================ */
 
 /* Bump on every change to SCHEMA below. */
-export const VERSION = '2026-10-10b';
+export const VERSION = '2026-10-11c';
 
 export const SCHEMA = `
 create table if not exists users (
@@ -60,6 +60,15 @@ create table if not exists plan_allowances (
   sort           int not null default 0
 );
 create index if not exists plan_allowances_plan on plan_allowances (plan_id);
+-- What the website card says, beyond the name and the price. Added after
+-- the first release, so they have to be able to arrive late. The _en
+-- columns are optional: the site falls back to the other text when one is
+-- blank, so a studio that writes in Albanian only is not writing twice.
+alter table plans add column if not exists tagline    text;
+alter table plans add column if not exists rhythm     text;
+alter table plans add column if not exists tagline_en text;
+alter table plans add column if not exists rhythm_en  text;
+alter table plans add column if not exists blurb_en   text;
 
 create table if not exists instructor_qualifications (
   instructor_id uuid not null references users(id) on delete cascade,
