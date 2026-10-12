@@ -100,7 +100,7 @@ function render(copy, name, url) {
   <tr><td style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#7D2F49;padding-bottom:18px">DUA Pilates and Spa</td></tr>
   <tr><td style="font-size:24px;line-height:1.25;padding-bottom:16px">${esc(copy.title)}</td></tr>
   ${hello ? `<tr><td style="font-size:15px;line-height:1.7;padding-bottom:8px">${esc(hello)}</td></tr>` : ''}
-  <tr><td style="font-size:15px;line-height:1.7;color:#6E4351;padding-bottom:26px">${esc(copy.body)}</td></tr>
+  <tr><td style="font-size:15px;line-height:1.7;color:#6E4351;padding-bottom:26px">${esc(copy.body).replace(/\n/g, '<br>')}</td></tr>
   <tr><td style="padding-bottom:26px">
     <a href="${esc(url)}" style="display:inline-block;background:#7D2F49;color:#FFFBEA;text-decoration:none;padding:14px 26px;border-radius:999px;font-size:14px;letter-spacing:.08em">${esc(copy.action)}</a>
   </td></tr>
@@ -109,6 +109,43 @@ function render(copy, name, url) {
 </table></td></tr></table></body></html>`;
   const text = [hello, copy.body, '', url, '', copy.note].filter(Boolean).join('\n');
   return { html, text };
+}
+
+/* ---------- the reservation letter ----------
+   Sent when a customer gives an email with her reservation: the
+   reference, what she reserved, and the private link back to it — which
+   is the only copy of that link she will get unless the studio makes a
+   new one. */
+const BOOKING = {
+  sq: {
+    subject: ref => 'Rezervimi yt ' + ref + ' — DUA',
+    hello: 'Përshëndetje', title: 'Rezervimi yt është marrë',
+    body: 'Faleminderit! Rezervimi yt është në pritje të konfirmimit nga studioja. Pagesa bëhet në studio.',
+    classes: 'Klasat e rezervuara', none: 'Asnjë klasë ende — mund t’i rezervosh nga linku më poshtë.',
+    action: 'Shiko rezervimin',
+    policy: 'Ju mund ta anuloni rezervimin tuaj deri në %s minuta përpara fillimit të klasës. Pas këtij afati, klasa konsiderohet e zhvilluar dhe nuk rimbursohet në abonimin tuaj.',
+    keep: 'Ruaje këtë email: linku të lejon të rezervosh klasat e mbetura dhe të anulosh.'
+  },
+  en: {
+    subject: ref => 'Your reservation ' + ref + ' — DUA',
+    hello: 'Hello', title: 'Your reservation is in',
+    body: 'Thank you! Your reservation is waiting for the studio to confirm it. Payment is made at the studio.',
+    classes: 'Classes reserved', none: 'No classes yet — you can book them from the link below.',
+    action: 'See your reservation',
+    policy: 'You can cancel your reservation up to %s minutes before the class starts. After that, the class counts as taken and is not returned to your package.',
+    keep: 'Keep this email: the link lets you book your remaining classes and cancel.'
+  }
+};
+
+export function sendBookingEmail({ to, name, lang, ref, token, view }) {
+  const copy = BOOKING[lang === 'en' ? 'en' : 'sq'];
+  const url = SITE() + '/book?r=' + encodeURIComponent(token);
+  const list = (view.bookings || []).filter(b => b.status === 'booked')
+    .map(b => b.date + ' · ' + b.start + '–' + b.end + (b.person ? ' (' + (view.people[b.person] || {}).name + ')' : ''));
+  const body = copy.body + '\n\n' + view.title + '\n' + copy.classes + ':\n' + (list.length ? list.join('\n') : copy.none) +
+    '\n\n' + copy.policy.replace('%s', view.cancelMinutes);
+  const { html, text } = render({ ...copy, subject: copy.subject(ref), title: copy.title + ' · ' + ref, body, note: copy.keep }, name, url);
+  return send({ to, subject: copy.subject(ref), html, text });
 }
 
 export function sendAuthEmail({ kind, to, name, token, lang }) {

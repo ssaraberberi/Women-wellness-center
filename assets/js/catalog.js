@@ -33,6 +33,9 @@
     .then(function (d) {
       if (!d || !d.packages || !d.packages.length) return;   // the section stays as it is: coming soon
       data = d;
+      /* The stylesheet keeps every price hidden until this class is on the
+         page; only a clear yes from the server puts it there. */
+      if (d.showPrices === true) document.documentElement.classList.add('prices');
       build();
       watchLanguage();
       /* The tabs and the quiz are wired before this answer arrives, so

@@ -3,9 +3,9 @@
 import { el, frag, chip, dot, modal, closeModal, toast, meter, money, typeName, typeShort, range, niceDate,
          relDay, shortDate, startsAt, t, tw } from '../ui.js';
 import * as store from '../store.js';
-import { iso, addDays } from '../../../shared/domain.js';
-import { balances, canBook, canCancel, cancelDeadline, spots, membershipOf, isExpired,
-         planOf, bookingOf, BOOKING_HORIZON_DAYS } from '../../../shared/rules.js';
+import { iso, addDays, todayIn, plusDays, clockIn } from '../../../shared/domain.js';
+import { canBook, canCancel, cancelDeadline, spots, membershipOf, isExpired, planOf, bookingOf,
+         packagesOf, creditLines, settingsOf } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
 export function renderClient(ctx) {
@@ -21,7 +21,7 @@ export function renderClient(ctx) {
   ];
 
   let title = 'Today', sub = '', body;
-  if (route === 'calendar') { title = 'Book a class'; sub = t('The next %s days', BOOKING_HORIZON_DAYS); body = calendar(ctx, m, expired); }
+  if (route === 'calendar') { title = 'Book a class'; sub = t('The next %s days', settingsOf(state).horizonDays); body = calendar(ctx, m, expired); }
   else if (route === 'mine') { title = 'My classes'; body = mine(ctx); }
   else if (route === 'memberships') { title = 'Membership'; sub = 'What you have, and what the studio offers'; body = memberships(ctx, m, expired); }
   else { title = t('Hello, %s', firstName(user.name)); sub = niceDate(iso(now)); body = home(ctx, m, expired); }
@@ -39,44 +39,44 @@ async function run(btn, fn, good) {
 }
 
 /* ---------- membership card ---------- */
-function membershipCard(ctx, m, expired) {
+/* Every package she holds that is still running, each with its credits:
+   how many in total, how many used or reserved, how many left. */
+function membershipCard(ctx) {
   const { state, user, now } = ctx;
-  const plan = m && planOf(state, m.planId);
-  if (!m || m.status !== 'active' || !plan) {
+  const pkgs = packagesOf(state, user.id, now);
+  if (!pkgs.length) {
+    const last = membershipOf(state, user.id, now);
     return el('div.card', null, [
-      el('p.eyebrow', { text: 'No membership' }),
-      el('h3.display', { style: 'font-size:1.4rem;margin:8px 0 8px', text: 'Ask at the studio to start one' }),
-      el('p.muted.small', { style: 'margin-bottom:14px', text: 'Pay at the desk and we link it to your account. It shows here straight away and you can book.' }),
-      el('a.btn.btn--sm.btn--ghost', { href: '#/memberships', text: 'See the packages' })
+      el('p.eyebrow', { text: last && last.status === 'active' ? 'Your package has ended' : 'No package yet' }),
+      el('h3.display', { style: 'font-size:1.4rem;margin:8px 0 8px', text: 'Choose a package to start booking' }),
+      el('p.muted.small', { style: 'margin-bottom:14px', text: 'Reserve one online and pay at the studio, or ask us at the desk.' }),
+      el('a.btn.btn--sm', { href: '/book', text: 'Choose a package' })
     ]);
   }
-  const rows = expired ? [] : balances(state, user.id, now);
-  return el('div.card', null, [
+  return el('div.grid', null, pkgs.map(m => el('div.card', null, [
     el('div', { style: 'display:flex;justify-content:space-between;gap:14px;align-items:flex-start' }, [
       el('div', { style: 'min-width:0' }, [
-        el('p.eyebrow', { text: 'Your membership' }),
-        el('h3.display', { style: 'font-size:1.6rem;margin-top:6px', text: plan.name })
+        el('p.eyebrow', { text: 'Your package' }),
+        el('h3.display', { style: 'font-size:1.5rem;margin-top:6px', text: m.title || (planOf(state, m.planId) || {}).name || '' })
       ]),
-      expired ? chip('Expired', 'bad') : chip('Active', 'good')
+      chip('Active', 'good')
     ]),
-    rows.length ? el('div.grid', { style: 'margin-top:16px' }, rows.map(b =>
+    el('div.grid', { style: 'margin-top:16px' }, creditLines(state, m).map(l =>
       el('div', null, [
         el('div', { style: 'display:flex;justify-content:space-between;gap:12px;font-size:14.5px' }, [
-          el('span', { text: b.label }),
-          el('b', { style: 'font-weight:400', class: 'num',
-            text: b.unlimited ? t('Unlimited') : t(b.left === 1 ? 'One left this %s' : '%s left this %s', b.left === 1 ? tw(b.per) : b.left, tw(b.per)) })
+          el('span', { text: l.label }),
+          el('b', { style: 'font-weight:400', class: 'num', text: l.unlimited ? t('Unlimited') : t('%s of %s left', l.left, l.total) })
         ]),
-        b.unlimited ? null : meter(b.used, b.allowance.limit)
-      ]))) : null,
-    el('p.muted.small', { style: 'margin-top:14px', text: t(expired ? 'Expired %s' : 'Valid until %s', niceDate(m.end)) }),
-    expired ? el('p.small', { style: 'margin-top:6px', text: 'Renew it at the studio and it is linked here again straight away.' }) : null
-  ]);
+        l.unlimited ? null : meter(l.used, l.total)
+      ]))),
+    el('p.muted.small', { style: 'margin-top:14px', text: t('Valid until %s', niceDate(m.end)) })
+  ])));
 }
 
 /* ---------- today ---------- */
 function home(ctx, m, expired) {
   const { state, user, now } = ctx;
-  const today = iso(now);
+  const today = todayIn(now);
   const upcoming = state.bookings
     .filter(b => b.clientId === user.id && (b.status === 'booked' || b.status === 'waitlist'))
     .map(b => ({ b, s: state.classes.find(x => x.id === b.classId) }))
@@ -116,8 +116,13 @@ function slotRow(ctx, s, opts) {
 
   let action;
   if (mine) {
-    action = [chip('Booked', 'good'),
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Cancel', onclick: () => confirmCancel(ctx, existing, s) })];
+    /* The Cancel button goes once the deadline has passed: after that the
+       class counts as used, and the server would refuse it anyway. */
+    const cc = canCancel(s, now, state);
+    action = cc.ok
+      ? [chip('Booked', 'good'),
+         el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Cancel', onclick: () => confirmCancel(ctx, existing, s) })]
+      : [chip('Booked', 'good'), el('span.slot__note', { text: 'Cancellation has closed' })];
   } else if (waiting) {
     action = [chip('On waitlist', 'warn'),
       el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Leave', onclick: e => run(e.currentTarget, () => store.cancelBooking(existing.id), 'You left the waitlist') })];
@@ -127,11 +132,10 @@ function slotRow(ctx, s, opts) {
       action = el('button.btn.btn--sm', { type: 'button', text: 'Book class',
         onclick: e => run(e.currentTarget, () => store.book(s.id), 'Booked — see you there') });
     } else if (v.code === 'full') {
-      action = el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Join waitlist',
-        onclick: e => run(e.currentTarget, () => store.joinWaitlist(s.id), 'You are on the waitlist') });
-    } else if (v.code === 'not-included' || v.code === 'no-membership' || v.code === 'expired') {
+      action = el('button.btn.btn--ghost.btn--sm', { type: 'button', disabled: true, text: 'Full' });
+    } else if (['not-included', 'no-membership', 'expired', 'outside', 'no-sessions'].includes(v.code)) {
       action = [el('span.slot__note', { text: v.message }),
-        el('a.btn.btn--ghost.btn--sm', { href: '#/memberships', text: 'Membership' })];
+        el('a.btn.btn--ghost.btn--sm', { href: '/book', text: 'Get a package' })];
     } else {
       /* Nothing to press: a quiet line reads better than a dead button. */
       action = el('span.slot__note', { text: v.message });
@@ -151,27 +155,27 @@ function slotRow(ctx, s, opts) {
 
 /* ---------- cancel ---------- */
 function confirmCancel(ctx, booking, s) {
-  const { now } = ctx;
-  const cc = canCancel(s, now);
-  const deadline = cancelDeadline(s);
-  const hh = String(deadline.getHours()).padStart(2, '0') + ':' + String(deadline.getMinutes()).padStart(2, '0');
+  const { now, state } = ctx;
+  const cc = canCancel(s, now, state);
+  const hh = clockIn(cancelDeadline(s, state));
 
   modal('Cancel this class?', el('div', null, [
     el('p', { text: typeName(s.typeId) + ' · ' + niceDate(s.date) + ' · ' + range(s) }),
     el('div', { class: 'notice ' + (cc.ok ? 'notice--good' : 'notice--warn'), style: 'margin-top:14px',
       text: cc.ok
         ? t('Free cancellation until %s. Your session goes straight back to your balance.', hh)
-        : t('The %s deadline has passed. This class will still count against your membership.', hh) })
+        : t('The %s deadline has passed. This class will still count against your membership.', hh) }),
+    el('p.small.muted', { style: 'margin-top:12px', text: t('You can cancel up to %s minutes before a class starts. After that, the class counts as taken.', settingsOf(state).cancelMinutes) })
   ]), [
     el('button.btn.btn--ghost', { type: 'button', text: 'Keep it', onclick: closeModal }),
-    el('button.btn', { type: 'button', text: cc.ok ? 'Cancel class' : 'Cancel anyway', onclick: async e => {
+    cc.ok ? el('button.btn', { type: 'button', text: 'Cancel class', onclick: async e => {
       e.currentTarget.disabled = true;
       try {
-        const r = await store.cancelBooking(booking.id);
+        await store.cancelBooking(booking.id);
         closeModal();
-        toast(r.late ? 'Cancelled — the session stays deducted' : 'Cancelled — session returned');
+        toast('Cancelled — session returned');
       } catch (ex) { closeModal(); toast(ex.message); }
-    } })
+    } }) : null
   ]);
 }
 
@@ -180,7 +184,9 @@ function confirmCancel(ctx, booking, s) {
    underneath; tapping a day in the strip brings it up. */
 function calendar(ctx, m, expired) {
   const { state, now } = ctx;
-  const days = Array.from({ length: BOOKING_HORIZON_DAYS + 1 }, (_, i) => iso(addDays(now, i)));
+  const st = settingsOf(state);
+  const first = todayIn(now) > st.openingDate ? todayIn(now) : st.openingDate;
+  const days = Array.from({ length: st.horizonDays + 1 }, (_, i) => plusDays(first, i));
   const byDay = d => state.classes.filter(s => s.date === d && !s.cancelled && startsAt(s) > now)
     .sort((a, b) => a.start.localeCompare(b.start));
 
@@ -232,7 +238,9 @@ function mine(ctx) {
     el('h2.section-title', { text: 'History' }),
     past.length ? el('div.grid', { style: 'gap:8px' }, past.slice(0, 30).map(({ b, s }) => {
       const i = state.instructors.find(x => x.id === s.instructorId);
-      const [txt, tone] = label[b.status] || ['—', ''];
+      const [txt, tone] = s.cancelled ? label.released
+        : b.status === 'booked' && b.attendance === 'noshow' ? ['No-show', 'warn']
+        : b.status === 'booked' && !b.attendance ? ['Taken', ''] : (label[b.status] || ['—', '']);
       return el('div', { class: 'slot slot--' + s.typeId, style: 'opacity:.9' }, [
         el('span.slot__time.num', { text: shortDate(s.date) + ' · ' + range(s) }),
         el('span.slot__name', null, [dot(s.typeId), typeName(s.typeId)]),
@@ -244,33 +252,35 @@ function mine(ctx) {
 }
 
 /* ---------- memberships ----------
-   Read only. Memberships are arranged at the desk — she pays there and the
-   studio links it to her account — so this page says what she has, what
-   the studio offers, and how to get it. A package arrives without its
-   price while the studio is holding them back, so the price line says so. */
+   What she holds, and what the studio offers. A new package is reserved on
+   the booking page and paid at the studio; the studio can also add one at
+   the desk. A package arrives without its price while the studio is
+   holding prices back, so the price line says so. */
 const priceText = p => p.price == null ? 'Price coming soon' : money(p.price);
 
-function memberships(ctx, m, expired) {
-  const { state } = ctx;
-  const PLANS = state.plans || [];
-  const current = m && !expired && m.status === 'active' ? m.planId : null;
+function memberships(ctx) {
+  const { state, user, now } = ctx;
+  const PLANS = (state.plans || []).filter(p => p.bookable !== false);
+  const mineNow = packagesOf(state, user.id, now).map(m => m.planId);
 
   return frag([
-    membershipCard(ctx, m, expired),
+    membershipCard(ctx),
     el('div.howto', null, [
       el('b', { text: 'How to get one' }),
-      el('span', { text: 'Choose a package below and tell us at the studio. Pay at the desk and we link it to your account — it shows here straight away and you can start booking.' })
+      el('span', { text: 'Reserve a package online and pay at the studio, or ask us at the desk. It shows here as soon as it is on your account.' }),
+      el('a.btn.btn--sm', { href: '/book', style: 'margin-top:12px', text: 'Reserve a package' })
     ]),
     el('h2.section-title', { text: 'Packages at DUA' }),
-    PLANS.length ? el('div.plans', null, PLANS.map(p => el('div', { class: 'plan' + (p.id === current ? ' plan--on' : '') }, [
-      p.id === current ? el('p.eyebrow', { text: 'Your membership' }) : p.featured ? el('p.eyebrow', { text: 'Most chosen' }) : null,
+    PLANS.length ? el('div.plans', null, PLANS.map(p => el('div', { class: 'plan' + (mineNow.includes(p.id) ? ' plan--on' : '') }, [
+      mineNow.includes(p.id) ? el('p.eyebrow', { text: 'Your package' }) : p.featured ? el('p.eyebrow', { text: 'Most chosen' }) : null,
       el('h3', { text: p.name }),
       el('p', { class: 'plan__price' + (p.price == null ? ' plan__price--soon' : ''), text: priceText(p) }),
       p.blurb ? el('p.muted.small', { text: p.blurb }) : null,
       el('ul', null, p.allowances.map(a => el('li', {
         text: a.limit == null ? t('Unlimited %s', a.types.map(typeShort).join(' + '))
-                              : t('%s %s a %s', a.limit, a.types.map(typeShort).join(' + '), tw(a.per))
-      })))
+                              : t('%s × %s', a.limit, a.types.map(typeShort).join(' + '))
+      })).concat([el('li', { text: t('valid %s days', p.validityDays || 30) })])),
+      el('a.btn.btn--sm.btn--ghost', { href: '/book?plan=' + encodeURIComponent(p.id), style: 'margin-top:auto', text: 'Reserve' })
     ]))) : el('p.empty', { text: 'The packages go up here soon.' })
   ]);
 }

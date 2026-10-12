@@ -10,8 +10,10 @@ import { hashPassword, verifyPassword, issueToken, revokeToken, adminCode,
          issueCode, claimCode, codeRequestBlocked, recordCodeRequest } from './auth.js';
 import { sendAuthEmail, mailConfigured, mailFrom } from './mail.js';
 import * as load from './load.js';
+import * as booking from './booking.js';
+import { ensureSynced } from './schedule.js';
 import * as rules from '../../shared/rules.js';
-import { iso, addDays, periodRange, hhmm } from '../../shared/domain.js';
+import { iso, addDays, hhmm, todayIn, plusDays } from '../../shared/domain.js';
 
 const bad = (status, message, code) => { const e = new Error(message); e.status = status; e.code = code; throw e; };
 const need = (u, ...roles) => { if (!u) bad(401, 'Sign in first'); if (!roles.includes(u.role)) bad(403, 'Not allowed'); };
@@ -244,133 +246,25 @@ export async function readNotices(user) {
 export async function clientState(user) {
   need(user, 'client');
   const now = new Date();
-  const [state, { showPrices }] = await Promise.all([load.clientState(user.id, now), publicSettings()]);
+  await ensureSynced(now);
+  const state = await load.clientState(user.id, now);
   return {
     ...state,
     /* This answer carries the catalogue as well as the client's own things,
        so it has to hold the prices back on the same terms as /bootstrap —
        otherwise the figures come back by the side door. */
-    plans: showPrices ? state.plans : state.plans.map(({ price, ...rest }) => ({ ...rest, price: null })),
+    plans: state.settings.showPrices ? state.plans : state.plans.map(({ price, ...rest }) => ({ ...rest, price: null })),
     instructors: state.instructors.map(i => ({ id: i.id, name: i.name })),   // clients need the name, nothing else
-    balances: rules.balances(state, user.id, now),
-    membership: rules.membershipOf(state, user.id)
+    membership: rules.membershipOf(state, user.id, now)
   };
 }
 
-export async function book(user, body) {
-  need(user, 'client');
-  const now = new Date();
-  const state = await load.clientState(user.id, now);
-  const klass = state.classes.find(c => c.id === body.classId);
-  const verdict = rules.canBook(state, user.id, klass, now);
-  if (!verdict.ok) bad(409, verdict.message, verdict.code);
+/* Booking and cancelling from the app go through the same engine as the
+   booking page: the same locks, the same credits, the same 30-minute rule. */
+export const book = (user, body) => booking.appBook(user, body.classId);
+export const cancelBooking = (user, body) => booking.appCancel(user, body.bookingId);
 
-  return tx(async c => {
-    /* Lock the class so two people cannot take the same last place. */
-    await c.query('select id from classes where id = $1 for update', [klass.id]);
-    const taken = await c.query(
-      `select count(*)::int as n from bookings where class_id=$1 and status='booked'`, [klass.id]);
-    if (taken.rows[0].n >= klass.capacity) bad(409, 'Class is full', 'full');
-
-    /* Re-count the allowance under the lock: two tabs, one seat left. */
-    const m = rules.membershipOf(state, user.id);
-    const a = rules.allowanceFor(state, m.planId, klass.typeId);
-    if (a.limit != null) {
-      const [from, to] = periodRange(a.per, new Date(klass.date + 'T00:00:00'));
-      const used = await c.query(
-        `select count(*)::int as n from bookings b join classes k on k.id = b.class_id
-          where b.client_id=$1 and b.status in ('booked','late') and not k.cancelled
-            and k.class_type_id = any($2) and k.on_date between $3 and $4`,
-        [user.id, a.types, from, to]);
-      if (used.rows[0].n >= a.limit) bad(409, 'No classes left this ' + a.per, 'no-sessions');
-    }
-
-    try {
-      await c.query(`insert into bookings (class_id, client_id, status) values ($1,$2,'booked')`, [klass.id, user.id]);
-    } catch (e) {
-      if (e.code === '23505') bad(409, 'Already booked', 'already');   // the partial unique index
-      throw e;
-    }
-    return { ok: true };
-  });
-}
-
-export async function joinWaitlist(user, body) {
-  need(user, 'client');
-  try {
-    await q(`insert into bookings (class_id, client_id, status) values ($1,$2,'waitlist')`, [body.classId, user.id]);
-  } catch (e) {
-    if (e.code === '23505') bad(409, 'Already on this class', 'already');
-    throw e;
-  }
-  return { ok: true };
-}
-
-export async function cancelBooking(user, body) {
-  need(user, 'client');
-  const now = new Date();
-  return tx(async c => {
-    const b = (await c.query(
-      `select b.id, b.class_id, b.status, k.on_date, k.starts
-         from bookings b join classes k on k.id = b.class_id
-        where b.id = $1 and b.client_id = $2 for update of b`, [body.bookingId, user.id])).rows[0];
-    if (!b) bad(404, 'Booking not found');
-    if (b.status !== 'booked' && b.status !== 'waitlist') bad(409, 'That booking is not active');
-
-    const klass = { date: b.on_date, start: hhmm(b.starts) };
-    const verdict = rules.canCancel(klass, now);
-    const status = b.status === 'waitlist' ? 'cancelled' : verdict.late ? 'late' : 'cancelled';
-    await c.query('update bookings set status=$1 where id=$2', [status, b.id]);
-
-    /* A seat given up in time goes to whoever is first in line. */
-    if (status === 'cancelled' && b.status === 'booked') {
-      const next = (await c.query(
-        `select id, client_id from bookings where class_id=$1 and status='waitlist'
-          order by created_at limit 1 for update skip locked`, [b.class_id])).rows[0];
-      if (next) {
-        await c.query(`update bookings set status='booked' where id=$1`, [next.id]);
-        await notify(c, next.client_id,
-          'A place opened in the ' + hhmm(b.starts) + ' class on ' + b.on_date + ' — you are in.', 'good');
-      }
-    }
-    return { ok: true, late: verdict.late };
-  });
-}
-
-/* ---------- memberships ----------
-   A client pays at the desk and the studio links the package to her account
-   there and then. Nothing is asked for in the app and nothing waits in a
-   queue: the link is the confirmation, and the membership is active from
-   the moment it is saved. Whatever she held before is replaced, so she is
-   never on two at once. */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-export async function linkMembership(user, body) {
-  need(user, 'admin');
-  if (!body.clientId) bad(400, 'Pick a client first', 'client');
-  if (!body.planId) bad(400, 'Pick a package', 'plan');
-  const start = String(body.start || ''), end = String(body.end || '');
-  if (!ISO_DATE.test(start) || !ISO_DATE.test(end)) bad(400, 'Pick a start and an end date', 'dates');
-  if (end < start) bad(400, 'The membership has to end after it starts', 'dates');
-  if (end < iso(new Date())) bad(400, 'That membership would already be over', 'dates');
-
-  const client = await one(`select id, name from users where id = $1 and role = 'client' and active`, [body.clientId]);
-  if (!client) bad(404, 'No such client');
-  const plan = await one('select id, name from plans where id = $1 and not archived', [body.planId]);
-  if (!plan) bad(404, 'No such package');
-
-  return tx(async c => {
-    /* Locked so two people at the desk cannot link two at once. */
-    await c.query('select id from users where id = $1 for update', [client.id]);
-    await c.query(`update memberships set status = 'replaced' where client_id = $1 and status = 'active'`, [client.id]);
-    const m = await c.query(
-      `insert into memberships (client_id, plan_id, starts_on, ends_on, status)
-       values ($1,$2,$3,$4,'active') returning id`,
-      [client.id, plan.id, start, end]);
-    await notify(c, client.id, 'Your membership ' + plan.name + ' is active until ' + end + '.', 'good');
-    return { ok: true, id: m.rows[0].id };
-  });
-}
 
 /* ---------- instructor ---------- */
 
@@ -419,9 +313,9 @@ export async function setAvailability(user, body) {
 export async function adminState(user) {
   need(user, 'admin');
   const now = new Date();
+  await ensureSynced(now);
   const state = await load.adminState(now);
-  const { showPrices } = await publicSettings();
-  return { ...state, issues: rules.issues(state, now), showPrices, mail: await mailState() };
+  return { ...state, issues: rules.issues(state, now), showPrices: state.settings.showPrices, mail: await mailState() };
 }
 
 /* Whether the letters are going out, for the one person who can do
@@ -440,7 +334,7 @@ async function mailState() {
 export async function roster(user, classId) {
   need(user, 'admin');
   return many(
-    `select b.id, b.status, u.name, u.email
+    `select b.id, b.status, u.name, u.email, u.phone
        from bookings b join users u on u.id = b.client_id
       where b.class_id = $1 and b.status in ('booked','waitlist')
       order by case b.status when 'booked' then 0 else 1 end, b.created_at`, [classId]);
@@ -547,12 +441,17 @@ export async function savePlan(user, body) {
   for (const a of allowances) {
     if (!Array.isArray(a.types) || !a.types.length) bad(400, 'Every line needs at least one class type', 'allowances');
     for (const t of a.types) if (!types.includes(t)) bad(400, 'No such class type: ' + t, 'allowances');
-    if (!['week', 'month'].includes(a.per)) bad(400, 'A line counts per week or per month', 'allowances');
+    /* A line is now a number of credits for the life of the package; the
+       period is kept only so older readers of the table still parse it. */
+    if (!['week', 'month'].includes(a.per)) a.per = 'month';
     if (a.limit !== null && a.limit !== undefined && a.limit !== '') {
       const n = Number(a.limit);
       if (!Number.isInteger(n) || n < 1) bad(400, 'A limit is a whole number of classes, or blank for no limit', 'allowances');
     }
   }
+  const kind = ['single', 'membership', 'package'].includes(body.kind) ? body.kind : 'membership';
+  const validityDays = Number(body.validityDays || 30);
+  if (!Number.isInteger(validityDays) || validityDays < 1 || validityDays > 3650) bad(400, 'Valid for a whole number of days', 'validityDays');
 
   /* An id the studio never sees: made from the name the first time, kept
      afterwards, so a rename cannot orphan the memberships pointing at it. */
@@ -566,16 +465,18 @@ export async function savePlan(user, body) {
     }
     await c.query(
       `insert into plans (id, name, price_all, blurb, featured, sort, archived,
-                          tagline, rhythm, tagline_en, rhythm_en, blurb_en)
-       values ($1,$2,$3,$4,$5,$6,false,$7,$8,$9,$10,$11)
+                          tagline, rhythm, tagline_en, rhythm_en, blurb_en, kind, validity_days, bookable)
+       values ($1,$2,$3,$4,$5,$6,false,$7,$8,$9,$10,$11,$12,$13,$14)
        on conflict (id) do update set name = excluded.name, price_all = excluded.price_all,
          blurb = excluded.blurb, featured = excluded.featured, sort = excluded.sort,
          archived = false, tagline = excluded.tagline, rhythm = excluded.rhythm,
          tagline_en = excluded.tagline_en, rhythm_en = excluded.rhythm_en,
-         blurb_en = excluded.blurb_en`,
+         blurb_en = excluded.blurb_en, kind = excluded.kind, validity_days = excluded.validity_days,
+         bookable = excluded.bookable`,
       [id, trim(body.name), price, trim(body.blurb) || null, !!body.featured, Number(body.sort) || 0,
        trim(body.tagline) || null, trim(body.rhythm) || null,
-       trim(body.taglineEn) || null, trim(body.rhythmEn) || null, trim(body.blurbEn) || null]);
+       trim(body.taglineEn) || null, trim(body.rhythmEn) || null, trim(body.blurbEn) || null,
+       kind, validityDays, body.bookable !== false]);
 
     /* Only one package can be the one we point at. */
     if (body.featured) await c.query('update plans set featured = false where id <> $1', [id]);
@@ -688,10 +589,13 @@ export async function saveClass(user, body) {
       const before = (await c.query('select * from classes where id=$1 for update', [body.id])).rows[0];
       if (!before) bad(404, 'No such class');
       const booked = (await c.query(`select count(*)::int n from bookings where class_id=$1 and status='booked'`, [body.id])).rows[0].n;
-      if (draft.capacity < booked) bad(409, booked + ' people are already booked; capacity cannot go below that', 'capacity');
+      if (draft.capacity < booked + (before.blocked || 0))
+        bad(409, booked + ' people are already booked; capacity cannot go below that', 'capacity');
 
-      await c.query(`update classes set class_type_id=$1, on_date=$2, starts=$3, ends=$4, capacity=$5, instructor_id=$6
-                     where id=$7`,
+      /* Edited for this date, so it is pinned: the weekly template will
+         never change it back, and every other week stays as it was. */
+      await c.query(`update classes set class_type_id=$1, on_date=$2, starts=$3, ends=$4, capacity=$5, instructor_id=$6,
+                            pinned = true where id=$7`,
         [draft.typeId, draft.date, draft.start, draft.end, draft.capacity, draft.instructorId, body.id]);
 
       const moved = before.on_date !== draft.date || hhmm(before.starts) !== draft.start || hhmm(before.ends) !== draft.end;
@@ -710,8 +614,8 @@ export async function saveClass(user, body) {
       return { ok: true, id: body.id };
     }
     const id = (await c.query(
-      `insert into classes (class_type_id, on_date, starts, ends, capacity, instructor_id)
-       values ($1,$2,$3,$4,$5,$6) returning id`,
+      `insert into classes (class_type_id, on_date, starts, ends, capacity, instructor_id, pinned)
+       values ($1,$2,$3,$4,$5,$6,true) returning id`,
       [draft.typeId, draft.date, draft.start, draft.end, draft.capacity, draft.instructorId])).rows[0].id;
     return { ok: true, id };
   });
@@ -739,7 +643,8 @@ export async function assignInstructor(user, classId, body) {
 export async function cancelClass(user, classId) {
   need(user, 'admin');
   return tx(async c => {
-    const k = (await c.query('update classes set cancelled=true where id=$1 returning on_date, starts', [classId])).rows[0];
+    const k = (await c.query(`update classes set cancelled=true, cancel_reason='studio', pinned=true
+                               where id=$1 returning on_date, starts`, [classId])).rows[0];
     if (!k) bad(404, 'No such class');
     const rows = (await c.query(
       `update bookings set status='released' where class_id=$1 and status in ('booked','waitlist') returning client_id`,
@@ -763,15 +668,15 @@ export async function updateMembership(user, id, body) {
   const m = await one('select * from memberships where id=$1', [id]);
   if (!m) bad(404, 'No such membership');
   if (body.status && !['active', 'cancelled'].includes(body.status)) bad(400, 'A membership is active or cancelled', 'status');
+  if (body.start && !ISO_DATE.test(String(body.start))) bad(400, 'Pick a start and an end date', 'dates');
   if (body.end && !ISO_DATE.test(String(body.end))) bad(400, 'Pick a start and an end date', 'dates');
-  if (body.end && String(body.end) < String(m.starts_on)) bad(400, 'The membership has to end after it starts', 'dates');
-  if (body.planId && !(await one('select 1 from plans where id = $1', [body.planId]))) bad(404, 'No such package');
+  const start = body.start || m.starts_on, end = body.end || m.ends_on;
+  if (String(end) < String(start)) bad(400, 'The membership has to end after it starts', 'dates');
   return tx(async c => {
-    if (body.status === 'active' && m.status !== 'active')
-      await c.query(`update memberships set status='replaced' where client_id=$1 and status='active' and id<>$2`,
-                    [m.client_id, id]);
-    await c.query('update memberships set plan_id=$1, ends_on=$2, status=$3 where id=$4',
-                  [body.planId || m.plan_id, body.end || m.ends_on, body.status || m.status, id]);
+    /* A package can hold several at once now; changing one leaves the
+       others alone. Its credits are its own snapshot and do not change. */
+    await c.query('update memberships set starts_on=$1, ends_on=$2, status=$3 where id=$4',
+                  [start, end, body.status || m.status, id]);
     await notify(c, m.client_id, 'Your membership was updated by the studio.', 'info');
     return { ok: true };
   });

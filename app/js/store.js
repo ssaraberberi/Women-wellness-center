@@ -82,8 +82,8 @@ export async function refresh() {
     const s = await api.get('/instructor/state');
     merge({ classes: s.classes, bookings: s.bookings, me: s.me, classTypes: s.classTypes, notices });
   } else {
-    const s = await api.get('/admin/state');
-    merge({ ...s, notices });
+    const [s, reservations] = await Promise.all([api.get('/admin/state'), api.get('/admin/reservations').catch(() => [])]);
+    merge({ ...s, reservations, notices });
   }
 }
 
@@ -142,7 +142,6 @@ export async function signOut() {
 const act = fn => async (...args) => { const out = await fn(...args); await refresh(); return out; };
 
 export const book         = act(classId  => api.post('/client/book', { classId }));
-export const joinWaitlist = act(classId  => api.post('/client/waitlist', { classId }));
 export const cancelBooking= act(bookingId=> api.post('/client/cancel', { bookingId }));
 
 export const setQualifications = act(types => api.put('/instructor/qualifications', { types }));
@@ -157,7 +156,27 @@ export const savePlan         = act(data => api.post('/admin/plans', data));
 export const archivePlan      = act(id => api.del('/admin/plans/' + id));
 export const setShowPrices    = act(on => api.put('/admin/settings', { showPrices: !!on }));
 export const resetPassword    = act(id => api.post('/admin/users/' + id + '/password'));
-export const linkMembership   = act(data => api.post('/admin/memberships', data));
+/* Reservations, credits and the timetable. Each returns what the server
+   now holds, and the store re-reads everything else behind it. */
+export const createReservation = act(data => api.post('/admin/reservations', data));
+export const reservation       = id => api.get('/admin/reservations/' + id);
+export const updateReservation = act((id, patch) => api.put('/admin/reservations/' + id, patch));
+export const newLink           = act(id => api.post('/admin/reservations/' + id + '/link'));
+export const bookInto          = act(data => api.post('/admin/bookings', data));
+export const moveBooking       = act((id, classId) => api.post('/admin/bookings/' + id + '/move', { classId }));
+export const cancelFor         = act((id, credit) => api.post('/admin/bookings/' + id + '/cancel', { credit }));
+export const restoreCredit     = act(id => api.post('/admin/bookings/' + id + '/restore'));
+export const attendance        = act((id, value) => api.post('/admin/bookings/' + id + '/attendance', { attendance: value }));
+export const adjustCredits     = act((membershipId, data) => api.post('/admin/memberships/' + membershipId + '/credits', data));
+export const blockPlaces       = act((classId, blocked) => api.post('/admin/classes/' + classId + '/block', { blocked }));
+export const saveOffer         = act(data => api.post('/admin/offers', data));
+export const setOffer          = act((id, patch) => api.put('/admin/offers/' + id, patch));
+export const saveRules         = act(data => api.put('/admin/rules', data));
+export const previewTemplate   = data => api.post('/admin/schedule/template/preview', data);
+export const saveTemplate      = act(data => api.post('/admin/schedule/template', data));
+export const previewClosure    = data => api.post('/admin/schedule/closures/preview', data);
+export const closeDay          = act(data => api.post('/admin/schedule/closures', data));
+export const reopenDay         = act(date => api.del('/admin/schedule/closures/' + date));
 export const updateMembership = act((id, patch) => api.put('/admin/memberships/' + id, patch));
 export const markNoticesRead  = act(() => api.post('/notices/read'));
 

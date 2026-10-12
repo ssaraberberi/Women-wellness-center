@@ -11,6 +11,14 @@
    ============================================================ */
 import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
+import * as booking from './_lib/booking.js';
+import * as schedule from './_lib/schedule.js';
+
+/* The schedule endpoints are the studio's alone. */
+const need = user => {
+  if (!user) throw Object.assign(new Error('Sign in first'), { status: 401 });
+  if (user.role !== 'admin') throw Object.assign(new Error('Not allowed'), { status: 403 });
+};
 import { pool, connectionProblem } from './_lib/db.js';
 import { mailConfigured, mailFrom } from './_lib/mail.js';
 import { VERSION as SCHEMA_VERSION } from './_lib/schema.js';
@@ -96,12 +104,22 @@ const routes = [
   /* The website's own packages section reads this. No session either: it
      is drawn for whoever walks in. */
   ['GET',  /^\/api\/public\/packages$/, () => api.publicPackages()],
+
+  /* The booking page. No session: a customer reserves with her name and
+     phone, and comes back with the private link she is given. The link
+     travels in the body, never in a URL the server would log. */
+  ['GET',  /^\/api\/public\/book$/,                 () => booking.publicCatalogue()],
+  ['GET',  /^\/api\/public\/classes$/,              () => booking.publicClasses()],
+  ['POST', /^\/api\/public\/reservations$/,         async ctx => booking.createReservation(await body(ctx.req), meta(ctx.req), null)],
+  ['POST', /^\/api\/public\/reservation$/,          async ctx => booking.publicReservation(await body(ctx.req))],
+  ['POST', /^\/api\/public\/reservation\/book$/,    async ctx => booking.publicBookMore(await body(ctx.req), meta(ctx.req))],
+  ['POST', /^\/api\/public\/reservation\/cancel$/,  async ctx => booking.publicCancel(await body(ctx.req))],
+
   ['GET',  /^\/api\/notices$/,     ctx => api.notices(ctx.user)],
   ['POST', /^\/api\/notices\/read$/, ctx => api.readNotices(ctx.user)],
 
   ['GET',  /^\/api\/client\/state$/,      ctx => api.clientState(ctx.user)],
   ['POST', /^\/api\/client\/book$/,       async ctx => api.book(ctx.user, await body(ctx.req))],
-  ['POST', /^\/api\/client\/waitlist$/,   async ctx => api.joinWaitlist(ctx.user, await body(ctx.req))],
   ['POST', /^\/api\/client\/cancel$/,     async ctx => api.cancelBooking(ctx.user, await body(ctx.req))],
 
   ['GET',  /^\/api\/instructor\/state$/,          ctx => api.instructorState(ctx.user)],
@@ -116,9 +134,31 @@ const routes = [
   ['DELETE', /^\/api\/admin\/classes\/([\w-]+)$/,       ctx => api.deleteClass(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/employees$/,                 async ctx => api.addEmployee(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/employees\/([\w-]+)$/,     ctx => api.removeEmployee(ctx.user, ctx.m[1])],
-  ['POST', /^\/api\/admin\/memberships$/,               async ctx => api.linkMembership(ctx.user, await body(ctx.req))],
   ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/credits$/, async ctx => booking.adminCredits(ctx.user, ctx.m[1], await body(ctx.req))],
   ['PUT',  /^\/api\/admin\/settings$/,                 async ctx => api.setSettings(ctx.user, await body(ctx.req))],
+  ['PUT',  /^\/api\/admin\/rules$/,                    async ctx => booking.saveSettings(ctx.user, await body(ctx.req))],
+
+  ['GET',  /^\/api\/admin\/reservations$/,             ctx => booking.adminReservations(ctx.user)],
+  ['POST', /^\/api\/admin\/reservations$/,             async ctx => booking.adminCreate(ctx.user, await body(ctx.req), meta(ctx.req))],
+  ['GET',  /^\/api\/admin\/reservations\/([\w-]+)$/,   ctx => booking.adminReservation(ctx.user, ctx.m[1])],
+  ['PUT',  /^\/api\/admin\/reservations\/([\w-]+)$/,   async ctx => booking.adminUpdateReservation(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/reservations\/([\w-]+)\/link$/, ctx => booking.adminNewLink(ctx.user, ctx.m[1])],
+  ['POST', /^\/api\/admin\/bookings$/,                 async ctx => booking.adminBook(ctx.user, await body(ctx.req))],
+  ['POST', /^\/api\/admin\/bookings\/([\w-]+)\/move$/,  async ctx => booking.adminMove(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/bookings\/([\w-]+)\/cancel$/, async ctx => booking.adminCancelBooking(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/bookings\/([\w-]+)\/restore$/, ctx => booking.adminRestore(ctx.user, ctx.m[1])],
+  ['POST', /^\/api\/admin\/bookings\/([\w-]+)\/attendance$/, async ctx => booking.adminAttendance(ctx.user, ctx.m[1], await body(ctx.req))],
+  ['POST', /^\/api\/admin\/classes\/([\w-]+)\/block$/,  async ctx => booking.adminBlock(ctx.user, ctx.m[1], await body(ctx.req))],
+
+  ['POST', /^\/api\/admin\/offers$/,                   async ctx => booking.saveOffer(ctx.user, await body(ctx.req))],
+  ['PUT',  /^\/api\/admin\/offers\/([\w-]+)$/,         async ctx => booking.setOffer(ctx.user, ctx.m[1], await body(ctx.req))],
+
+  ['POST', /^\/api\/admin\/schedule\/template$/,       async ctx => { need(ctx.user); return schedule.saveTemplate(ctx.user, await body(ctx.req), { dryRun: false }); }],
+  ['POST', /^\/api\/admin\/schedule\/template\/preview$/, async ctx => { need(ctx.user); return schedule.saveTemplate(ctx.user, await body(ctx.req), { dryRun: true }); }],
+  ['POST', /^\/api\/admin\/schedule\/closures$/,       async ctx => { need(ctx.user); return schedule.closeDay(ctx.user, await body(ctx.req), { dryRun: false }); }],
+  ['POST', /^\/api\/admin\/schedule\/closures\/preview$/, async ctx => { need(ctx.user); return schedule.closeDay(ctx.user, await body(ctx.req), { dryRun: true }); }],
+  ['DELETE', /^\/api\/admin\/schedule\/closures\/([\d-]+)$/, ctx => { need(ctx.user); return schedule.reopenDay(ctx.user, ctx.m[1]); }],
   ['POST', /^\/api\/admin\/users\/([\w-]+)\/password$/, ctx => api.resetPassword(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/plans$/,                    async ctx => api.savePlan(ctx.user, await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/plans\/([\w-]+)$/,         ctx => api.archivePlan(ctx.user, ctx.m[1])]

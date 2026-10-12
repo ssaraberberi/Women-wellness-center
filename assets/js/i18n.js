@@ -21,6 +21,10 @@
     'Book now': 'Rezervo',
     'Book a class': 'Rezervo një klasë',
     'Inside the studio': 'Brenda studios',
+    'Book a class': 'Rezervo një klasë',
+    'Book DUA DUO': 'Rezervo DUA DUO',
+    'Claim your spot': 'Merr vendin tënd',
+    'Bring your bestie': 'Eja me bestie-n',
     'Scroll': 'Zbrit',
     'DUA, home': 'DUA, faqja kryesore',
     'Open menu': 'Hap menynë',
@@ -464,7 +468,7 @@
     'No. Plenty of people come to a first class having never been on a reformer, and the class is built for exactly that. The groups are small enough that the instructor sets your springs, corrects your position and keeps an eye on you the whole time.':
       'Jo. Shumë vajza vijnë në klasën e parë pa qenë kurrë mbi një reformer, dhe klasa është ndërtuar pikërisht për këtë. Grupet janë aq të vogla sa instruktorja t\'i vendos sustat, të korrigjon qëndrimin dhe të ka sytë mbi ty gjithë kohës.',
     'How long is a class?': 'Sa zgjat një klasë?',
-    'Forty-five minutes.': 'Dyzet e pesë minuta.',
+    'Fifty minutes.': 'Pesëdhjetë minuta.',
     'Where in Tirana are you?': 'Ku ndodheni në Tiranë?',
     'In Tirana. The address goes up here the moment the studio is ready — message us on 069 710 4072 or on Instagram and we will send it to you first.':
       'Në Tiranë. Adresa ngjitet këtu në momentin që studioja të jetë gati — na shkruaj në 069 710 4072 ose në Instagram dhe ta dërgojmë ty të parës.',
@@ -653,7 +657,7 @@
       b.classList.toggle('is-active', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    try { localStorage.setItem('dua-lang', next); } catch (e) {}
+    try { localStorage.setItem('dua-lang', next); } catch (e) { }
     if (mo) mo.takeRecords();          // discard the records we just caused
     busy = false;
   }
@@ -685,6 +689,6 @@
   });
 
   var saved = null;
-  try { saved = localStorage.getItem('dua-lang'); } catch (e) {}
+  try { saved = localStorage.getItem('dua-lang'); } catch (e) { }
   apply(saved === 'en' ? 'en' : 'sq');   // Albanian is the default
 })();

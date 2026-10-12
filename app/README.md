@@ -222,29 +222,117 @@ JavaScript, an API that is down, a slow or unexpected answer — every one of
 those leaves the prices in. The only path that shows a price is the one where
 the studio said to.
 
-## Memberships are linked at the desk
+## Booking
 
-There is nothing to apply for in the app. A client chooses a package at the
-studio and pays there, and the studio **links** it to her account with the
-**Link a membership** dialog — from the button on **Memberships**, or from
-**Link membership** on her row under **Clients**, which opens it with her
-already chosen. Pick the client (search by name, email or phone), the
-package and the dates — thirty days by default, and the end follows the start
-until it is set by hand — and it is `active` the moment it is saved. She can
-book straight away, and a notice tells her it is on and until when.
+### For the customer — `/book`
 
-Whatever she held before is marked `replaced`, and the dialog says so before
-it is saved. The server holds the same line: one active membership per client
-by a partial unique index, the client's row locked while it is written, the
-package must not be retired, the person must be a client, and a membership
-that would already be over is refused.
+**Book a class** on the website (nav, hero, offers, the closing section) opens
+`/book`: four steps — choose, schedule, details, confirmation. No account and
+no password: a full name and a phone number, an email if she wants the link
+by email. She is recognised by her phone (`users.phone_key`, normalised so
+`069…`, `+355 69…` and `00355 69…` are the same person), which is what stops
+an offer being claimed twice.
 
-Her own **Membership** screen is read only: what she has and how much of it is
-left, the packages on offer, and how to get one — at the desk.
+She chooses a single class, a monthly membership, a class package, or a live
+offer. The calendar shows only bookable classes, with the places left; a Duo
+needs two places. She may pick some classes now and schedule the rest later.
+The confirmation shows the reference (`DUA-7KQ3`), the summary and the price,
+says it is **pending** and paid at the studio, and gives her a **private
+link** (`/book?r=…`) — the key to her reservation: credits, booking the rest,
+cancelling. Only its SHA-256 digest is stored; the studio can make a new one
+(**Make a new link for her**), which retires the old.
 
-`POST /api/admin/memberships` is the whole of it. The old apply-and-confirm
-routes are gone; any `requested` rows a database still had from them were
-closed (`cancelled`) when this schema version applied.
+Nothing is ever marked paid by the system. Status (pending, confirmed,
+completed, cancelled) and payment (unpaid, paid) are separate and set by the
+studio.
+
+### Credits
+
+Each person on a reservation holds a package (`memberships`): credit lines
+copied from the package or offer at that moment, valid between two dates
+(from the opening date or today, for its validity). A booking spends a
+credit while it stands (`booked`), and keeps it spent if cancelled late
+(`late`) or missed (`attendance = 'noshow'`); cancelled in time or by the
+studio (`released`), it gives it back. Bonus classes and the desk's own
+additions are `credit_events`, so a balance can always be explained. A
+customer may hold several packages; a class is paid from the one that runs
+out first. Prices, discount and terms are written on the reservation
+(`unit_price`, `original_price`, `discount_pct`, `total_price`, `terms`),
+so a later price change alters nothing already booked.
+
+### The rules, enforced on the server
+
+All in `api/_lib/booking.js`, inside one transaction with the class rows and
+the package rows locked (`for update`), so simultaneous requests cannot
+overbook: capacity counts bookings plus blocked places, a Duo takes two
+places, a person cannot hold the same class twice (unique index), no class
+before the opening date or past the booking horizon, no class outside the
+package's dates, never more classes than credits. Offers are locked while
+their claims are counted, so the 30th and 31st Founding claim cannot both get
+in; one claim per person per offer is a unique index.
+
+**Cancellation:** up to and including `cancel_window_min` (30) minutes before
+the class, in Europe/Tirane time — a 09:00 class can be cancelled at 08:30,
+not 08:31. After that the Cancel button is gone and the server refuses it.
+The studio can still cancel and choose to give the credit back or keep it
+spent, and can give back a late cancellation or a no-show. A class the
+studio cancels always gives every credit back.
+
+**Time:** every "when does it start" and "what is today" is answered in
+Europe/Tirane (`shared/domain.js`: `at`, `todayIn`), whatever clock the
+server runs on.
+
+### The schedule — weekly template plus date overrides
+
+**Schedule → Weekly schedule** holds the week: time slots per weekday, each
+with capacity, class and who leads it, effective from a date (a new date
+starts a new version; earlier dates keep theirs). Classes are generated
+about 90 days ahead (`api/_lib/schedule.js`). **Review and save** first shows
+what would change — added, changed, removed — and lists every class that has
+bookings, which is never moved or deleted: it stays as booked, pinned.
+
+**Calendar → a class** edits that date only (the class is pinned and the
+template never touches it again): time, capacity, who leads it, blocked
+places, cancel. **One-off class** adds a class to a single date. **Closed
+days** cancels a whole day after a preview of who is affected — everyone is
+told and gets the class back — and reopening restores the classes.
+
+### Offers
+
+**Offers** in the admin: a *package deal* (its own classes and price — DUA
+DUO, with one or two people, attending together or not), a *discount* (a
+percentage on eligible packages — FOUNDING GIRLS, with a cap and new clients
+only), or *bonus classes* (BRING A BESTIE — granted to the referrer, the
+friend or both, when the friend buys, when the reservation is paid, when the
+friend first comes, or straight away). Each has dates, a cap, conditions in
+Albanian and English, and an active switch; only live ones appear on
+`/book`. Archiving never touches reservations already made. The three launch
+offers are written once by `api/_lib/catalogue.js` and are then the studio's.
+
+### The desk — Reservations
+
+List (search by name, phone or reference; filter by status, payment, offer)
+and day view (each class with its roster, phone numbers, payment, one-tap
+attendance, blocked places, **Add someone**). A reservation opens as a sheet:
+status, payment, credits per person (+/−), package dates, its classes with
+move, cancel, give back, attendance, and **Book classes**. **New
+reservation** makes one at the desk for a client or a new person, with any
+package or offer — the server applies the same rules.
+
+**Settings** holds the opening date, the cancellation window, how far ahead
+booking opens, and the capacity of a new slot.
+
+### Tests
+
+    DATABASE_URL=postgres://…/dua_test npm run test:booking
+
+Runs against a real Postgres (it refuses any database whose name does not
+contain `test`, because it wipes it): eight people at once for five places,
+blocked places, double booking, Duo seats and pricing, credits and booking
+later, the opening date, the 30-minute boundary, Founding's cap and
+duplicate claims, new-client checks, price snapshots, Bestie's bonus, the
+template against date overrides and booked classes, closed days, package
+dates, and moves.
 
 ## Employees
 

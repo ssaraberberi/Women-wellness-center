@@ -4,28 +4,44 @@
 import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money, typeName, typeShort,
          range, niceDate, relDay, shortDate, dayMonth, t, tw, icon, datatable, jobLabel, touch } from '../ui.js';
 import * as store from '../store.js';
-import { iso, addDays, startOfWeek, minutes, WEEK_ORDER } from '../../../shared/domain.js';
-import { spots, suggestInstructors, instructorFit, membershipOf, isExpired, planOf, balances } from '../../../shared/rules.js';
+import { iso, addDays, startOfWeek, minutes, WEEK_ORDER, todayIn, plusDays } from '../../../shared/domain.js';
+import { spots, suggestInstructors, instructorFit, membershipOf, isExpired, planOf, creditSummary, packagesOf, settingsOf } from '../../../shared/rules.js';
 import { shell } from './shell.js';
+import { reservationsView, reservationSheet, newReservation, offersView, offerEditor, settingsView,
+         templateView, closuresView } from './reservations.js';
 
 export function renderAdmin(ctx) {
   const { user, state, now, route } = ctx;
   const problems = state.issues || [];
+  const pending = (state.reservations || []).filter(r => r.status === 'pending').length;
   const nav = [
     ['#/', 'Dashboard', null, 'home'],
+    ['#/reservations', 'Reservations', pending || null, 'card'],
     ['#/schedule', 'Schedule', null, 'calendar'],
     ['#/clients', 'Clients', null, 'clients'],
-    ['#/memberships', 'Memberships', null, 'card'],
-    ['#/employees', 'Employees', null, 'staff'],
+    ['#/offers', 'Offers', null, 'spark'],
     ['#/packages', 'Packages', null, 'tag'],
+    ['#/employees', 'Employees', null, 'staff'],
+    ['#/settings', 'Settings', null, 'clock'],
     ['#/issues', 'Attention', problems.length || null, 'alert']
   ];
 
   let title = 'Dashboard', sub = '', body, actions = null;
   const add = (label, fn) => [el('button.btn.btn--sm', { type: 'button', onclick: fn }, [icon('plus'), el('span', { text: label })])];
-  if (route === 'schedule') {
-    title = 'Schedule'; sub = 'Create, move and staff the timetable';
-    actions = add('Add class', () => classEditor(ctx, null));
+  if (route === 'reservations' || route === 'memberships') {
+    title = 'Reservations'; sub = 'Every booking, its classes, its credits and its payment';
+    actions = add('New reservation', () => newReservation(ctx, null));
+    body = reservationsView(ctx);
+  } else if (route === 'offers') {
+    title = 'Offers'; sub = 'Live offers appear on the booking page while they are valid';
+    actions = add('Add offer', () => offerEditor(ctx, null));
+    body = offersView(ctx);
+  } else if (route === 'settings') {
+    title = 'Settings'; sub = 'The rules every booking follows';
+    body = settingsView(ctx);
+  } else if (route === 'schedule') {
+    title = 'Schedule'; sub = 'The weekly schedule, and changes for single dates';
+    actions = schedTab === 'calendar' ? add('One-off class', () => classEditor(ctx, null)) : null;
     body = scheduleView(ctx);
   } else if (route === 'employees') {
     title = 'Employees'; sub = 'Instructors and body therapists, and what each of them takes';
@@ -35,17 +51,13 @@ export function renderAdmin(ctx) {
     title = 'Packages'; sub = 'What the studio sells, and what each one lets you book';
     actions = add('Add package', () => planEditor(ctx, null));
     body = packagesView(ctx);
-  } else if (route === 'memberships') {
-    title = 'Memberships'; sub = 'Linked here once a client has paid at the studio';
-    actions = add('Link a membership', () => linkDialog(ctx, null));
-    body = membershipsView(ctx);
   } else if (route === 'clients') {
     title = 'Clients'; sub = t(state.clients.length === 1 ? '%s client' : '%s clients', state.clients.length);
     body = clientsView(ctx);
   } else if (route === 'issues') {
     title = 'Needs attention'; sub = 'Things that were valid when they were set, and are not now';
     body = issuesView(ctx, problems);
-  } else { sub = niceDate(iso(now)); body = dashboard(ctx, problems); }
+  } else { sub = niceDate(todayIn(now)); body = dashboard(ctx, problems); }
 
   return shell({ user, route, nav, title, sub, actions, body, notices: state.notices });
 }
@@ -74,23 +86,27 @@ const tile = (big, label, note, href) => el(href ? 'a.tile' : 'div.tile', href ?
 /* ---------- dashboard ---------- */
 function dashboard(ctx, problems) {
   const { state, now } = ctx;
-  const today = iso(now);
-  const live = state.classes.filter(s => !s.cancelled);
+  const today = todayIn(now);
+  const st = settingsOf(state);
   const todays = state.classes.filter(s => s.date === today).sort((a, b) => a.start.localeCompare(b.start));
-  const upcoming = live.filter(s => s.date > today && s.date <= iso(addDays(now, 7)));
   const activeMems = state.memberships.filter(m => m.status === 'active' && !isExpired(m, now));
   const liveToday = todays.filter(s => !s.cancelled);
   const seatsToday = liveToday.reduce((a, s) => a + spots(state, s).taken, 0);
   const capToday = liveToday.reduce((a, s) => a + s.capacity, 0);
-  const noMembership = state.clients.filter(c => { const m = membershipOf(state, c.id); return !m || isExpired(m, now); }).length;
+  const res = state.reservations || [];
+  const pending = res.filter(r => r.status === 'pending').length;
+  const unpaid = res.filter(r => r.payment === 'unpaid' && r.status !== 'cancelled').length;
+  const openIn = Math.round((new Date(st.openingDate + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
 
   return frag([
+    openIn > 0 ? el('div.notice', { style: 'margin-bottom:16px' }, [el('span', { text: t(openIn === 1 ? 'The studio opens tomorrow, %s.' : 'The studio opens in %s days, on %s.', openIn === 1 ? niceDate(st.openingDate) : openIn, niceDate(st.openingDate)) }),
+      el('a.linkish', { href: '#/settings', text: 'Change' })]) : null,
     el('div.tiles', null, [
-      tile(String(liveToday.length), "Today's classes", capToday ? t('%s of %s seats booked', seatsToday, capToday) : null, '#/schedule'),
-      tile(String(upcoming.length), 'Next 7 days', null, '#/schedule'),
-      tile(String(activeMems.length), 'Active memberships', null, '#/memberships'),
-      tile(String(state.clients.length), 'Clients', noMembership ? t('%s without a membership', noMembership) : null, '#/clients'),
-      tile(String(state.instructors.filter(i => i.active).length), 'Employees', null, '#/employees'),
+      tile(String(liveToday.length), "Today's classes", capToday ? t('%s of %s seats booked', seatsToday, capToday) : null, '#/reservations'),
+      tile(String(pending), 'Waiting to confirm', null, '#/reservations'),
+      tile(String(unpaid), 'Not paid yet', null, '#/reservations'),
+      tile(String(activeMems.length), 'Active packages', null, '#/reservations'),
+      tile(String(state.clients.length), 'Clients', null, '#/clients'),
       tile(String(problems.length), 'Needs attention', problems.length ? null : t('All in order'), '#/issues')
     ]),
     mailTrouble(state),
@@ -133,10 +149,22 @@ function adminSlot(ctx, s) {
    list, and a month is four weeks of the same. */
 let schedMode = 'week';
 let schedAnchor = null;
+let schedTab = 'calendar';
 
+/* Three ways into one timetable: the dates as they are, the week they are
+   made from, and the days the studio is closed. */
 function scheduleView(ctx) {
+  const tabs = el('div.switchbar', { role: 'tablist', 'aria-label': 'Schedule', style: 'margin-bottom:18px' },
+    [['calendar', 'Calendar'], ['template', 'Weekly schedule'], ['closed', 'Closed days']].map(([k, label]) =>
+      el('button', { type: 'button', role: 'tab', class: schedTab === k ? 'is-on' : null, 'aria-selected': schedTab === k ? 'true' : 'false',
+        text: label, onclick: () => { schedTab = k; ctx.go(location.hash); } })));
+  const body = schedTab === 'template' ? templateView(ctx) : schedTab === 'closed' ? closuresView(ctx) : calendarView(ctx);
+  return frag([tabs, body]);
+}
+
+function calendarView(ctx) {
   const { state, now } = ctx;
-  if (!schedAnchor) schedAnchor = iso(now);
+  if (!schedAnchor) schedAnchor = todayIn(now);
   const anchor = new Date(schedAnchor + 'T00:00:00');
   const step = schedMode === 'day' ? 1 : schedMode === 'week' ? 7 : 28;
   const move = n => { schedAnchor = iso(addDays(anchor, n)); ctx.go(location.hash); };
@@ -152,7 +180,7 @@ function scheduleView(ctx) {
     el('div.toolbar__nav', null, [
       el('span.toolbar__label', { text: label }),
       el('button.iconbtn', { type: 'button', 'aria-label': 'Previous', onclick: () => move(-step) }, icon('left')),
-      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Today', onclick: () => { schedAnchor = iso(now); ctx.go(location.hash); } }),
+      el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Today', onclick: () => { schedAnchor = todayIn(now); ctx.go(location.hash); } }),
       el('button.iconbtn', { type: 'button', 'aria-label': 'Next', onclick: () => move(step) }, icon('right'))
     ])
   ]);
@@ -169,7 +197,8 @@ function scheduleView(ctx) {
         const date = iso(addDays(from, w * 7 + d));
         const list = state.classes.filter(s => s.date === date).sort((a, b) => a.start.localeCompare(b.start));
         const [wd, n] = shortDate(date).split(' ');
-        return el('div', { class: 'week__day' + (date === iso(now) ? ' is-today' : '') }, [
+        const closed = (state.closures || []).some(c => c.date === date);
+        return el('div', { class: 'week__day' + (date === todayIn(now) ? ' is-today' : '') + (closed ? ' is-closed' : '') }, [
           el('p.week__name', null, [wd, el('b', { text: n })]),
           el('div.week__list', null, list.length ? list.map(s => {
             const cap = spots(state, s);
@@ -181,8 +210,8 @@ function scheduleView(ctx) {
               class: 'mini mini--' + s.typeId + (cap.full ? ' mini--full' : '') + (s.cancelled ? ' mini--off' : '') + (warn ? ' mini--warn' : ''),
               onclick: () => s.cancelled ? rosterDialog(ctx, s) : classEditor(ctx, s)
             }, [
-              el('b', { text: s.start + ' · ' + typeShort(s.typeId) }),
-              el('span', { text: (i ? i.name.split(' ')[0] : t('⚠ unassigned')) + ' · ' + cap.taken + '/' + cap.capacity })
+              el('b', { text: s.start + ' · ' + typeShort(s.typeId) + (s.pinned && s.slotId == null ? ' ✦' : '') }),
+              el('span', { text: (i ? i.name.split(' ')[0] : t('⚠ unassigned')) + ' · ' + cap.taken + '/' + cap.capacity + (cap.blocked ? ' +' + cap.blocked : '') })
             ]);
           }) : [el('span.week__none', { text: '—' })])
         ]);
@@ -201,7 +230,7 @@ async function rosterDialog(ctx, s) {
     el('p.muted', { text: niceDate(s.date) + ' · ' + t('%s of %s booked', booked.length, s.capacity) }),
     booked.length
       ? el('div.sheetnav', { style: 'margin-top:10px' }, booked.map(r => el('div', { style: 'display:flex;align-items:center;gap:12px;min-height:56px;border-top:1px solid var(--line-soft)' }, [
-          el('div', { style: 'flex:1;min-width:0' }, [el('div', { text: r.name }), el('div.cell-sub', { text: r.email })]),
+          el('div', { style: 'flex:1;min-width:0' }, [el('div', { text: r.name }), el('div.cell-sub', { text: r.phone || r.email || '' })]),
           chip('Booked', 'good')
         ])))
       : el('p.empty', { text: 'Nobody yet.' }),
@@ -247,12 +276,14 @@ function assignDialog(ctx, s) {
 function classEditor(ctx, s) {
   const { state, now } = ctx;
   const editing = !!s;
-  const v = s || { typeId: (state.classTypes[0] || {}).id || 'reformer', date: iso(now), start: '18:00', end: '19:00', capacity: 10, instructorId: null };
+  const st = settingsOf(state);
+  const v = s || { typeId: (state.classTypes[0] || {}).id || 'reformer', date: todayIn(now) > st.openingDate ? todayIn(now) : st.openingDate,
+                   start: '11:00', end: '12:00', capacity: st.defaultCapacity, instructorId: null, blocked: 0 };
+  const booked = s ? spots(state, s).taken : 0;
   const err = el('p.notice.notice--bad', { hidden: true });
   const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
 
-  const form = el('form', { novalidate: true, onsubmit: async e => {
-    e.preventDefault();
+  const submit = async (confirmed) => {
     err.hidden = true;
     const f = new FormData(form);
     const data = {
@@ -262,8 +293,10 @@ function classEditor(ctx, s) {
       capacity: Number(f.get('capacity')),
       instructorId: f.get('instructorId') || null
     };
+    const blocked = Number(f.get('blocked') || 0);
     if (!data.date || !data.start || !data.end) return fail('Fill in the date and both times');
     if (!Number.isInteger(data.capacity) || data.capacity < 1) return fail('Capacity is at least one place');
+    if (!Number.isInteger(blocked) || blocked < 0) return fail('Blocked places is a whole number');
     /* Checked here so the answer is instant, and again on the server,
        which is the one that counts. */
     if (minutes(data.start) >= minutes(data.end)) return fail('The class must end after it starts');
@@ -272,16 +305,34 @@ function classEditor(ctx, s) {
       const fit = instructorFit(state, i, { ...data, id: s ? s.id : 'new', cancelled: false });
       if (fit.status !== 'recommended') return fail(t('%s — %s', i.name, t(fit.why)));
     }
-    const booked = s ? spots(state, s).taken : 0;
-    if (data.capacity < booked) return fail(t('%s people are already booked; capacity cannot go below that', booked));
+    if (data.capacity < booked + blocked) return fail(t('%s people are already booked; capacity cannot go below that', booked));
+    /* Moving a class people are booked into is never done quietly. */
+    const moved = s && (data.date !== s.date || data.start !== s.start || data.end !== s.end);
+    if (moved && booked && !confirmed) {
+      warn.hidden = false;
+      warn.textContent = t(booked === 1 ? '%s person is booked into this class. She will be told about the new time. Press save again to move it.'
+                                        : '%s people are booked into this class. Each one will be told about the new time. Press save again to move it.', booked);
+      warned = true;
+      return;
+    }
     save.disabled = true;
-    try { await store.saveClass(data); closeModal(); toast(editing ? 'Class updated' : 'Class added'); }
-    catch (ex) { save.disabled = false; fail(ex.message); }
-  } }, [
+    try {
+      const out = await store.saveClass(data);
+      const id = (out && out.id) || (s && s.id);
+      if (id && blocked !== ((s && s.blocked) || 0)) await store.blockPlaces(id, blocked);
+      closeModal(); toast(editing ? 'Class updated for this date' : 'Class added');
+    } catch (ex) { save.disabled = false; fail(ex.message); }
+  };
+  let warned = false;
+  const warn = el('p.notice.notice--warn', { hidden: true });
+  const form = el('form', { novalidate: true, onsubmit: e => { e.preventDefault(); submit(warned); } }, [
+    el('p.notice', { style: 'margin-bottom:16px', text: editing
+      ? (s.slotId != null ? 'This change applies to this date only. The weekly schedule stays as it is for every other week.' : 'A one-off class on this date.')
+      : 'A one-off class on this date only. For a class every week, use the Weekly schedule.' }),
     field('Class', select('typeId', state.classTypes.map(c => ({ value: c.id, label: c.name })), v.typeId)),
     el('div.row.row--keep', null, [
       field('Date', input('date', { type: 'date', value: v.date, required: true })),
-      field('Places', input('capacity', { type: 'number', inputmode: 'numeric', min: 1, max: 40, value: v.capacity, required: true }))
+      field('Places', input('capacity', { type: 'number', inputmode: 'numeric', min: 1, max: 60, value: v.capacity, required: true }))
     ]),
     el('div.row.row--keep', null, [
       field('Starts', input('start', { type: 'time', value: v.start, required: true })),
@@ -291,7 +342,9 @@ function classEditor(ctx, s) {
       [{ value: '', label: 'Decide later' }].concat(
         state.instructors.filter(i => i.active).map(i => ({ value: i.id, label: i.name + ' · ' + jobLabel(i.job) }))), v.instructorId || ''),
       'Checked against qualifications, availability and clashes when you save.'),
-    err
+    field('Blocked places', input('blocked', { type: 'number', inputmode: 'numeric', min: 0, value: v.blocked || 0 }),
+      booked ? t('%s booked. Blocked places are held back from booking.', booked) : 'Held back from booking — a reformer out of use, a private guest.'),
+    warn, err
   ]);
 
   const save = el('button.btn', { type: 'button', text: editing ? 'Save changes' : 'Add class', onclick: () => form.requestSubmit() });
@@ -456,9 +509,10 @@ function packagesView(ctx) {
     el('p.muted', { text: 'Off, the website and a client signed in here both list every package and what it includes, and say the price is coming soon. The price is not sent to them at all. You always see it.' })
   ]);
 
+  const KIND = { single: 'Single class', membership: 'Monthly membership', package: 'Class package' };
   const line = a => a.limit == null
-    ? t('Unlimited %s per %s', a.types.map(typeName).join(t(' or ')), tw(a.per))
-    : t('%s × %s per %s', a.limit, a.types.map(typeName).join(t(' or ')), tw(a.per));
+    ? t('Unlimited %s', a.types.map(typeShort).join(t(' or ')))
+    : t('%s × %s', a.limit, a.types.map(typeShort).join(t(' or ')));
 
   return el('div', null, [toggle, datatable([
     { label: 'Package' }, { label: 'Price', cls: 'right' }, { label: 'What it allows' },
@@ -469,7 +523,8 @@ function packagesView(ctx) {
       [el('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [el('b', { text: p.name }), p.featured ? chip('Most popular', 'good') : null]),
        p.blurb ? el('div.cell-sub', { text: p.blurb }) : null],
       el('span.num', { text: money(p.price) }),
-      el('span.small.muted', { text: p.allowances.map(line).join(' · ') }),
+      el('span.small.muted', { text: t(KIND[p.kind] || 'Monthly membership') + ' · ' + p.allowances.map(line).join(' + ') + ' · ' +
+        t('valid %s days', p.validityDays) + (p.bookable === false ? ' · ' + t('not online') : '') }),
       el('span.num', { text: String(on) }),
       el('div.rowend', null, [
         el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => planEditor(ctx, p) }),
@@ -496,7 +551,7 @@ function planEditor(ctx, plan) {
         type: 'number', inputmode: 'numeric', min: '1', step: '1', placeholder: 'no limit',
         value: a && a.limit != null ? String(a.limit) : ''
       })),
-      field('Per', select('per', [{ value: 'month', label: tw('month') }, { value: 'week', label: tw('week') }], a ? a.per : 'month')),
+      el('span'),
       el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove',
         onclick: () => { row.remove(); if (!rows.children.length) addRow(null); } })
     ]);
@@ -516,9 +571,11 @@ function planEditor(ctx, plan) {
     const allowances = [...rows.children].map(row => ({
       types: [...row.querySelectorAll('.allow__types input:checked')].map(i => i.value),
       limit: row.querySelector('[name=limit]').value,
-      per: row.querySelector('[name=per]').value
+      per: 'month'
     }));
     if (allowances.some(a => !a.types.length)) return fail('Every line needs at least one class type');
+    const validityDays = Number(f.get('validityDays'));
+    if (!Number.isInteger(validityDays) || validityDays < 1) return fail('Valid for a whole number of days');
     save.disabled = true;
     try {
       await store.savePlan({
@@ -527,6 +584,7 @@ function planEditor(ctx, plan) {
         tagline: f.get('tagline'), rhythm: f.get('rhythm'),
         taglineEn: f.get('taglineEn'), rhythmEn: f.get('rhythmEn'), blurbEn: f.get('blurbEn'),
         sort: f.get('sort'), featured: form.querySelector('[name=featured]').checked,
+        kind: f.get('kind'), validityDays, bookable: form.querySelector('[name=bookable]').checked,
         allowances
       });
       closeModal();
@@ -540,11 +598,21 @@ function planEditor(ctx, plan) {
       field('Order', input('sort', { type: 'number', inputmode: 'numeric', step: '1', value: plan && plan.sort ? String(plan.sort) : '', placeholder: '0' }),
         'Lowest first')
     ]),
+    el('div.row.row--keep', null, [
+      field('Kind', select('kind', [{ value: 'single', label: t('Single class') }, { value: 'membership', label: t('Monthly membership') },
+                                    { value: 'package', label: t('Class package') }], plan ? plan.kind : 'membership')),
+      field('Valid for (days)', input('validityDays', { type: 'number', inputmode: 'numeric', min: 1, value: plan ? plan.validityDays : 30 }),
+        'Counted from the day it starts')
+    ]),
     el('label.check', null, [
       el('input', { type: 'checkbox', name: 'featured', checked: !!(plan && plan.featured) }),
       el('span', { text: 'Show as the most popular package' })
     ]),
-    el('p.eyebrow.formsection', { text: 'What it allows' }),
+    el('label.check', null, [
+      el('input', { type: 'checkbox', name: 'bookable', checked: !plan || plan.bookable !== false }),
+      el('span', { text: 'Can be booked on the website' })
+    ]),
+    el('p.eyebrow.formsection', { text: 'Classes it includes' }),
     rows,
     el('button.btn.btn--ghost.btn--sm', { type: 'button', onclick: () => addRow(null) }, [icon('plus'), el('span', { text: 'Add a line' })]),
     el('p.eyebrow.formsection', { text: 'How it reads on the website' }),
@@ -591,197 +659,6 @@ function retirePlan(ctx, plan, on) {
   ]);
 }
 
-/* ---------- memberships ---------- */
-function statusChip(m, now) {
-  if (m.status === 'active' && !isExpired(m, now)) return chip('Active', 'good');
-  if (m.status === 'active') return chip('Expired', 'warn');
-  return chip(m.status, m.status === 'cancelled' ? 'bad' : '');
-}
-
-function membershipsView(ctx) {
-  const { state, now } = ctx;
-  /* The live ones first, soonest to run out at the top: that is the list
-     somebody at the desk is working through. History underneath. */
-  const live = state.memberships.filter(m => m.status === 'active')
-    .sort((a, b) => a.end.localeCompare(b.end));
-  const past = state.memberships.filter(m => m.status !== 'active' && m.status !== 'requested');
-
-  const rowsFor = list => list.map(m => {
-    const c = state.clients.find(x => x.id === m.clientId);
-    const plan = planOf(state, m.planId);
-    const use = c && m.status === 'active' && !isExpired(m, now) ? balances(state, c.id, now) : [];
-    return [
-      [el('div', { text: c ? c.name : t('Unknown client') }), c ? el('div.cell-sub', { text: c.phone || c.email }) : null],
-      plan ? plan.name : m.planId,
-      el('span.small.muted', { text: use.map(b => b.label + ': ' + (b.unlimited ? '∞' : b.used + '/' + b.allowance.limit)).join(' · ') || '—' }),
-      el('span.num', { text: dayMonth(m.start) + ' – ' + dayMonth(m.end) }),
-      statusChip(m, now),
-      m.status === 'active' ? el('div.rowend', null, [
-        el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Adjust', onclick: () => membershipEditor(ctx, m, c) })
-      ]) : null
-    ];
-  });
-  const cols = [
-    { label: 'Client' }, { label: 'Package' }, { label: 'Used this period' },
-    { label: 'Runs' }, { label: 'Status', cls: 'right' }, { label: '', cls: 'right' }
-  ];
-
-  return frag([
-    el('div.howto', { style: 'margin:0 0 22px' }, [
-      el('b', { text: 'Paid at the desk? Link it here.' }),
-      el('span', { text: 'Pick the client and the package. It is active straight away and she can book from her phone. If she already has one, the new one replaces it.' })
-    ]),
-    datatable(cols, rowsFor(live), 'Nobody has a membership yet. Link the first one once a client has paid.'),
-    past.length ? el('h2.section-title', { text: 'History' }) : null,
-    past.length ? datatable(cols, rowsFor(past.slice(0, 40))) : null
-  ]);
-}
-
-/* ---------- linking a membership ----------
-   The one way a membership comes into being. Paid at the desk, linked
-   here, active the moment it is saved. Opened from Memberships with the
-   client still to choose, or from a client's own row with her chosen. */
-function linkDialog(ctx, preset) {
-  const { state, now } = ctx;
-  const plans = state.plans || [];
-  if (!plans.length) {
-    modal('Link a membership', el('p', { text: 'There are no packages yet. Add one under Packages first, then link it here.' }), [
-      el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
-      el('a.btn', { href: '#/packages', text: 'Go to Packages', onclick: closeModal })
-    ]);
-    return;
-  }
-
-  let client = preset || null;
-  const err = el('p.notice.notice--bad', { hidden: true });
-  const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
-  const who = el('div');
-  const replaces = el('p.notice', { hidden: true });
-
-  const showReplaces = () => {
-    const m = client ? membershipOf(state, client.id) : null;
-    const live = m && m.status === 'active' && !isExpired(m, now);
-    replaces.hidden = !live;
-    if (live) {
-      const p = planOf(state, m.planId);
-      replaces.textContent = t('This replaces %s, which runs until %s.', p ? p.name : m.planId, niceDate(m.end));
-    }
-  };
-
-  const avatar = name => el('span.avatar', { 'aria-hidden': 'true',
-    text: String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase() });
-
-  function drawWho() {
-    who.textContent = '';
-    showReplaces();
-    if (client) {
-      who.appendChild(el('div.picked', null, [
-        avatar(client.name),
-        el('div', null, [el('b', { text: client.name }), el('span', { text: [client.phone, client.email].filter(Boolean).join(' · ') })]),
-        preset ? null : el('button.linkish', { type: 'button', text: 'Change', onclick: () => { client = null; drawWho(); } })
-      ]));
-      return;
-    }
-    const list = el('div.picker__list', { role: 'listbox', 'aria-label': 'Clients' });
-    const search = el('input', { type: 'search', placeholder: 'Search by name, email or phone', 'aria-label': 'Find a client',
-      autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search' });
-    const fill = () => {
-      const q = search.value.trim().toLowerCase();
-      const hits = state.clients.filter(c => !q || [c.name, c.email, c.phone].some(v => String(v || '').toLowerCase().includes(q))).slice(0, 60);
-      list.textContent = '';
-      if (!hits.length) { list.appendChild(el('p.picker__none', { text: state.clients.length ? 'No client matches that.' : 'No clients have an account yet.' })); return; }
-      hits.forEach(c => {
-        const m = membershipOf(state, c.id);
-        const has = m && m.status === 'active' && !isExpired(m, now) ? planOf(state, m.planId) : null;
-        list.appendChild(el('button', { type: 'button', role: 'option', onclick: () => { client = c; drawWho(); } }, [
-          avatar(c.name),
-          el('div', null, [el('b', { text: c.name }), el('span', { text: [c.phone, c.email].filter(Boolean).join(' · ') })]),
-          has ? chip(has.name, 'good') : null
-        ]));
-      });
-    };
-    search.addEventListener('input', fill);
-    fill();
-    who.appendChild(el('div.picker', null, [el('div.picker__search', null, [icon('search'), search]), list]));
-    if (!touch()) setTimeout(() => search.focus(), 0);
-  }
-  drawWho();
-
-  /* Thirty days by default, and the end follows the start until somebody
-     sets it by hand. */
-  const start = input('start', { type: 'date', value: iso(now), required: true });
-  const end = input('end', { type: 'date', value: iso(addDays(now, 30)), required: true });
-  let endTouched = false;
-  end.addEventListener('input', () => { endTouched = true; });
-  start.addEventListener('input', () => {
-    if (endTouched || !start.value) return;
-    end.value = iso(addDays(new Date(start.value + 'T00:00:00'), 30));
-  });
-
-  const live = plans.filter(p => p);
-  const planSel = select('planId', live.map(p => ({ value: p.id, label: p.name + (p.price != null ? ' · ' + money(p.price) : '') })),
-    (live.find(p => p.featured) || live[0]).id);
-
-  const form = el('form', { novalidate: true, onsubmit: async e => {
-    e.preventDefault();
-    err.hidden = true;
-    if (!client) return fail('Pick a client first');
-    if (!start.value || !end.value) return fail('Pick a start and an end date');
-    if (end.value < start.value) return fail('The membership has to end after it starts');
-    if (end.value < iso(now)) return fail('That membership would already be over');
-    save.disabled = true;
-    try {
-      await store.linkMembership({ clientId: client.id, planId: planSel.value, start: start.value, end: end.value });
-      const p = planOf(state, planSel.value);
-      closeModal();
-      toast(t('%s is now on %s', client.name, p ? p.name : ''));
-    } catch (ex) { save.disabled = false; fail(ex.message); }
-  } }, [
-    el('div.field', null, [el('span', { text: 'Client' }), who]),
-    field('Package', planSel),
-    el('div.row.row--keep', null, [field('Starts', start), field('Ends', end)]),
-    replaces,
-    el('p.muted.small', { style: 'margin-top:4px', text: 'Only link it once she has paid. It is active from the start date and she can book straight away.' }),
-    err
-  ]);
-
-  const save = el('button.btn', { type: 'button', text: 'Link membership', onclick: () => form.requestSubmit() });
-  modal(preset ? t('Membership for %s', preset.name) : 'Link a membership', form,
-    [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save]);
-}
-
-function membershipEditor(ctx, m, c) {
-  const plans = ctx.state.plans;
-  const err = el('p.notice.notice--bad', { hidden: true });
-  const form = el('form', { novalidate: true, onsubmit: async e => {
-    e.preventDefault();
-    const f = new FormData(form);
-    const end = String(f.get('end') || '');
-    if (!end || end < m.start) { err.textContent = t('The membership has to end after it starts'); err.hidden = false; return; }
-    save.disabled = true;
-    try {
-      await store.updateMembership(m.id, { planId: f.get('planId'), end, status: f.get('status') });
-      closeModal();
-      toast('Membership updated — the client sees it now');
-    } catch (ex) { save.disabled = false; err.textContent = t(ex.message); err.hidden = false; }
-  } }, [
-    field('Package', select('planId', plans.some(p => p.id === m.planId) ? plans.map(p => ({ value: p.id, label: p.name }))
-      : [{ value: m.planId, label: m.planId }].concat(plans.map(p => ({ value: p.id, label: p.name }))), m.planId)),
-    el('div.row.row--keep', null, [
-      field('Ends', input('end', { type: 'date', value: m.end, min: m.start, required: true })),
-      field('Status', select('status', [
-        { value: 'active', label: t('Active') }, { value: 'cancelled', label: t('Cancelled') }
-      ], m.status))
-    ]),
-    el('p.muted.small', { text: 'Extending the date or changing the package takes effect immediately, including for classes already booked.' }),
-    err
-  ]);
-  const save = el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() });
-  modal(t('Adjust %s', c ? c.name : t('membership')), form, [
-    el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save
-  ]);
-}
-
 /* ---------- clients ---------- */
 /* A reset at the desk: a new password, shown once, read out, and gone
    from the screen when the dialog closes. Everything that account was
@@ -810,36 +687,38 @@ function resetFor(ctx, who) {
 let clientQuery = '';
 function clientsView(ctx) {
   const { state, now } = ctx;
-  const today = iso(now);
+  const today = todayIn(now);
   const table = el('div');
 
   const draw = () => {
     const q = clientQuery.trim().toLowerCase();
-    const list = state.clients.filter(c => !q || [c.name, c.email, c.phone].some(v => String(v || '').toLowerCase().includes(q)));
+    const digits = q.replace(/\D+/g, '');
+    const list = state.clients.filter(c => !q || [c.name, c.email].some(v => String(v || '').toLowerCase().includes(q)) ||
+      (digits.length >= 3 && String(c.phone || '').replace(/\D+/g, '').includes(digits)));
     table.textContent = '';
     table.appendChild(datatable([
-      { label: 'Client' }, { label: 'Membership' }, { label: 'Upcoming', cls: 'right' }, { label: 'Attended', cls: 'right' }, { label: '', cls: 'right' }
+      { label: 'Client' }, { label: 'Packages' }, { label: 'Upcoming', cls: 'right' }, { label: 'Attended', cls: 'right' }, { label: '', cls: 'right' }
     ], list.map(c => {
-      const m = membershipOf(state, c.id);
-      const live = m && m.status === 'active' && !isExpired(m, now);
-      const plan = m ? planOf(state, m.planId) : null;
+      const pkgs = packagesOf(state, c.id, now);
       const bk = state.bookings.filter(b => b.clientId === c.id && b.status === 'booked');
       const dateOf = b => (state.classes.find(s => s.id === b.classId) || {}).date;
       const up = bk.filter(b => dateOf(b) >= today).length;
-      const done = bk.filter(b => dateOf(b) && dateOf(b) < today).length;
+      const done = bk.filter(b => b.attendance === 'attended').length;
       return [
         [el('div', { text: c.name }), el('div.cell-sub', { text: [c.phone, c.email].filter(Boolean).join(' · ') })],
-        live ? el('div', null, [chip(plan ? plan.name : m.planId, 'good'), el('div.cell-sub', { text: t('until %s', dayMonth(m.end)) })])
-             : chip(m && m.status === 'active' ? 'Expired' : 'None', 'warn'),
+        pkgs.length ? el('div.chips', null, pkgs.map(m => {
+          const s = creditSummary(state, m);
+          return chip(m.title + ' · ' + (s.unlimited ? '∞' : t('%s left', s.left)), 'good');
+        })) : chip('None', 'warn'),
         el('span.num', { text: String(up) }),
         el('span.num', { text: String(done) }),
         el('div.rowend', null, [
-          el('button.btn.btn--sm' + (live ? '.btn--ghost' : ''), { type: 'button', text: live ? 'Change membership' : 'Link membership',
-            onclick: () => linkDialog(ctx, c) }),
+          el('button.btn.btn--sm' + (pkgs.length ? '.btn--ghost' : ''), { type: 'button', text: 'New reservation',
+            onclick: () => newReservation(ctx, { client: c }) }),
           el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password', onclick: () => resetFor(ctx, c) })
         ])
       ];
-    }), state.clients.length ? 'No client matches that.' : 'No clients yet. They appear here as soon as they create an account in the app.'));
+    }), state.clients.length ? 'No client matches that.' : 'No clients yet. They appear here when they reserve on the website or create an account.'));
   };
 
   const search = el('input.input', { type: 'search', value: clientQuery, placeholder: 'Search by name, email or phone',
@@ -853,25 +732,23 @@ function clientsView(ctx) {
 /* rules.js hands over the pieces; the words are this screen's job. */
 function problemText(p) {
   if (p.kind === 'unassigned') return t('Nobody assigned');
-  if (p.kind === 'expired-booked')
-    return t(p.count > 1 ? 'Membership expired with %s classes still booked'
-                         : 'Membership expired with %s class still booked', p.count);
+  if (p.kind === 'overfull') return t('%s booked, more than the places it has now', p.count);
+  if (p.kind === 'outside-package') return t('Booked outside the dates of her package');
   return t('%s — %s', p.who, t(p.why));
 }
 
 function issuesView(ctx, problems) {
   if (!problems.length) return el('p.empty', { text: 'Nothing to fix. Every class has someone qualified and free.' });
   return el('div.grid', null, problems.map(p => {
-    if (p.klass) return el('div', { class: 'slot slot--' + p.klass.typeId }, [
+    const c = p.booking && ctx.state.clients.find(x => x.id === p.booking.clientId);
+    return el('div', { class: 'slot slot--' + p.klass.typeId }, [
       el('span.slot__time.num', { text: shortDate(p.klass.date) + ' · ' + range(p.klass) }),
       el('span.slot__name', null, [dot(p.klass.typeId), typeName(p.klass.typeId)]),
-      el('span.slot__who', { style: 'white-space:normal', text: problemText(p) }),
-      el('span.slot__act', null, el('button.btn.btn--sm', { type: 'button', text: 'Fix', onclick: () => assignDialog(ctx, p.klass) }))
-    ]);
-    const c = p.membership && ctx.state.clients.find(x => x.id === p.membership.clientId);
-    return el('div.notice.notice--warn', null, [
-      el('span', { text: (c ? c.name + ' — ' : '') + problemText(p) }),
-      c ? el('button.linkish', { type: 'button', text: 'Link membership', onclick: () => linkDialog(ctx, c) }) : null
+      el('span.slot__who', { style: 'white-space:normal', text: (c ? c.name + ' — ' : '') + problemText(p) }),
+      el('span.slot__act', null, p.booking && p.booking.reservationId
+        ? el('button.btn.btn--sm', { type: 'button', text: 'Open', onclick: () => reservationSheet(ctx, p.booking.reservationId) })
+        : p.kind === 'overfull' ? el('button.btn.btn--sm', { type: 'button', text: 'Edit', onclick: () => classEditor(ctx, p.klass) })
+        : el('button.btn.btn--sm', { type: 'button', text: 'Fix', onclick: () => assignDialog(ctx, p.klass) }))
     ]);
   }));
 }

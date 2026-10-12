@@ -37,7 +37,7 @@ export function renderAuth({ go, start }) {
     formHost.appendChild(tab === 'in' ? signInForm() : tab === 'up' ? signUpForm() : forgotForm());
   }
 
-  const busy = (btn, on, label) => { btn.disabled = on; btn.textContent = on ? 'One moment…' : label; };
+  const busy = (btn, on, label) => { btn.disabled = on; btn.textContent = t(on ? 'One moment…' : label); };
 
   function signInForm() {
     const err = el('p.notice.notice--bad', { hidden: true });

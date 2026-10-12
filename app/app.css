@@ -460,6 +460,88 @@ button.slot__who{min-height:36px;border:0;background:none;padding:0;cursor:point
 .formsection{margin:24px 0 10px}
 details.en summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--wine);font-size:14px}
 
+/* ---------- the desk: reservations, a day's classes ---------- */
+.filters{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.select{display:block;width:100%}
+.desk{background:var(--blush-lift);border:1px solid var(--line-soft);border-left:3px solid var(--wine);border-radius:var(--r-sm);padding:14px 16px}
+.desk--off{opacity:.6}
+.desk__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.desk__time{display:block;font-size:16px;font-weight:400}
+.desk__what{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--ink-soft);margin-top:2px}
+.desk__cap{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.desk__list{margin-top:10px;border-top:1px solid var(--line-soft)}
+.desk__list li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);min-height:56px}
+.desk__list .avatar{width:34px;height:34px;font-size:12px;background:var(--petal-deep);color:var(--wine)}
+.desk__who{flex:1;min-width:0}
+.desk__who b{display:block;font-weight:400;font-size:15px}
+.desk__who span{display:block;font-size:12.5px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.desk__foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+/* Came / did not come: two round buttons, one tap each. */
+.attn{display:inline-flex;gap:6px}
+.attn button{
+  display:grid;place-items:center;width:38px;height:38px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--line);background:var(--blush-lift);color:var(--ink-soft);
+}
+.attn button .ico{width:18px;height:18px}
+.attn button.is-good{background:var(--good);border-color:var(--good);color:#fff}
+.attn button.is-bad{background:var(--bad);border-color:var(--bad);color:#fff}
+
+/* − n + */
+.stepper{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:3px;background:var(--blush-lift)}
+.stepper button{width:34px;height:34px;border-radius:50%;border:0;background:var(--petal);cursor:pointer;font-size:17px;line-height:1;color:var(--plum)}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.stepper span{min-width:76px;text-align:center;font-size:12.5px;color:var(--ink-soft)}
+
+.segbtns{display:flex;flex-wrap:wrap;gap:6px}
+.segbtns button{
+  min-height:40px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--blush-lift);
+  cursor:pointer;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+}
+.segbtns button.is-on{background:var(--wine);border-color:var(--wine);color:var(--blush)}
+
+.res__top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.res__block{padding:16px 0;border-top:1px solid var(--line-soft)}
+.res__block:first-of-type{border-top:0}
+.res__person{display:flex;align-items:center;gap:12px}
+.res__person b{display:block;font-weight:400;font-size:16px}
+.res__money{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:14px 0 0;font-size:14.5px}
+.res__money dt{color:var(--ink-soft)}
+.res__money dd{margin:0;text-align:right}
+.res__list li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line-soft)}
+.res__list li:first-child{border-top:0}
+.res__list li.is-off{opacity:.62}
+.res__list b{font-weight:400}
+.credit{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 0}
+.credit > span:first-child{min-width:80px}
+
+/* Picking classes for a reservation. */
+.cpick{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--blush-lift);padding:10px}
+.cpick__bar{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.cpick__bar .input{flex:1;min-width:0}
+.cpick__row{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 4px;border-top:1px solid var(--line-soft);cursor:pointer;font-size:14.5px}
+.cpick__row input{width:20px;height:20px;accent-color:var(--wine)}
+.cpick__row.is-off{opacity:.45;cursor:not-allowed}
+.facts{display:grid;gap:6px;margin-top:10px}
+.facts li::before{content:"— ";color:var(--rose-mid)}
+
+/* Offers. */
+.offergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.offercard{display:flex;flex-direction:column;gap:8px;background:var(--blush-lift);border:1px solid var(--line-soft);border-radius:var(--r);padding:18px 20px}
+.offercard.is-off{opacity:.6}
+.offercard__top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.offercard h3{font-size:1.4rem}
+
+/* The weekly schedule. */
+.tday{background:var(--blush-lift);border:1px solid var(--line-soft);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.tday__head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.tday__head h3{font-size:1.2rem}
+.tslot{display:grid;grid-template-columns:104px 104px 74px minmax(90px,.8fr) minmax(120px,1fr) 44px;gap:8px;align-items:center;margin-bottom:8px}
+.tslot > *{min-width:0}
+.tslot .input{min-height:44px;padding:8px 10px;width:100%}
+.tslot .select{padding-right:32px;background-position:right 10px center}
+.week__day.is-closed{background:repeating-linear-gradient(135deg,var(--blush-lift),var(--blush-lift) 8px,var(--petal) 8px,var(--petal) 16px)}
+
 /* ================================================================
    Phones, and tablets held upright
    ================================================================ */
@@ -584,6 +666,15 @@ details.en summary{cursor:pointer;min-height:44px;display:flex;align-items:cente
   .rtable tr{margin:0}
   .split{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .modal,.modal--wide{width:min(640px,100%);margin:0 auto}
+}
+
+@media (max-width:899px){
+  .filters{grid-template-columns:1fr 1fr}
+  .filters > :first-child{grid-column:1/-1}
+  /* start · end · places, then class · who · remove */
+  .tslot{grid-template-columns:1fr 1fr 72px;padding:10px 0;border-top:1px solid var(--line-soft)}
+  .tslot > .iconbtn{justify-self:center}
+  .desk__foot .btn{flex:1}
 }
 
 /* Phones */

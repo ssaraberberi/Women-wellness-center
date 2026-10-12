@@ -21,7 +21,44 @@
    for. This file learned that the hard way; see the undo below.
    ============================================================ */
 
-export const VERSION = '2026-10-11b';
+export const VERSION = '2026-10-12c';
+
+/* ---------- the launch offers ----------
+   The three offers the studio opens with, as she described them. Written
+   once, to a database that does not have them yet; from then on they are
+   hers to edit, deactivate or archive under Offers, and nothing here ever
+   writes them again. An offer is never deleted — reservations keep its
+   terms — so `do nothing` on the id is enough to never bring one back. */
+export const LAUNCH_OFFERS = `
+insert into offers (id, title, description, description_en, kind, price_all, original_all, lines, validity_days,
+                    starts_on, ends_on, persons, together, eligibility, eligibility_en, active, sort)
+values ('dua-duo', 'DUA DUO',
+        'Dy vajza, dy herë në javë: 8 klasa secila, çdo muaj.',
+        'Two girls, twice a week: 8 classes each, every month.',
+        'bundle', 12000, 14500, '[{"types":["reformer"],"total":8}]', 30,
+        null, '2026-11-30', 2, true,
+        'Për dy persona që rezervojnë bashkë.', 'For two people booking together.', true, 1)
+on conflict (id) do nothing;
+
+insert into offers (id, title, description, description_en, kind, discount_pct, max_redemptions, new_customers_only,
+                    eligibility, eligibility_en, active, sort)
+values ('founding-girls', 'FOUNDING GIRLS',
+        '30 vajzat e para që bashkohen me DUA marrin 15% ulje në paketën e parë.',
+        'The first 30 girls who join DUA get 15% off their first package.',
+        'discount', 15, 30, true,
+        'Vetëm për kliente të reja, një herë për person, në abonimet mujore dhe paketat e klasave.',
+        'New clients only, once per person, on monthly memberships and class packages.', true, 2)
+on conflict (id) do nothing;
+
+insert into offers (id, title, description, description_en, kind, friend_required, friend_new, bonus_classes,
+                    bonus_to, bonus_when, eligibility, eligibility_en, active, sort)
+values ('bring-a-bestie', 'BRING A BESTIE',
+        'Eja me një shoqe në DUA. Kur ajo blen një paketë, të dyja merrni 1 klasë bonus.',
+        'Bring a friend to DUA. When she buys a package too, you both get 1 bonus class.',
+        'bonus', true, true, 1, 'both', 'friend_paid',
+        'Shoqja jote duhet të jetë e re në DUA.', 'Your friend must be new to DUA.', true, 3)
+on conflict (id) do nothing;
+`;
 
 /* The names are not known to the code: a row here is what makes
    "Reformer" appear in the app, and a third row would add a third kind. */
@@ -114,6 +151,9 @@ async function apply(pool) {
     } else if (at === '2026-10-11a') {
       await undoA(client);
     }
+    /* Before 2026-10-12c a database had no offers; it gets the launch three
+       once. Comparing versions as strings works because they are dates. */
+    if (!at || at < '2026-10-12c') await client.query(LAUNCH_OFFERS);
     await client.query(
       `insert into settings (key, value) values ('catalogue_version', $1)
        on conflict (key) do update set value = excluded.value`, [VERSION]);

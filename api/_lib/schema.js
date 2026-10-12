@@ -15,7 +15,7 @@
    ============================================================ */
 
 /* Bump on every change to SCHEMA below. */
-export const VERSION = '2026-10-12a';
+export const VERSION = '2026-10-12c';
 
 export const SCHEMA = `
 create table if not exists users (
@@ -205,6 +205,209 @@ create table if not exists settings (
   key   text primary key,
   value text not null
 );
+
+-- ================================================================
+-- Booking: reservations without a password, class credits, a weekly
+-- schedule with date-specific overrides, and offers.
+-- ================================================================
+
+-- The studio's own rules, editable from Settings. Only ever inserted, so a
+-- value the studio has changed is never put back.
+insert into settings (key, value) values
+  ('opening_date', '2026-11-02'),
+  ('cancel_window_min', '30'),
+  ('booking_horizon_days', '35'),
+  ('default_capacity', '5')
+on conflict (key) do nothing;
+
+-- A customer can reserve with a name and a phone number and nothing else,
+-- so an account may have no email and no usable password. The phone is
+-- kept a second time as a normalised key, which is how the same person is
+-- recognised the next time she books.
+alter table users alter column email drop not null;
+alter table users add column if not exists phone_key text;
+update users set phone_key = nullif(
+  regexp_replace(regexp_replace(regexp_replace(regexp_replace(coalesce(phone, ''), '\\D', '', 'g'),
+    '^00', ''), '^355', ''), '^0', ''), '')
+  where phone_key is null and phone is not null;
+create index if not exists users_phone_key on users (phone_key) where role = 'client';
+
+-- What a package is, how long it lasts once bought, and whether it is
+-- offered on the booking page.
+alter table plans add column if not exists kind text not null default 'membership';
+alter table plans add column if not exists validity_days int not null default 30;
+alter table plans add column if not exists bookable boolean not null default true;
+
+-- ---------- the weekly schedule ----------
+-- A template is a week of time slots that applies from its date until the
+-- next template takes over. Classes are generated from it ahead of time;
+-- a class edited for one date is pinned, and the template never touches a
+-- pinned class again.
+create table if not exists schedule_templates (
+  id             bigserial primary key,
+  effective_from date not null unique,
+  created_at     timestamptz not null default now()
+);
+create table if not exists template_slots (
+  id            bigserial primary key,
+  template_id   bigint not null references schedule_templates(id) on delete cascade,
+  weekday       smallint not null check (weekday between 0 and 6),   -- 0 = Sunday
+  starts        time not null,
+  ends          time not null,
+  capacity      int  not null check (capacity > 0),
+  class_type_id text not null references class_types(id),
+  instructor_id uuid references users(id) on delete set null,
+  check (starts < ends)
+);
+create index if not exists template_slots_template on template_slots (template_id);
+
+-- Days the studio is closed. Every class that day is cancelled, and comes
+-- back if the day is reopened.
+create table if not exists closures (
+  on_date    date primary key,
+  reason     text,
+  created_at timestamptz not null default now()
+);
+
+alter table classes add column if not exists slot_id bigint references template_slots(id) on delete set null;
+alter table classes add column if not exists pinned boolean not null default false;
+alter table classes add column if not exists blocked int not null default 0;
+alter table classes add column if not exists cancel_reason text;
+create unique index if not exists classes_slot_date on classes (slot_id, on_date) where slot_id is not null;
+
+-- ---------- offers ----------
+-- bundle:   its own classes and price (DUA DUO)
+-- discount: a percentage off an eligible package (FOUNDING GIRLS)
+-- bonus:    bonus classes once a condition is met (BRING A BESTIE)
+create table if not exists offers (
+  id                 text primary key,
+  title              text not null,
+  description        text,
+  kind               text not null check (kind in ('bundle', 'discount', 'bonus')),
+  price_all          int check (price_all is null or price_all >= 0),
+  original_all       int check (original_all is null or original_all >= 0),
+  discount_pct       int check (discount_pct is null or discount_pct between 0 and 100),
+  lines              jsonb not null default '[]',
+  validity_days      int not null default 30 check (validity_days > 0),
+  starts_on          date,
+  ends_on            date,
+  max_redemptions    int check (max_redemptions is null or max_redemptions > 0),
+  new_customers_only boolean not null default false,
+  eligible_plans     text[] not null default '{}',
+  persons            int not null default 1 check (persons in (1, 2)),
+  together           boolean not null default true,
+  friend_required    boolean not null default false,
+  friend_new         boolean not null default true,
+  bonus_classes      int not null default 0 check (bonus_classes >= 0),
+  bonus_to           text not null default 'both' check (bonus_to in ('referrer', 'friend', 'both')),
+  bonus_when         text not null default 'friend_paid' check (bonus_when in ('booked', 'paid', 'friend_paid', 'visit')),
+  eligibility        text,
+  active             boolean not null default false,
+  archived           boolean not null default false,
+  sort               int not null default 0,
+  created_at         timestamptz not null default now()
+);
+
+-- Offers are written in Albanian, with an optional English version, the way
+-- packages are: the page shows the reader's language, or the other one.
+alter table offers add column if not exists description_en text;
+alter table offers add column if not exists eligibility_en text;
+
+-- ---------- reservations ----------
+-- What a customer asked for, with the price and the terms as they were at
+-- that moment: a package renamed or repriced later changes nothing here.
+-- Status and payment are separate, and nothing marks a reservation paid
+-- except the studio.
+create table if not exists reservations (
+  id             uuid primary key default gen_random_uuid(),
+  ref            text not null unique,
+  manage_hash    text unique,
+  status         text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled', 'completed')),
+  payment        text not null default 'unpaid' check (payment in ('unpaid', 'paid')),
+  source         text not null default 'web' check (source in ('web', 'admin', 'app')),
+  plan_id        text references plans(id),
+  offer_id       text references offers(id),
+  title          text not null,
+  unit_price     int,
+  original_price int,
+  discount_pct   int,
+  persons        int not null default 1,
+  total_price    int,
+  terms          jsonb not null default '{}',
+  notes          text,
+  created_by     uuid references users(id) on delete set null,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+create index if not exists reservations_created on reservations (created_at desc);
+
+-- A package a customer holds: the credits it carries are a snapshot of the
+-- package or offer at the moment it was bought. A customer may hold
+-- several at once, so the one-active rule goes.
+alter table memberships alter column plan_id drop not null;
+alter table memberships add column if not exists offer_id text references offers(id);
+alter table memberships add column if not exists reservation_id uuid references reservations(id) on delete set null;
+alter table memberships add column if not exists title text;
+alter table memberships add column if not exists lines jsonb;
+drop index if exists memberships_one_active;
+update memberships m set title = p.name from plans p where p.id = m.plan_id and m.title is null;
+update memberships m set lines = coalesce((
+    select jsonb_agg(jsonb_build_object('types', a.class_type_ids, 'total', a.limit_count) order by a.sort)
+      from plan_allowances a where a.plan_id = m.plan_id), '[]'::jsonb)
+  where m.lines is null;
+create index if not exists memberships_client on memberships (client_id);
+create index if not exists memberships_reservation on memberships (reservation_id);
+
+-- Credits added or taken away by hand, and bonus classes: a ledger, so the
+-- balance can always be explained.
+create table if not exists credit_events (
+  id            bigserial primary key,
+  membership_id uuid not null references memberships(id) on delete cascade,
+  line          int not null default 0,
+  delta         int not null,
+  reason        text not null,
+  by_user       uuid references users(id) on delete set null,
+  at            timestamptz not null default now()
+);
+create index if not exists credit_events_membership on credit_events (membership_id);
+
+-- Which package a booking spends, which reservation it belongs to, and
+-- whether she came.
+alter table bookings add column if not exists membership_id uuid references memberships(id) on delete set null;
+alter table bookings add column if not exists reservation_id uuid references reservations(id) on delete set null;
+alter table bookings add column if not exists attendance text check (attendance is null or attendance in ('attended', 'noshow'));
+create index if not exists bookings_membership on bookings (membership_id);
+create index if not exists bookings_reservation on bookings (reservation_id);
+update bookings b set membership_id = (
+    select m.id from memberships m join classes k on k.id = b.class_id
+     where m.client_id = b.client_id and m.status = 'active'
+       and k.on_date between m.starts_on and m.ends_on
+     order by m.ends_on limit 1)
+  where b.membership_id is null and b.status in ('booked', 'late');
+
+-- Who has used an offer. One claim per customer per offer, held by the
+-- index rather than by the form.
+create table if not exists offer_claims (
+  id             bigserial primary key,
+  offer_id       text not null references offers(id),
+  client_id      uuid not null references users(id) on delete cascade,
+  reservation_id uuid references reservations(id) on delete cascade,
+  role           text not null default 'buyer' check (role in ('buyer', 'friend')),
+  status         text not null default 'claimed' check (status in ('claimed', 'pending', 'granted', 'void')),
+  granted_at     timestamptz,
+  created_at     timestamptz not null default now()
+);
+create unique index if not exists offer_claims_once on offer_claims (offer_id, client_id, role) where status <> 'void';
+create index if not exists offer_claims_offer on offer_claims (offer_id);
+
+-- Requests from the public booking page, counted so it cannot be used to
+-- flood the timetable.
+create table if not exists rate_events (
+  kind text not null,
+  key  text not null,
+  at   timestamptz not null default now()
+);
+create index if not exists rate_events_key on rate_events (kind, key, at desc);
 `;
 
 /* ---------- applying it ----------
