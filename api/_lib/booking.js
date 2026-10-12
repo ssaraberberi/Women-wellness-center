@@ -132,6 +132,25 @@ export async function publicCatalogue() {
   };
 }
 
+/* The ordinary week, for the website's timetable: the template that
+   applies from opening (or today), as times and kinds — no names, no
+   places, nothing that changes by the hour. */
+export async function publicTimetable() {
+  const [st, types] = await Promise.all([load.settings(), load.classTypes()]);
+  const today = todayIn(new Date());
+  const ref = today > st.openingDate ? today : st.openingDate;
+  const t = await one(`select id from schedule_templates where effective_from <= $1 order by effective_from desc limit 1`, [ref])
+         || await one(`select id from schedule_templates order by effective_from limit 1`);
+  const slots = t ? await many(
+    `select weekday, starts, ends, class_type_id from template_slots where template_id = $1
+      order by weekday, starts, class_type_id`, [t.id]) : [];
+  return {
+    openingDate: st.openingDate, today,
+    classTypes: types,
+    slots: slots.map(s => ({ weekday: s.weekday, start: hhmm(s.starts), end: hhmm(s.ends), typeId: s.class_type_id }))
+  };
+}
+
 /* The classes that can be booked: from opening (or today) to the horizon,
    open, not started, and with the places left. Counts only — never who. */
 export async function publicClasses() {
@@ -143,8 +162,10 @@ export async function publicClasses() {
   const last = plusDays(first, st.horizonDays);
   const rows = await many(
     `select k.id, k.class_type_id, k.on_date, k.starts, k.ends, k.capacity, k.blocked, u.name as who,
-            (select count(*)::int from bookings b where b.class_id = k.id and b.status = 'booked') as taken
+            coalesce(b.n, 0)::int as taken
        from classes k left join users u on u.id = k.instructor_id
+       left join (select b.class_id, count(*) as n from bookings b join classes c on c.id = b.class_id
+                   where b.status = 'booked' and c.on_date between $1 and $2 group by b.class_id) b on b.class_id = k.id
       where k.on_date between $1 and $2 and not k.cancelled
         and not exists (select 1 from closures x where x.on_date = k.on_date)
       order by k.on_date, k.starts`, [first, last]);

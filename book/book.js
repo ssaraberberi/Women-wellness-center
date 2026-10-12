@@ -24,6 +24,10 @@ const SQ = {
   'Pick a day, then a time.': 'Zgjidh një ditë, pastaj orën.',
   'No need to pick times now. Once the studio confirms, you choose your classes from your reservation link, or we arrange them with you.':
     'Nuk ke nevojë të zgjedhësh oraret tani. Pasi studioja ta konfirmojë, i zgjedh klasat nga linku i rezervimit, ose i rregullojmë bashkë.',
+  'treatment': 'trajtim', 'treatments': 'trajtime',
+  'Pilates': 'Pilates', 'Spa': 'Spa', 'Combos': 'Kombinime',
+  'Treatments': 'Trajtime', 'Spa packs': 'Paketa spa', 'Wellness combos': 'Wellness combos',
+  'Choose one to continue': 'Zgjidh një për të vazhduar',
   'Previous month': 'Muaji i kaluar', 'Next month': 'Muaji tjetër', 'Free places': 'Vende të lira',
   'Regular price': 'Çmimi i rregullt', 'Discount %s': 'Zbritje %s', 'Offer saving': 'Kursimi me ofertë',
   'A single class, a monthly membership, a class pack, or one of this month’s offers.':
@@ -273,11 +277,28 @@ function drawChoose() {
     ? h('p.card__soon', { text: t('Price at the studio') })
     : h('p.card__price', null, [original ? h('s', { text: money(original) }) : null, money(price), sub ? h('small', { text: sub }) : null]);
   const count = lines => {
+    if (lines.length > 1) return h('p.card__big', null, [lines.map(l => l.total == null ? '∞' : l.total).join(' + '),
+      h('small', { text: lines.map(l => typeName(l.types[0])).join(' + ') })]);
     const n = lines.some(l => l.total == null) ? '∞' : lines.reduce((s, l) => s + l.total, 0);
-    return h('p.card__big', null, [String(n), h('small', { text: n === 1 ? t('class') : t('classes') })]);
+    const spa = lines.every(l => l.types.every(x => x === 'spa'));
+    return h('p.card__big', null, [String(n), h('small', { text: spa ? (n === 1 ? t('treatment') : t('treatments')) : (n === 1 ? t('class') : t('classes')) })]);
   };
 
-  if (offers.length) {
+  /* Pilates, spa, the two together, and the offers: four shelves behind
+     tabs, so twenty packages are never one long scroll. */
+  const shelf = { pilates: [], spa: [], combo: [] };
+  plans.forEach(p => shelf[kindOf(p.lines)].push(p));
+  const tabs = [['pilates', t('Pilates')], ['spa', t('Spa')], ['combo', t('Combos')], ['offers', t('Offers')]]
+    .filter(([k]) => k === 'offers' ? offers.length : shelf[k].length);
+  if (!S.tab || !tabs.some(([k]) => k === S.tab)) {
+    const picked = c.offerId ? 'offers' : c.planId && plans.find(p => p.id === c.planId) ? kindOf(plans.find(p => p.id === c.planId).lines) : null;
+    S.tab = picked && tabs.some(([k]) => k === picked) ? picked : (tabs[0] || [])[0];
+  }
+  if (tabs.length > 1) app.appendChild(h('div.seg', { role: 'tablist' }, tabs.map(([k, label]) =>
+    h('button', { type: 'button', role: 'tab', class: (S.tab === k ? 'is-on' : '') + (k === 'spa' ? ' seg--spa' : ''),
+      'aria-selected': S.tab === k ? 'true' : 'false', onclick: () => { S.tab = k; draw(); } }, label))));
+
+  if (S.tab === 'offers' && offers.length) {
     const box = h('section.group', null, [h('span.eyebrow', { text: t('Offers') })]);
     const grid = h('div.cards');
     offers.forEach(o => {
@@ -328,7 +349,7 @@ function drawChoose() {
       h('span.eyebrow', { text: label }),
       h('div.cards' + (list.length > 1 ? '.cards--2' : ''), null, list.map(p => {
         const on = !c.offerId && c.planId === p.id;
-        return h('button.card', { type: 'button', class: on ? 'is-on' : null, 'aria-pressed': on ? 'true' : 'false',
+        return h('button.card', { type: 'button', class: (on ? 'is-on ' : '') + 'card--' + kindOf(p.lines), 'aria-pressed': on ? 'true' : 'false',
           onclick: () => { S.choice = { planId: p.id }; S.error = null; draw(); } }, [
           h('span.card__tick', null, icon(ICON_CHECK)),
           h('div.card__row', null, [h('div', null, [h('p.card__name', { text: p.name }), count(p.lines)]), priceBlock(p.price)]),
@@ -338,15 +359,42 @@ function drawChoose() {
       }))
     ]));
   };
-  group(t('Single class'), plans.filter(p => p.kind === 'single'));
-  group(t('Monthly memberships'), plans.filter(p => p.kind === 'membership'));
-  group(t('Class packages'), plans.filter(p => p.kind === 'package'));
-  if (!plans.length && !offers.length) app.appendChild(h('p.empty', { text: t('No classes are open for booking yet. Message us and we will save you a place.') }));
+  if (S.tab === 'pilates') {
+    group(t('Single class'), shelf.pilates.filter(p => p.kind === 'single'));
+    group(t('Monthly memberships'), shelf.pilates.filter(p => p.kind === 'membership'));
+    group(t('Class packages'), shelf.pilates.filter(p => p.kind === 'package'));
+  } else if (S.tab === 'spa') {
+    group(t('Treatments'), shelf.spa.filter(p => p.kind === 'single'));
+    group(t('Spa packs'), shelf.spa.filter(p => p.kind !== 'single'));
+  } else if (S.tab === 'combo') {
+    group(t('Wellness combos'), shelf.combo);
+  }
+  if (!plans.length && !offers.length) app.appendChild(emptyState(t('No classes are open for booking yet. Message us and we will save you a place.')));
 
+  /* What she has picked stays in view, next to the button that goes on. */
   const x = chosen();
-  barWith([h('button.btn.btn--wine', { type: 'button', disabled: !x || x.incomplete, text: t('Continue'),
+  const note = x && !x.incomplete
+    ? h('div.bar__note', null, [h('b', { text: x.title }), h('span', { text: x.total != null ? money(x.total) : t('Price at the studio') })])
+    : h('div.bar__note', null, h('span', { text: x && x.incomplete ? t('Choose the package it applies to') : t('Choose one to continue') }));
+  barWith([note, h('button.btn.btn--wine', { type: 'button', disabled: !x || x.incomplete, text: t('Continue'),
     onclick: () => { S.picked = new Set(); S.step = x.single ? 2 : 3; S.error = null; draw(); window.scrollTo(0, 0); } })]);
 }
+const kindOf = lines => {
+  const types = new Set(lines.flatMap(l => l.types));
+  const spa = types.has('spa'), other = [...types].some(x => x !== 'spa');
+  return spa && other ? 'combo' : spa ? 'spa' : 'pilates';
+};
+/* A small cactus: the studio's green, for the quiet moments of the page. */
+const CACTUS = '<svg viewBox="0 0 64 96" width="64" height="96" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M26 72V28a6 6 0 0 1 12 0v44" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2"/>' +
+  '<path d="M26 54h-5a5 5 0 0 1-5-5V39a4 4 0 0 1 8 0v7h2" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2"/>' +
+  '<path d="M38 48h5a5 5 0 0 0 5-5V33a4 4 0 0 0-8 0v7h-2" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2"/>' +
+  '<path d="M32 30v4M32 44v4M32 58v4M20 42h-2M44 36h2" stroke="#4E6B47" stroke-width="1.6"/>' +
+  '<path d="M32 18c2-3 5-3 6-1-1 2-4 3-6 1Z" fill="#C9899C" stroke="#7D2F49" stroke-width="1.2"/>' +
+  '<path d="M15 72h34v6H15z" fill="#E9D3D0" stroke="#7D2F49" stroke-width="2"/>' +
+  '<path d="M18 78h28l-3 14H21z" fill="#F5E9DC" stroke="#7D2F49" stroke-width="2"/></svg>';
+const cactus = cls => { const s = h('span.cactus' + (cls ? '.' + cls : '')); s.innerHTML = CACTUS; return s; };
+const emptyState = text => h('div.emptybox', null, [cactus(), h('p', { text })]);
 const pickText = (p, f) => (lang === 'en' ? ((p.en || {})[f] || p[f]) : (p[f] || (p.en || {})[f])) || '';
 const linesText = lines => lines.map(l => (l.total == null ? '∞' : l.total) + ' ' + (l.total === 1 ? t('class') : t('classes'))).join(' + ');
 
@@ -358,7 +406,7 @@ function eligibleClasses(x, cls) {
 function scheduler(x, max, seats, onChange) {
   const box = h('div');
   const list = eligibleClasses(x, S.cls);
-  if (!list.length) { box.appendChild(h('p.empty', { text: t('No classes are open for booking yet. Message us and we will save you a place.') })); return box; }
+  if (!list.length) { box.appendChild(emptyState(t('No classes are open for booking yet. Message us and we will save you a place.'))); return box; }
 
   const dates = [];
   for (let d = S.cls.from; d <= S.cls.to; d = plusDays(d, 1)) dates.push(d);
@@ -454,7 +502,7 @@ function drawSchedule() {
   if (!x.single) { S.step = 3; return draw(); }
   header(2, t('Choose your schedule') + '.', t('Pick a day, then a time.'));
   add(errorBox());
-  app.appendChild(scheduler(x, 1, 1, () => draw()));
+  app.appendChild(S.cls ? scheduler(x, 1, 1, () => draw()) : h('p.loading', { style: 'min-height:30vh' }, '…'));
   const go = h('button.btn.btn--wine', { type: 'button', disabled: !S.picked.size, text: t('Continue'),
     onclick: () => { S.step = 3; S.error = null; draw(); window.scrollTo(0, 0); } });
   barWith([h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => { S.step = 1; draw(); } }), go]);
@@ -570,6 +618,7 @@ function drawDone() {
   const r = S.result.reservation;
   header(4, t('Your reservation is in.'));
   app.appendChild(h('div.done', null, [
+    cactus('cactus--done'),
     h('p.eyebrow', { text: t('Your reference') }),
     h('p.ref', { text: S.result.ref }),
     h('p.lede', { style: 'margin:14px auto 0', text: r.status === 'confirmed' ? t('Confirmed') : t('Pending approval: the studio will confirm it shortly. Payment is made at the studio.') })
@@ -726,8 +775,12 @@ document.addEventListener('click', e => {
         api('/public/reservation', { token: S.token }), api('/public/classes'), api('/public/book').catch(() => null)]);
       S.view = view; S.cls = cls; S.cat = cat;
     } else {
-      const [cat, cls] = await Promise.all([api('/public/book'), api('/public/classes')]);
-      S.cat = cat; S.cls = cls;
+      /* The choices are drawn as soon as the catalogue is here; the
+         timetable follows in the background, and is only waited for by
+         the one step that needs it. */
+      api('/public/classes').then(cls => { S.cls = cls; if (S.step === 2) draw(); }, () => {});
+      const cat = await api('/public/book');
+      S.cat = cat;
       /* A link from the website can name what to open with: ?plan=… or ?offer=… */
       const plan = params.get('plan'), offer = params.get('offer');
       if (offer && cat.offers.some(o => o.id === offer)) S.choice = { offerId: offer };

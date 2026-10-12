@@ -4,12 +4,12 @@
    wine for what matters, thin rules, rounded cards, room to breathe.
    Made for a phone first; on a desk it sits in a calm column.
    ============================================================ */
-@import url("/assets/css/fonts.css");
 
 :root{
   --blush:#FFFBEA; --lift:#FFFDF6; --petal:#F5E9DC; --petal-deep:#E9D3D0;
   --wine:#7D2F49; --plum:#3B1522; --plum-deep:#2A0E18; --ink-soft:#6E4351;
   --rose:#C9899C; --rose-soft:#EFD6DD; --rose-mid:#B0788C;
+  --leaf:#4E6B47; --leaf-soft:#E3EBDD; --leaf-mid:#8FA886;
   --good:#2F6B4F; --good-bg:#E4F0E8; --warn:#8A5A16; --warn-bg:#FAEEDC; --bad:#8E2C2C; --bad-bg:#F7E3E3;
   --line:rgba(59,21,34,.14); --line-soft:rgba(59,21,34,.08);
   --display:"Fraunces","Iowan Old Style",Georgia,serif;
@@ -75,6 +75,21 @@ b,strong{font-weight:500}
 .group{margin-top:34px}
 .group > .eyebrow{display:block;margin-bottom:12px}
 
+/* ---------- shelves ---------- */
+.seg{
+  display:flex;gap:4px;margin-top:24px;padding:4px;border-radius:99px;background:var(--petal);
+  overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(64px + var(--top));z-index:10;
+  box-shadow:0 10px 24px -20px rgba(59,21,34,.45);
+}
+.seg::-webkit-scrollbar{display:none}
+.seg button{
+  flex:1 0 auto;min-height:44px;padding:8px 16px;border:0;border-radius:99px;background:none;
+  font-size:13.5px;color:var(--ink-soft);white-space:nowrap;transition:background .25s var(--ease),color .25s var(--ease);
+}
+.seg button.is-on{background:var(--wine);color:var(--blush);font-weight:400}
+.seg button.seg--spa.is-on{background:var(--leaf)}
+.seg + .group{margin-top:24px}
+
 /* ---------- choice cards ---------- */
 .cards{display:grid;gap:12px}
 .card{
@@ -100,6 +115,11 @@ b,strong{font-weight:500}
 }
 .card.is-on .card__tick{display:grid}
 .card.is-on .card__price,.card.is-on .card__soon{margin-right:30px}
+/* Spa wears the green; a combo carries a thread of both. */
+.card--spa .card__name{color:var(--leaf)}
+.card--spa.is-on{border-color:var(--leaf);box-shadow:0 0 0 1px var(--leaf),0 18px 40px -30px rgba(46,70,40,.5)}
+.card--spa .card__tick{background:var(--leaf)}
+.card--combo{background:linear-gradient(180deg,var(--lift) 0,var(--lift) 70%,var(--leaf-soft) 100%)}
 
 /* Offers: the wine cards, the way the site sets its featured package. */
 .offer{background:var(--wine);color:var(--blush);border-color:var(--wine)}
@@ -145,7 +165,7 @@ b,strong{font-weight:500}
 .cal__day:disabled{color:var(--ink-soft);opacity:.35;cursor:default}
 .cal__day i{position:absolute;left:50%;bottom:14%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
 .cal__day.has-room{font-weight:500;color:var(--plum)}
-.cal__day.has-room i{background:var(--wine)}
+.cal__day.has-room i{background:var(--leaf)}
 .cal__day.is-full{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:rgba(59,21,34,.35)}
 .cal__day.is-full i{background:var(--rose)}
 .cal__day.is-today span{box-shadow:inset 0 -1.5px 0 currentColor}
@@ -154,7 +174,7 @@ b,strong{font-weight:500}
 .cal__day.is-on i{background:var(--blush)}
 .cal__key{display:flex;gap:18px;justify-content:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--ink-soft)}
 .cal__key span{display:inline-flex;align-items:center;gap:7px}
-.cal__key i{width:6px;height:6px;border-radius:50%;background:var(--wine)}
+.cal__key i{width:6px;height:6px;border-radius:50%;background:var(--leaf)}
 .cal__key i.k-full{background:var(--rose)}
 
 .slots{display:grid;gap:10px;margin-top:14px}
@@ -171,6 +191,7 @@ b,strong{font-weight:500}
 .slot.is-on{border-color:var(--wine);background:var(--rose-soft)}
 .slot.is-on .slot__box{background:var(--wine);border-color:var(--wine);color:var(--blush)}
 .slot:disabled{opacity:.45;cursor:not-allowed}
+.slot__left{color:var(--leaf)}
 .slot.is-few .slot__left{color:var(--wine)}
 
 .chosen{margin-top:24px}
@@ -265,7 +286,19 @@ b,strong{font-weight:500}
 .bar__in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .bar__in .btn{flex:1}
 .bar__in .btn--ghost{flex:0 0 auto;padding-left:20px;padding-right:20px}
-.bar__note{flex:1;font-size:13px;color:var(--ink-soft);line-height:1.35}
+.bar__note{flex:1;min-width:0;font-size:13px;color:var(--ink-soft);line-height:1.3}
+.bar__note b{display:block;font-weight:500;color:var(--plum);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar__note span{display:block}
+.bar__in .bar__note + .btn{flex:0 0 auto;padding-left:30px;padding-right:30px}
+
+/* ---------- the cactus ---------- */
+.cactus{display:block;width:52px;height:78px;margin:0 auto}
+.cactus svg{width:100%;height:100%}
+.cactus--done{width:58px;height:87px;margin-bottom:6px;animation:sprout .9s var(--ease) both}
+@keyframes sprout{from{transform:translateY(10px) scale(.9);opacity:0}to{transform:none;opacity:1}}
+.emptybox{display:grid;justify-items:center;gap:14px;padding:30px 18px;margin-top:18px;text-align:center;
+  border-radius:var(--r);background:var(--leaf-soft);color:var(--leaf)}
+.emptybox p{max-width:34ch;font-size:14.5px}
 
 .notice{margin-top:18px;padding:13px 16px;border-radius:var(--r-sm);font-size:14px;background:var(--bad-bg);color:var(--bad)}
 .notice--soft{background:var(--petal);color:var(--plum)}

@@ -47,18 +47,28 @@ export async function syncRange(c, from, to) {
   const closed = new Set((await c.query('select on_date from closures where on_date between $1 and $2', [from, to])).rows.map(r => r.on_date));
   const existing = (await c.query(
     `select k.id, k.slot_id, k.on_date, k.starts, k.ends, k.capacity, k.class_type_id, k.instructor_id,
-            k.pinned, k.cancelled,
-            (select count(*)::int from bookings b where b.class_id = k.id and b.status = 'booked') as booked
-       from classes k where k.on_date between $1 and $2 and k.slot_id is not null for update`, [from, to])).rows;
+            k.pinned, k.cancelled, coalesce(b.n, 0)::int as booked
+       from classes k
+       left join (select class_id, count(*) as n from bookings where status = 'booked' group by class_id) b on b.class_id = k.id
+      where k.on_date between $1 and $2 and k.slot_id is not null
+        for update of k`, [from, to])).rows;
 
   const report = { created: 0, updated: 0, removed: 0, kept: [] };
   const bySlotDate = new Map(existing.map(k => [k.slot_id + '|' + k.on_date, k]));
+  const byDate = new Map();
+  for (const k of existing) { if (!byDate.has(k.on_date)) byDate.set(k.on_date, []); byDate.get(k.on_date).push(k); }
+  const slotById = new Map(slots.map(s => [String(s.id), s]));
+  /* New classes are written together at the end, in one statement: a
+     full template is thousands of rows, and one round trip each is what
+     made the first visit of the day slow. */
+  const fresh = { type: [], date: [], starts: [], ends: [], cap: [], who: [], slot: [] };
 
   for (let d = from; d <= to; d = plusDays(d, 1)) {
     const t = ts.filter(x => x.effective_from <= d).pop();
     const wd = weekdayOf(d);
     const want = closed.has(d) || !t ? [] : slots.filter(s => String(s.template_id) === String(t.id) && s.weekday === wd);
     const wantIds = new Set(want.map(s => String(s.id)));
+    const sameDay = byDate.get(d) || [];
 
     const adopted = new Set();
     for (const s of want) {
@@ -71,9 +81,9 @@ export async function syncRange(c, from, to) {
         /* Matched by the slot it was made from, not by its own time: a
            class moved or cancelled for that one date still stands for that
            slot, and keeps standing for it — the override is never undone. */
-        const origin = x => slots.find(o => String(o.id) === String(x.slot_id));
-        const twin = existing.find(x => {
-          if (x.on_date !== d || wantIds.has(String(x.slot_id)) || adopted.has(x.id)) return false;
+        const origin = x => slotById.get(String(x.slot_id));
+        const twin = sameDay.find(x => {
+          if (wantIds.has(String(x.slot_id)) || adopted.has(x.id)) return false;
           const o = origin(x);
           return o && o.weekday === s.weekday && hhmm(o.starts) === hhmm(s.starts) && hhmm(o.ends) === hhmm(s.ends) &&
                  o.class_type_id === s.class_type_id;
@@ -86,10 +96,8 @@ export async function syncRange(c, from, to) {
         }
       }
       if (!k) {
-        await c.query(
-          `insert into classes (class_type_id, on_date, starts, ends, capacity, instructor_id, slot_id)
-           values ($1,$2,$3,$4,$5,$6,$7) on conflict do nothing`,
-          [s.class_type_id, d, s.starts, s.ends, s.capacity, s.instructor_id, s.id]);
+        fresh.type.push(s.class_type_id); fresh.date.push(d); fresh.starts.push(s.starts); fresh.ends.push(s.ends);
+        fresh.cap.push(s.capacity); fresh.who.push(s.instructor_id || null); fresh.slot.push(s.id);
         report.created++;
         continue;
       }
@@ -111,7 +119,7 @@ export async function syncRange(c, from, to) {
     }
 
     /* Template classes this day that the template no longer has. */
-    for (const k of existing.filter(x => x.on_date === d && !wantIds.has(String(x.slot_id)) && !adopted.has(x.id))) {
+    for (const k of sameDay.filter(x => !wantIds.has(String(x.slot_id)) && !adopted.has(x.id))) {
       if (k.pinned || k.cancelled) continue;
       if (closed.has(d)) continue;                       // a closed day cancels; it does not delete
       if (k.booked) {
@@ -124,6 +132,12 @@ export async function syncRange(c, from, to) {
       report.removed++;
     }
   }
+  if (fresh.slot.length)
+    await c.query(
+      `insert into classes (class_type_id, on_date, starts, ends, capacity, instructor_id, slot_id)
+       select * from unnest($1::text[], $2::date[], $3::time[], $4::time[], $5::int[], $6::uuid[], $7::bigint[])
+       on conflict do nothing`,
+      [fresh.type, fresh.date, fresh.starts, fresh.ends, fresh.cap, fresh.who, fresh.slot]);
   return report;
 }
 

@@ -57,6 +57,13 @@
         "addressRegion": "Tirana",
         "addressCountry": "AL"
       },
+      "geo": { "@type": "GeoCoordinates", "latitude": 41.3189818, "longitude": 19.8029521 },
+      "hasMap": "https://maps.app.goo.gl/ZgSE4StSHpC8HcZr6",
+      "openingHoursSpecification": [{
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "opens": "07:00", "closes": "21:00"
+      }],
       "areaServed": { "@type": "City", "name": "Tirana", "sameAs": "https://en.wikipedia.org/wiki/Tirana" },
       "sameAs": ["https://www.instagram.com/dua_pilates_spa"],
       "knowsLanguage": ["sq", "en"],
@@ -359,14 +366,31 @@
 </section>
 
 <!-- ───────────────────────────── 6. SCHEDULE ───────────────────────────── -->
-<section class="sched soon" id="schedule">
-  <div class="soon__inner">
-    <p class="eyebrow" data-reveal><span>The week</span></p>
-    <h2 class="display display--lg" data-reveal-lines>
-      <span class="line"><span>Timetable</span></span>
-      <span class="line"><span><em>coming soon.</em></span></span>
-    </h2>
-    <p class="lede" data-reveal>We are setting the first weeks of classes now. Message us and we will send you the times before they go up.</p>
+<!-- The ordinary week, read from the studio's weekly schedule in the admin
+     (assets/js/timetable.js). The opening hours beside it are always there,
+     with or without JavaScript. -->
+<section class="tt" id="schedule">
+  <div class="tt__inner">
+    <div class="tt__head">
+      <div>
+        <p class="eyebrow" data-reveal><span>The week</span></p>
+        <h2 class="display display--lg" data-reveal-lines>
+          <span class="line"><span>Timetable,</span></span>
+          <span class="line"><span><em>Monday to Saturday.</em></span></span>
+        </h2>
+        <p class="tt__lede" data-reveal>Every class is fifty minutes and starts on the hour, so it is easy to fit into your day.</p>
+      </div>
+      <aside class="hours" data-reveal>
+        <svg class="hours__cactus" viewBox="0 0 64 96" aria-hidden="true" focusable="false"><path d="M26 72V28a6 6 0 0 1 12 0v44" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2" stroke-linejoin="round"/><path d="M26 54h-5a5 5 0 0 1-5-5V39a4 4 0 0 1 8 0v7h2" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2" stroke-linejoin="round"/><path d="M38 48h5a5 5 0 0 0 5-5V33a4 4 0 0 0-8 0v7h-2" fill="#DCE6D3" stroke="#4E6B47" stroke-width="2" stroke-linejoin="round"/><path d="M32 30v4M32 44v4M32 58v4M20 42h-2M44 36h2" stroke="#4E6B47" stroke-width="1.6" stroke-linecap="round"/><path d="M32 18c2-3 5-3 6-1-1 2-4 3-6 1Z" fill="#C9899C" stroke="#7D2F49" stroke-width="1.2"/><path d="M15 72h34v6H15z" fill="#E9D3D0" stroke="#7D2F49" stroke-width="2"/><path d="M18 78h28l-3 14H21z" fill="#F5E9DC" stroke="#7D2F49" stroke-width="2" stroke-linejoin="round"/></svg>
+        <p class="hours__label">Opening hours</p>
+        <p class="hours__time">07:00 – 21:00</p>
+        <p class="hours__days">Monday – Saturday</p>
+        <p class="hours__closed">Closed on Sunday</p>
+        <a class="btn" href="/book">Book a class</a>
+      </aside>
+    </div>
+
+    <div class="tt__app" id="timetable" hidden></div>
   </div>
 </section>
 
@@ -487,11 +511,11 @@
       </div>
       <div class="faq__item" data-reveal>
         <dt>How long is a class?</dt>
-        <dd>Forty-five minutes.</dd>
+        <dd>Fifty minutes.</dd>
       </div>
       <div class="faq__item" data-reveal>
         <dt>Where in Tirana are you?</dt>
-        <dd>In Tirana. The address goes up here the moment the studio is ready — message us on 069 710 4072 or on Instagram and we will send it to you first.</dd>
+        <dd>The map is just below — tap it and Google Maps takes you to the door. We are open Monday to Saturday, 07:00 to 21:00.</dd>
       </div>
       <div class="faq__item" data-reveal>
         <dt>What does the spa offer?</dt>
@@ -502,6 +526,34 @@
         <dd>Soon. Message us and you will be among the first to know — the timetable and the memberships go to you before they go up here.</dd>
       </div>
     </dl>
+  </div>
+</section>
+
+<!-- ───────────────────────────── 9. FIND US ─────────────────────────────
+     The map loads only when it is scrolled near, and only from Google
+     (the one frame the Content-Security-Policy allows). -->
+<section class="find" id="find">
+  <div class="find__inner">
+    <div class="find__text">
+      <p class="eyebrow" data-reveal><span>Find us</span></p>
+      <h2 class="display display--lg" data-reveal-lines>
+        <span class="line"><span>Come by</span></span>
+        <span class="line"><span><em>the studio.</em></span></span>
+      </h2>
+      <dl class="find__facts" data-reveal>
+        <div><dt>Where</dt><dd>DUA Pilates &amp; SPA<br>Tirana, Albania</dd></div>
+        <div><dt>Open</dt><dd>Monday – Saturday, 07:00 – 21:00<br>Closed on Sunday</dd></div>
+        <div><dt>Call or write</dt><dd><a href="tel:+355697104072">069 710 4072</a></dd></div>
+      </dl>
+      <div class="find__cta" data-reveal>
+        <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=41.3189818,19.8029521" target="_blank" rel="noopener">Get directions</a>
+        <a class="link" href="https://maps.app.goo.gl/ZgSE4StSHpC8HcZr6" target="_blank" rel="noopener">Open in Google Maps</a>
+      </div>
+    </div>
+    <div class="find__map" data-reveal>
+      <iframe title="Map: DUA Pilates &amp; SPA, Tirana" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps/embed?origin=mfe&amp;pb=!1m3!2m1!1sDUA+Pilates+%26+SPA,+41.3189818,19.8029521!6i17"></iframe>
+    </div>
   </div>
 </section>
 
@@ -529,11 +581,11 @@
     </div>
     <div>
       <h4>Studio</h4>
-      <p>Tirana, Albania</p>
+      <p>Tirana, Albania<br><a href="https://maps.app.goo.gl/ZgSE4StSHpC8HcZr6" target="_blank" rel="noopener">Open in Google Maps</a></p>
     </div>
     <div>
       <h4>Hours</h4>
-      <p>Coming soon</p>
+      <p>Monday – Saturday<br>07:00 – 21:00<br>Closed on Sunday</p>
     </div>
     <div>
       <h4>Contact</h4>
@@ -567,6 +619,7 @@
 
 <script src="assets/js/main.js"></script>
 <script src="assets/js/catalog.js"></script>
+<script src="assets/js/timetable.js"></script>
 <script src="assets/js/tabs.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/whatsapp.js"></script>

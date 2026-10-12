@@ -25,13 +25,25 @@ import { VERSION as SCHEMA_VERSION } from './_lib/schema.js';
 
 const PROD = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
-const send = (res, status, payload, cookie) => {
+/* The few answers that are the same for everybody, and how long the CDN
+   may keep them. Short, and served stale while a fresh one is fetched, so
+   the booking page opens at once; places are still counted again by the
+   server at the moment of booking, so a few seconds old does no harm. */
+const SHARED = {
+  '/api/public/book': 'public, s-maxage=60, stale-while-revalidate=600',
+  '/api/public/classes': 'public, s-maxage=15, stale-while-revalidate=120',
+  '/api/public/packages': 'public, s-maxage=60, stale-while-revalidate=600',
+  '/api/public/timetable': 'public, s-maxage=300, stale-while-revalidate=3600',
+  '/api/public/settings': 'public, s-maxage=60, stale-while-revalidate=600'
+};
+
+const send = (res, status, payload, cookie, shared) => {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('x-content-type-options', 'nosniff');
-  /* Nothing here may be cached: every answer is specific to one signed-in
-     person, and Vercel's CDN would otherwise hand it to the next one. */
-  res.setHeader('cache-control', 'no-store');
+  /* Nothing else may be cached: every other answer is specific to one
+     signed-in person, and Vercel's CDN would otherwise hand it to the next. */
+  res.setHeader('cache-control', status === 200 && shared && !cookie ? shared : 'no-store');
   if (cookie) res.setHeader('set-cookie', cookie);
   res.end(JSON.stringify(payload));
 };
@@ -110,6 +122,7 @@ const routes = [
      travels in the body, never in a URL the server would log. */
   ['GET',  /^\/api\/public\/book$/,                 () => booking.publicCatalogue()],
   ['GET',  /^\/api\/public\/classes$/,              () => booking.publicClasses()],
+  ['GET',  /^\/api\/public\/timetable$/,            () => booking.publicTimetable()],
   ['POST', /^\/api\/public\/reservations$/,         async ctx => booking.createReservation(await body(ctx.req), meta(ctx.req), null)],
   ['POST', /^\/api\/public\/reservation$/,          async ctx => booking.publicReservation(await body(ctx.req))],
   ['POST', /^\/api\/public\/reservation\/book$/,    async ctx => booking.publicBookMore(await body(ctx.req), meta(ctx.req))],
@@ -256,8 +269,12 @@ export default async function handler(req, res) {
   if (req.method !== 'GET' && !sameOrigin(req))
     return send(res, 403, { error: 'Request came from somewhere else' });
 
-  const token = readCookie(req, 'dua_session');
-  const user = await userForToken(token).catch(() => null);
+  /* The public reads answer the same to everybody, so they skip the
+     session lookup: one database round trip fewer on the pages a
+     customer opens first. */
+  const shared = req.method === 'GET' ? SHARED[path] : undefined;
+  const token = shared ? null : readCookie(req, 'dua_session');
+  const user = shared ? null : await userForToken(token).catch(() => null);
 
   for (const [method, re, handle] of routes) {
     const m = re.exec(path);
@@ -266,7 +283,7 @@ export default async function handler(req, res) {
     const ctx = { req, res, user, token, m, cookie: null };
     try {
       const out = await handle(ctx);
-      return send(res, 200, out == null ? { ok: true } : out, ctx.cookie);
+      return send(res, 200, out == null ? { ok: true } : out, ctx.cookie, shared);
     } catch (e) {
       const status = e.status || 500;
       if (status >= 500) console.error(req.method, path, e);

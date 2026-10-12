@@ -470,8 +470,35 @@
     'How long is a class?': 'Sa zgjat një klasë?',
     'Fifty minutes.': 'Pesëdhjetë minuta.',
     'Where in Tirana are you?': 'Ku ndodheni në Tiranë?',
-    'In Tirana. The address goes up here the moment the studio is ready — message us on 069 710 4072 or on Instagram and we will send it to you first.':
-      'Në Tiranë. Adresa ngjitet këtu në momentin që studioja të jetë gati — na shkruaj në 069 710 4072 ose në Instagram dhe ta dërgojmë ty të parës.',
+    'The map is just below — tap it and Google Maps takes you to the door. We are open Monday to Saturday, 07:00 to 21:00.':
+      'Harta është pak më poshtë — prek atë dhe Google Maps të çon deri te dera. Jemi hapur nga e hëna në të shtunë, 07:00 deri 21:00.',
+
+    /* ---- timetable ---- */
+    'Timetable,': 'Orari,',
+    'Monday to Saturday.': 'nga e hëna në të shtunë.',
+    'Every class is fifty minutes and starts on the hour, so it is easy to fit into your day.':
+      'Çdo klasë zgjat pesëdhjetë minuta dhe fillon në orë të plotë, që ta futësh lehtë në ditën tënde.',
+    'Opening hours': 'Orari i hapjes',
+    'Monday – Saturday': 'E hënë – e shtunë',
+    'Monday – Saturday, 07:00 – 21:00': 'E hënë – e shtunë, 07:00 – 21:00',
+    'Closed on Sunday': 'Të dielën mbyllur',
+    'Closed': 'Mbyllur',
+    'Monday': 'E hënë', 'Tuesday': 'E martë', 'Wednesday': 'E mërkurë', 'Thursday': 'E enjte',
+    'Friday': 'E premte', 'Saturday': 'E shtunë', 'Sunday': 'E diel',
+    'Reformer': 'Reformer',
+    'one person at a time': 'një person në një kohë',
+    'small group on the reformer': 'grup i vogël në reformer',
+
+    /* ---- find us ---- */
+    'Find us': 'Na gjej',
+    'Come by': 'Eja në',
+    'the studio.': 'studio.',
+    'Where': 'Ku',
+    'Open': 'Hapur',
+    'Call or write': 'Telefono ose shkruaj',
+    'Get directions': 'Merr udhëzimet',
+    'Open in Google Maps': 'Hape në Google Maps',
+    'Map: DUA Pilates & SPA, Tirana': 'Harta: DUA Pilates & SPA, Tiranë',
     'What does the spa offer?': 'Çfarë ofron spa-ja?',
     'Treatments in the same place as the studio, so recovery sits inside your week instead of beside it. The full list comes with the opening.':
       'Trajtime në të njëjtin vend me studion, që rikuperimi të rrijë brenda javës sate dhe jo anash saj. Lista e plotë vjen me hapjen.',
@@ -570,6 +597,8 @@
        have listed: how many treatments, and what a combination holds. */
     m = s.match(/^· (\d+) treatments?$/);
     if (m) return '· ' + m[1] + (m[1] === '1' ? ' trajtim' : ' trajtime');
+    m = s.match(/^(\d+) times$/);
+    if (m) return m[1] + ' orare';
     m = s.match(/^(\d+) Pilates \+ (\d+) Spa$/);
     if (m) return m[1] + ' Pilates + ' + m[2] + ' Spa';
     return null;
