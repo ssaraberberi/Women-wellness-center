@@ -13,7 +13,8 @@
     "seed:demo": "node server/scripts/seed.js",
     "reset": "node server/scripts/seed.js --fresh",
     "check": "node server/scripts/check.js",
-    "test:booking": "node server/scripts/test-booking.js"
+    "test:booking": "node server/scripts/test-booking.js",
+    "test:mobile": "node server/scripts/test-mobile.js"
   },
   "dependencies": {
     "pg": "^8.13.0"

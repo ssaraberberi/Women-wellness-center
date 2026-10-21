@@ -15,3 +15,4 @@ scripts/
 app/README.md
 .env
 .env.example
+mobile/

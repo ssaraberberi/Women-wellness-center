@@ -15,7 +15,7 @@
    ============================================================ */
 
 /* Bump on every change to SCHEMA below. */
-export const VERSION = '2026-10-12c';
+export const VERSION = '2026-10-21m';
 
 export const SCHEMA = `
 create table if not exists users (
@@ -408,6 +408,35 @@ create table if not exists rate_events (
   at   timestamptz not null default now()
 );
 create index if not exists rate_events_key on rate_events (kind, key, at desc);
+
+-- ================================================================
+-- The phone app. Additive only: the website reads none of this.
+-- ================================================================
+
+-- Where a notice can be pushed: one row per phone that signed in and
+-- allowed notifications. The token is the Expo push token, which is an
+-- address, not a credential — it can only receive.
+create table if not exists push_devices (
+  token      text primary key,
+  user_id    uuid not null references users(id) on delete cascade,
+  platform   text not null default 'unknown' check (platform in ('ios', 'android', 'unknown')),
+  lang       text not null default 'sq' check (lang in ('sq', 'en')),
+  created_at timestamptz not null default now(),
+  seen_at    timestamptz not null default now()
+);
+create index if not exists push_devices_user on push_devices (user_id);
+
+-- Whether a notice has gone out as a push. Every notice written before
+-- the column existed is marked as sent, so turning this on does not
+-- deliver a backlog to every phone at once.
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+                  where table_name = 'notices' and column_name = 'pushed_at') then
+    alter table notices add column pushed_at timestamptz;
+    update notices set pushed_at = created_at;
+  end if;
+end $$;
+create index if not exists notices_unpushed on notices (created_at) where pushed_at is null;
 `;
 
 /* ---------- applying it ----------

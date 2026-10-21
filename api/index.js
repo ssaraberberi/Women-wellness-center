@@ -13,6 +13,7 @@ import { userForToken } from './_lib/auth.js';
 import * as api from './_lib/api.js';
 import * as booking from './_lib/booking.js';
 import * as schedule from './_lib/schedule.js';
+import { registerDevice, forgetDevice, flushPush } from './_lib/push.js';
 
 /* The schedule endpoints are the studio's alone. */
 const need = user => {
@@ -58,6 +59,20 @@ function readCookie(req, name) {
 }
 const setCookie = (token, maxAge) =>
   'dua_session=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge + (PROD ? '; Secure' : '');
+/* The phone app keeps its session in the device's secure storage rather
+   than a cookie jar, so it is handed the token itself — but only when it
+   says it is the app. A browser is never given it: in a page, the cookie
+   being unreadable from script is the point. */
+const isApp = req => req.headers['x-dua-client'] === 'mobile';
+const signedIn = (ctx, r) => {
+  ctx.cookie = setCookie(r.token, r.maxAge);
+  return isApp(ctx.req) ? { user: r.user, token: r.token } : { user: r.user };
+};
+/* Authorization: Bearer — the app's way of presenting that token. */
+function bearer(req) {
+  const h = String(req.headers.authorization || '');
+  return h.startsWith('Bearer ') ? h.slice(7).trim() || null : null;
+}
 const clearCookie = () => 'dua_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (PROD ? '; Secure' : '');
 
 /* Vercel parses a JSON body for us, but only when it is asked for, and the
@@ -85,13 +100,11 @@ async function body(req) {
 const routes = [
   ['POST', /^\/api\/auth\/register$/, async (ctx) => {
     const r = await api.register(await body(ctx.req), meta(ctx.req));
-    ctx.cookie = setCookie(r.token, r.maxAge);
-    return { user: r.user };
+    return signedIn(ctx, r);
   }],
   ['POST', /^\/api\/auth\/login$/, async (ctx) => {
     const r = await api.login(await body(ctx.req), meta(ctx.req));
-    ctx.cookie = setCookie(r.token, r.maxAge);
-    return { user: r.user };
+    return signedIn(ctx, r);
   }],
   ['POST', /^\/api\/auth\/logout$/, async (ctx) => {
     await api.logout(ctx.token);
@@ -103,8 +116,7 @@ const routes = [
   ['POST', /^\/api\/auth\/forgot$/, async ctx => api.forgotPassword(await body(ctx.req), meta(ctx.req))],
   ['POST', /^\/api\/auth\/reset$/,  async ctx => {
     const r = await api.resetWithToken(await body(ctx.req));
-    ctx.cookie = setCookie(r.token, r.maxAge);
-    return { user: r.user };
+    return signedIn(ctx, r);
   }],
   ['POST', /^\/api\/auth\/verify$/, async ctx => api.verifyEmail(await body(ctx.req))],
   ['POST', /^\/api\/auth\/verify\/send$/, ctx => api.sendVerification(ctx.user, meta(ctx.req))],
@@ -134,8 +146,16 @@ const routes = [
   ['GET',  /^\/api\/client\/state$/,      ctx => api.clientState(ctx.user)],
   ['POST', /^\/api\/client\/book$/,       async ctx => api.book(ctx.user, await body(ctx.req))],
   ['POST', /^\/api\/client\/cancel$/,     async ctx => api.cancelBooking(ctx.user, await body(ctx.req))],
+  ['GET',  /^\/api\/client\/reservations$/, ctx => api.clientReservations(ctx.user)],
+  ['POST', /^\/api\/client\/reservations$/, async ctx => api.clientReserve(ctx.user, await body(ctx.req), meta(ctx.req))],
+
+  /* The phone app's push address, kept while she is signed in on it. */
+  ['POST', /^\/api\/me\/devices$/,         async ctx => registerDevice(ctx.user, await body(ctx.req))],
+  ['POST', /^\/api\/me\/devices\/forget$/, async ctx => forgetDevice(ctx.user, await body(ctx.req))],
 
   ['GET',  /^\/api\/instructor\/state$/,          ctx => api.instructorState(ctx.user)],
+  ['GET',  /^\/api\/instructor\/classes\/([\w-]+)\/roster$/, ctx => api.instructorRoster(ctx.user, ctx.m[1])],
+  ['POST', /^\/api\/instructor\/bookings\/([\w-]+)\/attendance$/, async ctx => api.instructorAttendance(ctx.user, ctx.m[1], await body(ctx.req))],
   ['PUT',  /^\/api\/instructor\/qualifications$/, async ctx => api.setQualifications(ctx.user, await body(ctx.req))],
   ['PUT',  /^\/api\/instructor\/availability$/,   async ctx => api.setAvailability(ctx.user, await body(ctx.req))],
 
@@ -273,16 +293,23 @@ export default async function handler(req, res) {
      session lookup: one database round trip fewer on the pages a
      customer opens first. */
   const shared = req.method === 'GET' ? SHARED[path] : undefined;
-  const token = shared ? null : readCookie(req, 'dua_session');
+  const token = shared ? null : readCookie(req, 'dua_session') || bearer(req);
   const user = shared ? null : await userForToken(token).catch(() => null);
 
+  let wrongMethod = false;
   for (const [method, re, handle] of routes) {
     const m = re.exec(path);
     if (!m) continue;
-    if (req.method !== method) return send(res, 405, { error: 'Method not allowed' });
+    /* One path may answer more than one method, so keep looking. */
+    if (req.method !== method) { wrongMethod = true; continue; }
     const ctx = { req, res, user, token, m, cookie: null };
     try {
       const out = await handle(ctx);
+      /* A write may have left notices behind; they go to the phones now,
+         after the transaction that wrote them, and never at its expense. */
+      if (req.method !== 'GET')
+        await Promise.race([flushPush(), new Promise(r => setTimeout(r, 1500))])
+          .catch(e => console.error('push not sent: ' + e.message));
       return send(res, 200, out == null ? { ok: true } : out, ctx.cookie, shared);
     } catch (e) {
       const status = e.status || 500;
@@ -290,5 +317,6 @@ export default async function handler(req, res) {
       return send(res, status, { error: e.message || 'Something went wrong', code: e.code });
     }
   }
+  if (wrongMethod) return send(res, 405, { error: 'Method not allowed' });
   return send(res, 404, { error: 'No such endpoint' });
 }

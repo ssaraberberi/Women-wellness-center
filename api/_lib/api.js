@@ -681,3 +681,55 @@ export async function updateMembership(user, id, body) {
     return { ok: true };
   });
 }
+
+/* ---------- the phone app ----------
+   The instructor's own class list, with who is coming and whether she
+   came. Only classes the instructor leads: a roster is phone numbers, and
+   nobody else's are theirs to read. */
+async function ownClass(user, classId) {
+  const k = await one('select id, instructor_id from classes where id::text = $1', [String(classId)]);
+  if (!k) bad(404, 'No such class');
+  if (k.instructor_id !== user.id) bad(403, 'Not your class');
+  return k;
+}
+
+export async function instructorRoster(user, classId) {
+  need(user, 'instructor');
+  await ownClass(user, classId);
+  return many(
+    `select b.id, b.status, b.attendance, u.name, u.phone
+       from bookings b join users u on u.id = b.client_id
+      where b.class_id = $1 and b.status in ('booked','waitlist')
+      order by case b.status when 'booked' then 0 else 1 end, u.name`, [classId]);
+}
+
+/* Attended, no-show, or not yet — the same write the desk makes, so the
+   credit rules (a no-show stays spent) are the desk's too. */
+export async function instructorAttendance(user, bookingId, body) {
+  need(user, 'instructor');
+  const b = await one('select class_id from bookings where id::text = $1', [String(bookingId)]);
+  if (!b) bad(404, 'Booking not found');
+  await ownClass(user, b.class_id);
+  const v = body.attendance;
+  if (v !== null && v !== 'attended' && v !== 'noshow') bad(400, 'Attended, no-show, or not yet');
+  const row = await one(`update bookings set attendance = $2 where id = $1 and status = 'booked' returning id`, [bookingId, v]);
+  if (!row) bad(409, 'That booking is not active');
+  return { ok: true };
+}
+
+/* A signed-in client choosing a package in the app: the booking page's
+   own engine, with her account as the first person instead of a name and
+   a phone typed in. */
+export async function clientReserve(user, body, meta) {
+  need(user, 'client');
+  return booking.createReservation(body, meta, user);
+}
+
+/* Her reservations, each as the booking page shows it. */
+export async function clientReservations(user) {
+  need(user, 'client');
+  const rows = await many(
+    `select distinct r.id, r.created_at from reservations r join memberships m on m.reservation_id = r.id
+      where m.client_id = $1 order by r.created_at desc limit 30`, [user.id]);
+  return Promise.all(rows.map(r => booking.reservationView(r.id, { admin: false })));
+}

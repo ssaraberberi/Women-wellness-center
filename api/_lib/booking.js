@@ -349,6 +349,12 @@ export async function createReservation(body, meta, actor) {
   const want = offer && offer.kind === 'bundle' ? offer.persons : 1;
   const raw = Array.isArray(body.people) ? body.people : [];
   let adminClient = null;
+  /* A client signed in to the phone app reserves as herself. */
+  const appClient = !!actor && actor.role === 'client';
+  if (appClient) {
+    adminClient = await one(`select id, name, phone from users where id = $1 and role = 'client' and active`, [actor.id]);
+    if (!adminClient) bad(403, 'This account has been removed');
+  }
   if (admin && body.clientId) {
     adminClient = await one(`select id, name, phone from users where id = $1 and role = 'client' and active`, [body.clientId]);
     if (!adminClient) bad(404, 'No such client', 'client');
@@ -429,8 +435,8 @@ export async function createReservation(body, meta, actor) {
       `insert into reservations (ref, manage_hash, status, payment, source, plan_id, offer_id, title,
                                  unit_price, original_price, discount_pct, persons, total_price, terms, notes, created_by)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id`,
-      [ref, digest(token), status, payment, admin ? 'admin' : 'web', plan ? plan.id : null, offer ? offer.id : null, title,
-       unit, original, pct || null, want, total, JSON.stringify(terms), notes, admin ? actor.id : null])).rows[0];
+      [ref, digest(token), status, payment, admin ? 'admin' : appClient ? 'app' : 'web', plan ? plan.id : null, offer ? offer.id : null, title,
+       unit, original, pct || null, want, total, JSON.stringify(terms), notes, actor ? actor.id : null])).rows[0];
 
     const holders = [];
     for (const p of people) {
