@@ -15,3 +15,9 @@ scripts/
 app/README.md
 .env
 .env.example
+
+# The mobile app and its API deploy elsewhere (EAS and Railway). Their source,
+# docs and examples are not for the website to serve.
+backend/
+mobile/
+docs/

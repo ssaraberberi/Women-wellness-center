@@ -1,0 +1,10 @@
+appId: com.duapilates.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Fillo"
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Dërgo kodin"
+- assertVisible: "Fut kodin"
+- inputText: "000000"

@@ -1,0 +1,885 @@
+// DUA Pilates & SPA — database schema.
+//
+// Every timestamp is stored in UTC (timestamptz) and shown in Europe/Tirane.
+// Money is stored in whole Albanian lek (ALL has no minor unit in practice).
+//
+// Constraints Prisma cannot express (partial unique indexes, CHECKs) live in
+// the hand-edited migration SQL; search for "-- hand-written" in
+// prisma/migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Identity ─────────────────────────────
+
+enum Role {
+  CLIENT
+  STAFF
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+  DELETION_REQUESTED
+  DELETED
+}
+
+enum Language {
+  sq
+  en
+}
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  email         String     @unique
+  role          Role       @default(CLIENT)
+  status        UserStatus @default(ACTIVE)
+  isOwner       Boolean    @default(false) @map("is_owner")
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lastLoginAt   DateTime?  @map("last_login_at") @db.Timestamptz(3)
+
+  profile          UserProfile?
+  staffProfile     StaffProfile?
+  notificationPrefs NotificationPreference?
+  sessions         AuthSession[]
+  pushTokens       PushToken[]
+  bookings         ClassBooking[]
+  waitlists        ClassWaitlist[]
+  spaAppointments  SpaAppointment[]       @relation("ClientAppointments")
+  purchases        MembershipPurchase[]
+  wallets          CreditWallet[]
+  creditTransactions CreditTransaction[]  @relation("WalletOwner")
+  orders           Order[]
+  notifications    Notification[]
+  clientNotes      ClientNote[]           @relation("NoteSubject")
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId           String   @id @map("user_id") @db.Uuid
+  firstName        String   @map("first_name")
+  lastName         String   @default("") @map("last_name")
+  phone            String?
+  language         Language @default(sq)
+  avatarUrl        String?  @map("avatar_url")
+  marketingConsent Boolean  @default(false) @map("marketing_consent")
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+enum CompensationModel {
+  FIXED_SALARY
+  HOURLY
+  PER_CLASS
+}
+
+model StaffProfile {
+  userId             String            @id @map("user_id") @db.Uuid
+  isInstructor       Boolean           @default(false) @map("is_instructor")
+  isTherapist        Boolean           @default(false) @map("is_therapist")
+  bio                String?
+  compensationModel  CompensationModel @default(PER_CLASS) @map("compensation_model")
+  compensationRate   Int               @default(0) @map("compensation_rate") // ALL per month / hour / class
+  canViewClientNotes Boolean           @default(false) @map("can_view_client_notes")
+  active             Boolean           @default(true)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  qualifications     TherapistQualification[]
+  therapistAvailability TherapistAvailability[]
+  staffAvailability  StaffAvailability[]
+  timeOff            TimeOffRequest[]
+  sessions           ClassSession[]
+  templates          ClassScheduleTemplate[]
+  appointments       SpaAppointment[]  @relation("TherapistAppointments")
+
+  @@map("staff_profiles")
+}
+
+enum OtpPurpose {
+  LOGIN
+  REGISTER
+}
+
+model AuthOtpChallenge {
+  id          String     @id @default(uuid()) @db.Uuid
+  email       String
+  purpose     OtpPurpose
+  codeHash    String     @map("code_hash")
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5) @map("max_attempts")
+  expiresAt   DateTime   @map("expires_at") @db.Timestamptz(3)
+  consumedAt  DateTime?  @map("consumed_at") @db.Timestamptz(3)
+  ip          String?
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@map("auth_otp_challenges")
+}
+
+model AuthSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  familyId         String    @map("family_id") @db.Uuid // one per sign-in; rotation keeps it
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  rotatedAt        DateTime? @map("rotated_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  userAgent        String?   @map("user_agent")
+  ip               String?
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("auth_sessions")
+}
+
+model NotificationPreference {
+  userId          String   @id @map("user_id") @db.Uuid
+  pushEnabled     Boolean  @default(true) @map("push_enabled")
+  emailEnabled    Boolean  @default(true) @map("email_enabled")
+  reminders       Boolean  @default(true)
+  waitlist        Boolean  @default(true)
+  marketing       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  platform  String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
+}
+
+// ───────────────────────────── Pilates ─────────────────────────────
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+model ClassType {
+  id              String     @id @default(uuid()) @db.Uuid
+  name            String
+  nameEn          String?    @map("name_en")
+  description     String     @default("")
+  descriptionEn   String?    @map("description_en")
+  format          String     @default("REFORMER") // REFORMER, MAT, …
+  difficulty      Difficulty @default(ALL_LEVELS)
+  durationMin     Int        @default(50) @map("duration_min")
+  defaultCapacity Int        @default(8) @map("default_capacity")
+  creditsRequired Int        @default(1) @map("credits_required")
+  imageKey        String?    @map("image_key")
+  active          Boolean    @default(true)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  templates       ClassScheduleTemplate[]
+  sessions        ClassSession[]
+
+  @@map("class_types")
+}
+
+model ClassScheduleTemplate {
+  id           String       @id @default(uuid()) @db.Uuid
+  classTypeId  String       @map("class_type_id") @db.Uuid
+  instructorId String?      @map("instructor_id") @db.Uuid
+  weekday      Int          // 1 = Monday … 7 = Sunday (ISO)
+  startTime    String       @map("start_time") // "HH:mm" studio time
+  durationMin  Int          @map("duration_min")
+  capacity     Int
+  validFrom    DateTime     @map("valid_from") @db.Date
+  validUntil   DateTime?    @map("valid_until") @db.Date
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  classType    ClassType    @relation(fields: [classTypeId], references: [id])
+  instructor   StaffProfile? @relation(fields: [instructorId], references: [userId])
+  sessions     ClassSession[]
+
+  @@map("class_schedule_templates")
+}
+
+enum SessionStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+model ClassSession {
+  id           String        @id @default(uuid()) @db.Uuid
+  classTypeId  String        @map("class_type_id") @db.Uuid
+  templateId   String?       @map("template_id") @db.Uuid
+  instructorId String?       @map("instructor_id") @db.Uuid
+  startsAt     DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime      @map("ends_at") @db.Timestamptz(3)
+  capacity     Int
+  status       SessionStatus @default(SCHEDULED)
+  cancelReason String?       @map("cancel_reason")
+  // Edited by hand: the template generator leaves it alone from then on.
+  detached     Boolean       @default(false)
+  room         String?
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  classType    ClassType     @relation(fields: [classTypeId], references: [id])
+  template     ClassScheduleTemplate? @relation(fields: [templateId], references: [id])
+  instructor   StaffProfile? @relation(fields: [instructorId], references: [userId])
+  bookings     ClassBooking[]
+  waitlist     ClassWaitlist[]
+
+  @@unique([templateId, startsAt])
+  @@index([startsAt])
+  @@index([instructorId, startsAt])
+  @@map("class_sessions")
+}
+
+enum BookingStatus {
+  BOOKED
+  CANCELLED
+  LATE_CANCELLED
+  SESSION_CANCELLED
+}
+
+enum BookingSource {
+  CLIENT
+  ADMIN
+  WAITLIST
+}
+
+model ClassBooking {
+  id              String        @id @default(uuid()) @db.Uuid
+  sessionId       String        @map("session_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  walletId        String?       @map("wallet_id") @db.Uuid
+  creditsUsed     Int           @default(0) @map("credits_used")
+  status          BookingStatus @default(BOOKED)
+  source          BookingSource @default(CLIENT)
+  idempotencyKey  String?       @map("idempotency_key")
+  creditRefunded  Boolean       @default(false) @map("credit_refunded")
+  bookedAt        DateTime      @default(now()) @map("booked_at") @db.Timestamptz(3)
+  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById   String?       @map("cancelled_by_id") @db.Uuid
+
+  session         ClassSession  @relation(fields: [sessionId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+  wallet          CreditWallet? @relation(fields: [walletId], references: [id])
+  attendance      ClassAttendance?
+
+  @@unique([userId, idempotencyKey])
+  @@index([sessionId, status])
+  @@index([userId, status])
+  @@map("class_bookings")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
+
+model ClassAttendance {
+  bookingId  String           @id @map("booking_id") @db.Uuid
+  status     AttendanceStatus
+  markedById String           @map("marked_by_id") @db.Uuid
+  markedAt   DateTime         @default(now()) @map("marked_at") @db.Timestamptz(3)
+  booking    ClassBooking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("class_attendance")
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  ACCEPTED
+  EXPIRED
+  LEFT
+  CLOSED
+}
+
+model ClassWaitlist {
+  id             String         @id @default(uuid()) @db.Uuid
+  sessionId      String         @map("session_id") @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  status         WaitlistStatus @default(WAITING)
+  offeredAt      DateTime?      @map("offered_at") @db.Timestamptz(3)
+  offerExpiresAt DateTime?      @map("offer_expires_at") @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  session        ClassSession   @relation(fields: [sessionId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+
+  @@index([sessionId, status, createdAt])
+  @@index([userId, status])
+  @@map("class_waitlists")
+}
+
+// ───────────────────────────── SPA ─────────────────────────────
+
+model SpaTreatment {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  nameEn        String?  @map("name_en")
+  category      String   // RELAX, DEEP_TISSUE, SPORTS, LYMPHATIC, MADERO, BACK_NECK
+  description   String   @default("")
+  descriptionEn String?  @map("description_en")
+  benefits      String   @default("")
+  benefitsEn    String?  @map("benefits_en")
+  durationMin   Int      @map("duration_min")
+  bufferMin     Int      @default(10) @map("buffer_min") // turnover after the treatment
+  price         Int
+  imageKey      String?  @map("image_key")
+  clientCanChooseTherapist Boolean @default(true) @map("client_can_choose_therapist")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  qualifications TherapistQualification[]
+  appointments   SpaAppointment[]
+  entitlements   SpaEntitlement[]
+  productItems   MembershipProductSpaItem[]
+
+  @@map("spa_treatments")
+}
+
+model SpaRoom {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  active       Boolean  @default(true)
+  appointments SpaAppointment[]
+
+  @@map("spa_rooms")
+}
+
+model TherapistQualification {
+  therapistId String       @map("therapist_id") @db.Uuid
+  treatmentId String       @map("treatment_id") @db.Uuid
+  therapist   StaffProfile @relation(fields: [therapistId], references: [userId], onDelete: Cascade)
+  treatment   SpaTreatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  @@id([therapistId, treatmentId])
+  @@map("therapist_qualifications")
+}
+
+// Weekly working hours of a therapist, in studio time.
+model TherapistAvailability {
+  id          String       @id @default(uuid()) @db.Uuid
+  therapistId String       @map("therapist_id") @db.Uuid
+  weekday     Int          // 1 = Monday … 7 = Sunday
+  startTime   String       @map("start_time") // "HH:mm"
+  endTime     String       @map("end_time")
+  breakStart  String?      @map("break_start")
+  breakEnd    String?      @map("break_end")
+  therapist   StaffProfile @relation(fields: [therapistId], references: [userId], onDelete: Cascade)
+
+  @@index([therapistId, weekday])
+  @@map("therapist_availability")
+}
+
+enum AppointmentStatus {
+  BOOKED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model SpaAppointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  clientId       String            @map("client_id") @db.Uuid
+  therapistId    String            @map("therapist_id") @db.Uuid
+  treatmentId    String            @map("treatment_id") @db.Uuid
+  roomId         String            @map("room_id") @db.Uuid
+  startsAt       DateTime          @map("starts_at") @db.Timestamptz(3)
+  endsAt         DateTime          @map("ends_at") @db.Timestamptz(3)
+  blockedUntil   DateTime          @map("blocked_until") @db.Timestamptz(3) // ends_at + buffer
+  status         AppointmentStatus @default(BOOKED)
+  price          Int               // snapshot at booking
+  entitlementId  String?           @map("entitlement_id") @db.Uuid
+  paidWith       String            @default("PAY_AT_STUDIO") @map("paid_with") // ENTITLEMENT | PAY_AT_STUDIO
+  serviceNotes   String?           @map("service_notes")
+  idempotencyKey String?           @map("idempotency_key")
+  createdById    String?           @map("created_by_id") @db.Uuid
+  cancelledAt    DateTime?         @map("cancelled_at") @db.Timestamptz(3)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client         User              @relation("ClientAppointments", fields: [clientId], references: [id])
+  therapist      StaffProfile      @relation("TherapistAppointments", fields: [therapistId], references: [userId])
+  treatment      SpaTreatment      @relation(fields: [treatmentId], references: [id])
+  room           SpaRoom           @relation(fields: [roomId], references: [id])
+  entitlement    SpaEntitlement?   @relation(fields: [entitlementId], references: [id])
+
+  @@unique([clientId, idempotencyKey])
+  @@index([therapistId, startsAt])
+  @@index([roomId, startsAt])
+  @@index([clientId, startsAt])
+  @@map("spa_appointments")
+}
+
+// Blocked time: one therapist, one room, or the whole SPA when both are null.
+model SpaTimeBlock {
+  id          String   @id @default(uuid()) @db.Uuid
+  therapistId String?  @map("therapist_id") @db.Uuid
+  roomId      String?  @map("room_id") @db.Uuid
+  startsAt    DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime @map("ends_at") @db.Timestamptz(3)
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([startsAt])
+  @@map("spa_time_blocks")
+}
+
+// ───────────────────────────── Memberships ─────────────────────────────
+
+enum ProductKind {
+  SINGLE
+  PACKAGE
+  TRIAL
+  PROMO
+  DUO
+  COMBO
+  SPA
+}
+
+model MembershipProduct {
+  id             String      @id @default(uuid()) @db.Uuid
+  kind           ProductKind
+  name           String
+  nameEn         String?     @map("name_en")
+  description    String      @default("")
+  descriptionEn  String?     @map("description_en")
+  price          Int
+  originalPrice  Int?        @map("original_price")
+  classCredits   Int         @default(0) @map("class_credits")
+  validityDays   Int         @map("validity_days")
+  sessionsPerWeekHint Int?   @map("sessions_per_week_hint")
+  terms          String      @default("")
+  termsEn        String?     @map("terms_en")
+  firstTimeOnly  Boolean     @default(false) @map("first_time_only") // trials
+  maxPerClient   Int?        @map("max_per_client")
+  imageKey       String?     @map("image_key")
+  sortOrder      Int         @default(0) @map("sort_order")
+  active         Boolean     @default(true)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  spaItems       MembershipProductSpaItem[]
+  purchases      MembershipPurchase[]
+  promotions     PromotionProduct[]
+
+  @@map("membership_products")
+}
+
+// SPA entitlements a product grants: N × a treatment, or N × any treatment
+// of a category.
+model MembershipProductSpaItem {
+  id          String            @id @default(uuid()) @db.Uuid
+  productId   String            @map("product_id") @db.Uuid
+  treatmentId String?           @map("treatment_id") @db.Uuid
+  category    String?
+  quantity    Int
+  product     MembershipProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  treatment   SpaTreatment?     @relation(fields: [treatmentId], references: [id])
+
+  @@map("membership_product_spa_items")
+}
+
+enum PurchaseStatus {
+  PENDING_PAYMENT
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+// What was bought, with the terms as they were the day it was bought.
+model MembershipPurchase {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  productId     String         @map("product_id") @db.Uuid
+  orderId       String?        @unique @map("order_id") @db.Uuid
+  status        PurchaseStatus @default(PENDING_PAYMENT)
+  nameSnapshot  String         @map("name_snapshot")
+  priceSnapshot Int            @map("price_snapshot")
+  classCredits  Int            @map("class_credits")
+  validityDays  Int            @map("validity_days")
+  termsSnapshot String         @default("") @map("terms_snapshot")
+  startsAt      DateTime?      @map("starts_at") @db.Timestamptz(3)
+  expiresAt     DateTime?      @map("expires_at") @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  activatedAt   DateTime?      @map("activated_at") @db.Timestamptz(3)
+
+  user          User           @relation(fields: [userId], references: [id])
+  product       MembershipProduct @relation(fields: [productId], references: [id])
+  order         Order?         @relation(fields: [orderId], references: [id])
+  wallet        CreditWallet?
+  spaEntitlements SpaEntitlement[]
+
+  @@index([userId, status])
+  @@map("membership_purchases")
+}
+
+model CreditWallet {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  purchaseId  String   @unique @map("purchase_id") @db.Uuid
+  total       Int
+  remaining   Int
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User               @relation(fields: [userId], references: [id])
+  purchase     MembershipPurchase @relation(fields: [purchaseId], references: [id])
+  transactions CreditTransaction[]
+  bookings     ClassBooking[]
+
+  @@index([userId, expiresAt])
+  @@map("credit_wallets")
+}
+
+enum CreditTxType {
+  GRANT
+  BOOKING
+  REFUND
+  LATE_CANCEL_KEPT
+  ADMIN_ADD
+  ADMIN_DEDUCT
+  ADMIN_RESTORE
+  EXPIRE
+}
+
+// Append-only ledger: wallet.remaining is always the sum of its deltas.
+model CreditTransaction {
+  id             String       @id @default(uuid()) @db.Uuid
+  walletId       String       @map("wallet_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  type           CreditTxType
+  delta          Int
+  balanceAfter   Int          @map("balance_after")
+  bookingId      String?      @map("booking_id") @db.Uuid
+  reason         String?
+  actorId        String?      @map("actor_id") @db.Uuid
+  idempotencyKey String?      @unique @map("idempotency_key")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  wallet         CreditWallet @relation(fields: [walletId], references: [id])
+  user           User         @relation("WalletOwner", fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("credit_transactions")
+}
+
+model SpaEntitlement {
+  id          String             @id @default(uuid()) @db.Uuid
+  userId      String             @map("user_id") @db.Uuid
+  purchaseId  String             @map("purchase_id") @db.Uuid
+  treatmentId String?            @map("treatment_id") @db.Uuid
+  category    String?
+  total       Int
+  remaining   Int
+  expiresAt   DateTime           @map("expires_at") @db.Timestamptz(3)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  purchase    MembershipPurchase @relation(fields: [purchaseId], references: [id])
+  treatment   SpaTreatment?      @relation(fields: [treatmentId], references: [id])
+  appointments SpaAppointment[]
+
+  @@index([userId, expiresAt])
+  @@map("spa_entitlements")
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model PromotionCode {
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String       @unique
+  description      String       @default("")
+  discountType     DiscountType @map("discount_type")
+  discountValue    Int          @map("discount_value") // percent 1–100, or ALL
+  firstTimeOnly    Boolean      @default(false) @map("first_time_only")
+  maxRedemptions   Int?         @map("max_redemptions")
+  redemptionCount  Int          @default(0) @map("redemption_count")
+  validFrom        DateTime?    @map("valid_from") @db.Timestamptz(3)
+  validUntil       DateTime?    @map("valid_until") @db.Timestamptz(3)
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  products         PromotionProduct[] // empty = every product
+  orders           Order[]
+
+  @@map("promotion_codes")
+}
+
+model PromotionProduct {
+  promotionId String            @map("promotion_id") @db.Uuid
+  productId   String            @map("product_id") @db.Uuid
+  promotion   PromotionCode     @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  product     MembershipProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promotionId, productId])
+  @@map("promotion_products")
+}
+
+// ───────────────────────────── Payments ─────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id            String       @id @default(uuid()) @db.Uuid
+  reference     String       @unique // DUA-7KQ3P
+  userId        String       @map("user_id") @db.Uuid
+  status        OrderStatus  @default(PENDING)
+  subtotal      Int
+  discount      Int          @default(0)
+  total         Int
+  promotionId   String?      @map("promotion_id") @db.Uuid
+  createdById   String?      @map("created_by_id") @db.Uuid
+  idempotencyKey String?     @map("idempotency_key")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user          User         @relation(fields: [userId], references: [id])
+  promotion     PromotionCode? @relation(fields: [promotionId], references: [id])
+  purchase      MembershipPurchase?
+  payments      Payment[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([status, createdAt])
+  @@map("orders")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD_AT_STUDIO
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @map("order_id") @db.Uuid
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  amount        Int
+  provider      String?
+  providerRef   String?       @unique @map("provider_ref")
+  confirmedById String?       @map("confirmed_by_id") @db.Uuid // manual confirmation
+  note          String?
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  completedAt   DateTime?     @map("completed_at") @db.Timestamptz(3)
+  order         Order         @relation(fields: [orderId], references: [id])
+  refunds       Refund[]
+
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model Refund {
+  id         String   @id @default(uuid()) @db.Uuid
+  paymentId  String   @map("payment_id") @db.Uuid
+  amount     Int
+  reason     String?
+  actorId    String   @map("actor_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  payment    Payment  @relation(fields: [paymentId], references: [id])
+
+  @@map("refunds")
+}
+
+// ───────────────────────────── Operations ─────────────────────────────
+
+// Preferred working hours a staff member submits, for the admin to read.
+model StaffAvailability {
+  id        String       @id @default(uuid()) @db.Uuid
+  staffId   String       @map("staff_id") @db.Uuid
+  weekday   Int
+  startTime String       @map("start_time")
+  endTime   String       @map("end_time")
+  note      String?
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  staff     StaffProfile @relation(fields: [staffId], references: [userId], onDelete: Cascade)
+
+  @@map("staff_availability")
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum StaffRequestKind {
+  TIME_OFF
+  CONFLICT
+  AVAILABILITY_CHANGE
+}
+
+model TimeOffRequest {
+  id          String           @id @default(uuid()) @db.Uuid
+  staffId     String           @map("staff_id") @db.Uuid
+  kind        StaffRequestKind @default(TIME_OFF)
+  startsAt    DateTime         @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime         @map("ends_at") @db.Timestamptz(3)
+  reason      String?
+  status      RequestStatus    @default(PENDING)
+  reviewedById String?         @map("reviewed_by_id") @db.Uuid
+  reviewedAt  DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote  String?          @map("review_note")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  staff       StaffProfile     @relation(fields: [staffId], references: [userId], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("time_off_requests")
+}
+
+model StudioClosure {
+  id        String   @id @default(uuid()) @db.Uuid
+  date      DateTime @unique @db.Date
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("studio_closures")
+}
+
+model ClientNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  clientId  String   @map("client_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  body      String
+  // INTERNAL: admins only. SERVICE: also therapists/instructors permitted to read notes.
+  visibility String  @default("INTERNAL")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  client    User     @relation("NoteSubject", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("client_notes")
+}
+
+model Announcement {
+  id        String    @id @default(uuid()) @db.Uuid
+  title     String
+  titleEn   String?   @map("title_en")
+  body      String
+  bodyEn    String?   @map("body_en")
+  kind      String    @default("NEWS") // NEWS | OFFER
+  startsAt  DateTime  @default(now()) @map("starts_at") @db.Timestamptz(3)
+  endsAt    DateTime? @map("ends_at") @db.Timestamptz(3)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("announcements")
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model Notification {
+  id          String              @id @default(uuid()) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  type        String
+  channel     NotificationChannel
+  status      NotificationStatus  @default(PENDING)
+  title       String
+  body        String
+  data        Json?
+  dedupeKey   String              @map("dedupe_key")
+  attempts    Int                 @default(0)
+  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lastError   String?             @map("last_error")
+  sentAt      DateTime?           @map("sent_at") @db.Timestamptz(3)
+  readAt      DateTime?           @map("read_at") @db.Timestamptz(3)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dedupeKey, channel])
+  @@index([status, nextAttemptAt])
+  @@index([userId, channel, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  data       Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Single row (id = 1): everything the studio configures.
+model StudioSettings {
+  id                      Int      @id @default(1)
+  studioName              String   @default("DUA Pilates & SPA") @map("studio_name")
+  address                 String   @default("Rruga Anton Lufi, Komuna e Parisit, Tiranë")
+  phone                   String   @default("+355 69 710 4072")
+  instagram               String   @default("@dua_pilates_spa")
+  timezone                String   @default("Europe/Tirane")
+  currency                String   @default("ALL")
+  // { "1": {"open":"07:00","close":"21:00"}, …, "7": null }
+  openingHours            Json     @map("opening_hours")
+  freeCancelHours         Int      @default(12) @map("free_cancel_hours")
+  lateCancelKeepsCredit   Boolean  @default(true) @map("late_cancel_keeps_credit")
+  bookingWindowDays       Int      @default(21) @map("booking_window_days")
+  bookingCutoffMin        Int      @default(0) @map("booking_cutoff_min")
+  defaultClassCapacity    Int      @default(8) @map("default_class_capacity")
+  waitlistEnabled         Boolean  @default(true) @map("waitlist_enabled")
+  waitlistOfferMinutes    Int      @default(60) @map("waitlist_offer_minutes")
+  spaFreeCancelHours      Int      @default(24) @map("spa_free_cancel_hours")
+  spaSlotStepMin          Int      @default(15) @map("spa_slot_step_min")
+  activateBeforePayment   Boolean  @default(false) @map("activate_before_payment")
+  reminderHoursBefore     Int      @default(12) @map("reminder_hours_before")
+  expiryReminderDays      Int      @default(5) @map("expiry_reminder_days")
+  scheduleHorizonDays     Int      @default(60) @map("schedule_horizon_days")
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("studio_settings")
+}

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# Secrets: only the example is committed
+.env
+.env.*
+!.env.example
+
+# Local PostgreSQL data from `npm run dev:db`
+.pgdata/

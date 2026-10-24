@@ -1,3 +1,20 @@
 node_modules/
-.env
 *.log
+
+# Secrets: every .env stays local (Railway / Vercel / EAS hold the real values).
+# Only the documented examples are committed.
+.env
+.env.*
+!.env.example
+
+# Build output and caches
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local PostgreSQL data from `npm run dev:db` (backend/)
+.pgdata/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

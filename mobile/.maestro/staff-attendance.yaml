@@ -1,0 +1,12 @@
+appId: com.duapilates.app
+env:
+  EMAIL: ines@dua.dev
+---
+- runFlow: _sign-in.yaml
+- assertVisible: "Seancat e sotme"
+- tapOn: "Pjesëmarrëset"
+- tapOn:
+    text: ".*Reformer.*"
+    index: 0
+- assertVisible: "Pjesëmarrëset.*"
+# Present / Absent appear from 30 minutes before the class starts.

@@ -1,0 +1,18 @@
+appId: com.duapilates.app
+env:
+  EMAIL: sara@dua.dev
+---
+- runFlow: _sign-in.yaml
+- assertVisible: "Përshëndetje, Sara"
+- tapOn: "Rezervo"
+- tapOn: "Nesër|Tomorrow"
+- scrollUntilVisible:
+    element: "vende"
+- tapOn: ".*vende.*"
+- tapOn: "Rezervo klasën"
+- assertVisible: "Rezervimi u krye"
+- tapOn: "Shiko klasat e mia"
+- tapOn: "Menaxho"
+- tapOn: "Anulo rezervimin"
+- tapOn: "Po, anuloje"
+- assertVisible: "Krediti u kthye"

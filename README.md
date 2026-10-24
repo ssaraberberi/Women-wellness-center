@@ -1,5 +1,10 @@
 # DUA — movement & recovery studio, Tiranë
 
+> **The mobile app** (iOS + Android, Expo) and its API (Fastify + PostgreSQL on
+> Railway) live in [`mobile/`](mobile/README.md) and [`backend/`](backend/README.md);
+> the overview is [`docs/app-architecture.md`](docs/app-architecture.md). They are
+> independent of the website and of its `/app` described below.
+
 A production-ready homepage mockup for a women-focused studio on
 **Sheshi Wilson, Tiranë** — Reformer Pilates, barre, yoga and massage.
 

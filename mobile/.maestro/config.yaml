@@ -1,0 +1,11 @@
+# Maestro end-to-end flows: https://maestro.mobile.dev
+# Run against a development or preview build (appId com.duapilates.app) with the
+# backend seeded (
+pm run seed -- --fresh in backend/) and APP_ENV=development,
+# DEV_LOGIN_CODE=000000 so the @dua.dev accounts can sign in.
+#   maestro test .maestro/
+flows:
+  - client-book-and-cancel.yaml
+  - client-spa.yaml
+  - admin-record-payment.yaml
+  - staff-attendance.yaml

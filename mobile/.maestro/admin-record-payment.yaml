@@ -1,0 +1,11 @@
+appId: com.duapilates.app
+env:
+  EMAIL: owner@dua.dev
+---
+- runFlow: _sign-in.yaml
+- assertVisible: "Paneli"
+- tapOn: ".*pagesa në pritje.*"
+- tapOn: "Regjistro pagesën"
+- tapOn: "Cash"
+- tapOn: "Paguar"
+- assertVisible: "Klasa e parë"

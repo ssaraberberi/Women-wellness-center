@@ -1,0 +1,13 @@
+appId: com.duapilates.app
+env:
+  EMAIL: sara@dua.dev
+---
+- runFlow: _sign-in.yaml
+- tapOn: "Rezervo"
+- tapOn: "SPA"
+- tapOn: "Deep Tissue"
+- scrollUntilVisible:
+    element: "\\d\\d:\\d\\d"
+- tapOn: "\\d\\d:\\d\\d"
+- tapOn: "Konfirmo terminin"
+- assertVisible: "Termini u konfirmua"
