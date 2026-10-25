@@ -154,7 +154,7 @@ and scan the QR code with that app instead of Expo Go.
     npx eas-cli@latest submit --platform ios       # App Store Connect
     npx eas-cli@latest submit --platform android   # Google Play
 
-Bundle id / package: `com.duapilates.app` (in `app.json`; change it before the
+Bundle id / package: `com.duapilatesandspa.app` (in `app.json`; change it before the
 first store submission if the studio wants a different one).
 
 ## Troubleshooting

@@ -1,4 +1,4 @@
-appId: com.duapilates.app
+appId: com.duapilatesandspa.app
 ---
 - launchApp:
     clearState: true

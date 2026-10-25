@@ -10,7 +10,7 @@
     "userInterfaceStyle": "light",
     "backgroundColor": "#F3ECE4",
     "ios": {
-      "bundleIdentifier": "com.duapilates.app",
+      "bundleIdentifier": "com.duapilatesandspa.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSCalendarsUsageDescription": "DUA adds your booked classes and SPA appointments to your calendar when you ask it to.",
@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.duapilates.app",
+      "package": "com.duapilatesandspa.app",
       "adaptiveIcon": {
         "backgroundColor": "#5E1F2D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
