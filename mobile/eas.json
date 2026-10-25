@@ -19,7 +19,7 @@
     "production": {
       "autoIncrement": true,
       "environment": "production",
-      "env": { "EXPO_PUBLIC_API_URL": "https://dua-api-production.up.railway.app" }
+      "env": { "EXPO_PUBLIC_API_URL": "https://api-prod-production-19a0.up.railway.app" }
     }
   },
   "submit": {
