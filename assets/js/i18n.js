@@ -40,6 +40,8 @@
     'Hours': 'Orari',
     'Contact': 'Kontakt',
     'Back to top': 'Kthehu lart',
+    'Privacy Policy': 'Politika e Privatësisë',
+    'Delete account': 'Fshi llogarinë',
     'A ritual for yourself.': 'Një ritual për veten.',
     'Reformer · Mat Pilates · Barre · Yoga · Recovery': 'Reformer · Mat Pilates · Barre · Yoga · Rikuperim',
     'Coming soon': 'Së shpejti',

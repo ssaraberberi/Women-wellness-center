@@ -142,7 +142,12 @@ export function renderAuth({ go, start }) {
     el('div.auth__form', null, [
       el('p.eyebrow', { text: 'Studio account' }),
       el('h1.display', { text: 'Sign in to DUA' }),
-      tabs, formHost
+      tabs, formHost,
+      el('p.muted.center', { style: 'margin-top:18px;font-size:.85rem' }, [
+        el('a', { href: '/privacy-policy', target: '_blank', rel: 'noopener', text: 'Privacy Policy' }),
+        ' · ',
+        el('a', { href: '/delete-account', target: '_blank', rel: 'noopener', text: 'Delete account' })
+      ])
     ])
   ]);
 }

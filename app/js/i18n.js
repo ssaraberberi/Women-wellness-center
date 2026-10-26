@@ -71,6 +71,8 @@ const SQ = {
 
   /* ---- the way back in ---- */
   'Forgot your password?': 'Harrove fjalëkalimin?',
+  'Privacy Policy': 'Politika e Privatësisë',
+  'Delete account': 'Fshi llogarinë',
   'Send me a link': 'Dërgomë një link',
   'Back to sign in': 'Kthehu te hyrja',
   'Give us the address you signed up with and we will send you a link to set a new password.':
