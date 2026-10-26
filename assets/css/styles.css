@@ -1043,7 +1043,7 @@ fieldset{border:0}
   max-width:var(--maxw);margin:clamp(20px,2vw,30px) auto 0;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
   font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;color:rgba(255,251,234,.45);
 }
-.foot__links{display:flex;gap:22px}
+.foot__links{display:flex;flex-wrap:wrap;gap:10px 22px}
 
 /* ---------- 22. Booking overlay ---------- */
 .booking{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:clamp(0px,3vw,40px)}
