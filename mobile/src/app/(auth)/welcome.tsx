@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text } from '@/components/ui';
 import { photo, logoLockup } from '@/lib/images';
 import { useT } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth-store';
+import { openLegal } from '@/lib/legal';
 import { colors, space } from '@/theme';
 
 /** The studio's own room in daylight, the mark over it, one way in. */
@@ -27,7 +28,14 @@ export default function Welcome() {
             {t('tagline')}
           </Text>
         </View>
-        <Button title={t('begin')} onPress={() => router.push('/sign-in')} textColor={colors.wine} style={{ backgroundColor: colors.white }} />
+        <View style={{ gap: space.md }}>
+          <Button title={t('begin')} onPress={() => router.push('/sign-in')} textColor={colors.wine} style={{ backgroundColor: colors.white }} />
+          <Pressable accessibilityRole="link" onPress={() => void openLegal('privacy', lang)} hitSlop={8}>
+            <Text variant="small" center style={{ color: 'rgba(255,255,255,0.85)', textDecorationLine: 'underline' }}>
+              {t('privacyPolicy')}
+            </Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     </View>
   );

@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HIT, colors, fonts, radius, space } from '@/theme';
 import { errorText, useT } from '@/lib/i18n';
+import { openLegal } from '@/lib/legal';
 
 export type IconName = keyof typeof Feather.glyphMap;
 
@@ -252,6 +253,20 @@ export function ListRow({ icon, label, value, onPress, danger }: { icon?: IconNa
       {value ? <Text variant="small">{value}</Text> : null}
       {onPress && !danger ? <Feather name="chevron-right" size={18} color={colors.muted} /> : null}
     </Pressable>
+  );
+}
+
+/** "By continuing, you confirm you have read the Privacy Policy" — the policy opens in the browser, no account needed. */
+export function PrivacyNotice({ color }: { color?: string }) {
+  const { t, lang } = useT();
+  return (
+    <RNText maxFontSizeMultiplier={1.4} style={[textStyles.small, { textAlign: 'center' }, color ? { color } : null]}>
+      {t('privacyNotice')}{' '}
+      <RNText accessibilityRole="link" onPress={() => void openLegal('privacy', lang)} style={{ textDecorationLine: 'underline', color: color ?? colors.wine }} suppressHighlighting>
+        {t('privacyLink')}
+      </RNText>
+      .
+    </RNText>
   );
 }
 

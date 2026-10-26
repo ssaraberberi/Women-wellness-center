@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-store';
 import { api } from '@/lib/api';
 import { whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
+import { openLegal } from '@/lib/legal';
 import { pushUnavailableInThisBuild, registerForPush, type PushStatus } from '@/lib/push';
 import { loadMe, signOut } from '@/lib/session';
 import type { NotificationItem } from '@/lib/types';
@@ -54,6 +55,8 @@ export function ProfileScreen({ links, base }: { links: { icon: IconName; label:
       ))}
       <ListRow icon="bell" label={t('notificationPrefs')} onPress={() => router.push(`${base}/preferences` as Href)} />
       <ListRow icon="globe" label={t('language')} value={lang === 'sq' ? 'Shqip' : 'English'} onPress={switchLang} />
+      <ListRow icon="shield" label={t('privacyPolicy')} onPress={() => void openLegal('privacy', lang)} />
+      {me?.role === 'CLIENT' ? <ListRow icon="info" label={t('deletionInfo')} onPress={() => void openLegal('deleteAccount', lang)} /> : null}
       <Gap h={space.lg} />
       <ListRow icon="log-out" label={t('signOut')} danger onPress={() => void signOut()} />
       {me?.role === 'CLIENT' ? (

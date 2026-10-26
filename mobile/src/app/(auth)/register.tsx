@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { z } from 'zod';
-import { Button, Field, Gap, Header, Notice, Screen, Text, ToggleRow } from '@/components/ui';
+import { Button, Field, Gap, Header, Notice, PrivacyNotice, Screen, Text, ToggleRow } from '@/components/ui';
 import { api } from '@/lib/api';
 import { zodResolver } from '@/lib/forms';
 import { errorText, useT } from '@/lib/i18n';
@@ -64,6 +64,8 @@ export default function Register() {
         {error ? <Notice text={error} tone="danger" icon="alert-circle" /> : null}
         <Gap h={space.xl} />
         <Button title={t('createAccount')} onPress={submit} loading={formState.isSubmitting} />
+        <Gap h={space.lg} />
+        <PrivacyNotice />
       </KeyboardAvoidingView>
     </Screen>
   );

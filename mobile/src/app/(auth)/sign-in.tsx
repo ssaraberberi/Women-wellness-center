@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { z } from 'zod';
-import { Button, Field, Gap, Header, Notice, Screen, Text } from '@/components/ui';
+import { Button, Field, Gap, Header, Notice, PrivacyNotice, Screen, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { errorText, useT } from '@/lib/i18n';
 import { logoLockup } from '@/lib/images';
@@ -66,9 +66,7 @@ export default function SignIn() {
         <Gap h={space.md} />
         <Button title={t('sendCode')} onPress={submit} loading={busy} />
         <Gap h={space.xxxl} />
-        <Text variant="small" center>
-          {t('terms')}
-        </Text>
+        <PrivacyNotice />
       </KeyboardAvoidingView>
     </Screen>
   );
