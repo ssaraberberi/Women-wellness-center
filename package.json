@@ -13,6 +13,7 @@
     "seed:demo": "node server/scripts/seed.js",
     "reset": "node server/scripts/seed.js --fresh",
     "check": "node server/scripts/check.js",
+    "load:studio": "node server/scripts/load-studio.js",
     "test:booking": "node server/scripts/test-booking.js"
   },
   "dependencies": {

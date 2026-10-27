@@ -40,6 +40,13 @@ See *Email* below.
 
 `npm run check` says whether the database is reachable, migrated and seeded.
 
+`npm run load:studio` writes the studio's printed price list (Pilates,
+Spa, Paketat, Wellness Combos, LUKS PËR DY) and the Monday–Saturday
+timetable, 07:00–20:50 on the hour. It is never run by a deploy; run it by
+hand, and again after changing a price in `server/scripts/load-studio.js`.
+`--packages` or `--schedule` does one half, and `--dry-run` previews the
+timetable.
+
 ### The schema applies itself
 
 `api/_lib/schema.js` holds the schema and a version. An instance checks the
