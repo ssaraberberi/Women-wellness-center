@@ -33,6 +33,19 @@ export function startOfWeek(d) {
 export function minutes(hhmm) { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; }
 export const hhmm = t => String(t).slice(0, 5);               // Postgres hands back 'HH:MM:SS'
 
+/* A class has to fit inside one band, so bands that overlap or touch are
+   joined: 07:00–08:00 and 08:00–09:00 must cover a class at 07:30–08:30. */
+export function mergeBands(bands) {
+  const sorted = bands.slice().sort((a, b) => minutes(a.from) - minutes(b.from));
+  return sorted.reduce((out, b) => {
+    const last = out[out.length - 1];
+    if (last && minutes(b.from) <= minutes(last.to)) {
+      if (minutes(b.to) > minutes(last.to)) last.to = b.to;
+    } else out.push({ from: b.from, to: b.to });
+    return out;
+  }, []);
+}
+
 /* ---------- the studio's clock ---------- */
 let FMT = null;
 function partsOf(instant) {

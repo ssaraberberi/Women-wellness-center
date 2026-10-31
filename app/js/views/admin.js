@@ -1,7 +1,7 @@
 /* The studio's own side: built to answer "who is in the 16:00 and who can
    take it" without leaving the page — on a laptop at the desk or on a
    phone in the studio. */
-import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, money, typeName, typeShort,
+import { el, frag, chip, dot, modal, closeModal, toast, field, input, select, bandsEditor, money, typeName, typeShort,
          range, niceDate, relDay, shortDate, dayMonth, t, tw, icon, datatable, jobLabel, touch } from '../ui.js';
 import * as store from '../store.js';
 import { iso, addDays, startOfWeek, minutes, WEEK_ORDER, todayIn, plusDays } from '../../../shared/domain.js';
@@ -437,6 +437,7 @@ function employeeEditor(ctx) {
   const quals = el('div.boxes', null, types.map(c =>
     el('label', null, [el('input', { type: 'checkbox', name: 'q', value: c.id, checked: DEFAULTS.instructor.includes(c.id) }), el('span', { text: c.name })])));
   const pickJob = job => quals.querySelectorAll('input').forEach(b => { b.checked = (DEFAULTS[job] || []).includes(b.value); });
+  const hours = bandsEditor([{ from: '09:00', to: '18:00' }]);
 
   const jobs = el('div.segments', { role: 'radiogroup', 'aria-label': 'Role' }, ['instructor', 'therapist'].map(job =>
     el('label', null, [
@@ -455,10 +456,10 @@ function employeeEditor(ctx) {
     if (password.length < 8) return fail('Password must be at least 8 characters');
     const qualifications = f.getAll('q');
     if (!qualifications.length) return fail('Pick at least one kind of class they can take');
-    const from = f.get('from'), to = f.get('to');
-    if (!from || !to || minutes(from) >= minutes(to)) return fail('Start must be before end');
+    const bands = hours.read();
+    if (!bands) return fail('Start must be before end');
     const availability = {};
-    WEEK_ORDER.forEach(d => { availability[d] = f.getAll('day').includes(d) ? [{ from, to }] : []; });
+    WEEK_ORDER.forEach(d => { availability[d] = f.getAll('day').includes(d) ? bands : []; });
     save.disabled = true;
     try {
       await store.addEmployee({ name, email, phone, password, job: f.get('job'), qualifications, availability });
@@ -478,10 +479,7 @@ function employeeEditor(ctx) {
     el('div.field', null, [el('span', { text: 'Working days' }),
       el('div.boxes', null, WEEK_ORDER.map(d =>
         el('label', null, [el('input', { type: 'checkbox', name: 'day', value: d, checked: d !== 'sat' && d !== 'sun' }), el('span', { text: t(d) })])))]),
-    el('div.row.row--keep', null, [
-      field('Available from', input('from', { type: 'time', value: '09:00', required: true })),
-      field('Until', input('to', { type: 'time', value: '18:00', required: true }))
-    ]),
+    hours.node,
     err
   ]);
 

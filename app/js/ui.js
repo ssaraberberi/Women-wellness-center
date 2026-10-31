@@ -2,7 +2,7 @@
    DUA — small rendering helpers
    No framework: el() builds nodes, and the views compose them.
    ============================================================ */
-import { at, iso, addDays } from '../../shared/domain.js';
+import { at, iso, addDays, minutes, mergeBands } from '../../shared/domain.js';
 import { t, tw } from './i18n.js';
 export { t, tw, setLang, getLang, onLang } from './i18n.js';
 
@@ -202,6 +202,40 @@ export function field(label, input, hint) {
 }
 export function input(name, attrs) {
   return el('input', Object.assign({ name, type: 'text', autocomplete: 'off' }, attrs || {}));
+}
+/* The stretches of a working day, 07:00–08:00 then 15:00–18:00. read()
+   hands back the bands in order, or null if one of them makes no sense. */
+export function bandsEditor(bands) {
+  const list = el('div.bands');
+  const sync = () => list.classList.toggle('bands--one', list.children.length < 2);
+  const row = b => {
+    const r = el('div.band', null, [
+      field('Available from', el('input', { type: 'time', value: b.from, required: true })),
+      field('Until', el('input', { type: 'time', value: b.to, required: true })),
+      el('button.iconbtn', { type: 'button', 'aria-label': 'Remove', onclick: () => { r.remove(); sync(); } }, icon('close'))
+    ]);
+    return r;
+  };
+  bands.forEach(b => list.appendChild(row(b)));
+  sync();
+  const add = () => {
+    const r = row({ from: '', to: '' });
+    list.appendChild(r);
+    sync();
+    r.querySelector('input').focus();
+  };
+  const read = () => {
+    const out = [...list.children].map(r => {
+      const [from, to] = r.querySelectorAll('input');
+      return { from: from.value, to: to.value };
+    });
+    if (out.some(b => !b.from || !b.to || minutes(b.from) >= minutes(b.to))) return null;
+    return mergeBands(out);
+  };
+  return {
+    node: el('div', null, [list, el('button.linkish', { type: 'button', style: 'margin-bottom:16px', text: 'Add a time', onclick: add })]),
+    read
+  };
 }
 export function select(name, options, value) {
   return el('select', { name }, options.map(o =>

@@ -1,8 +1,8 @@
 /* The employee side — instructors and body therapists alike: what am I on,
    what do I take, and when can I work. */
-import { el, frag, chip, dot, toast, modal, closeModal, typeName, typeShort, range, relDay, niceDate, t } from '../ui.js';
+import { el, frag, chip, dot, toast, modal, closeModal, bandsEditor, typeName, typeShort, range, relDay, niceDate, t } from '../ui.js';
 import * as store from '../store.js';
-import { iso, addDays, startOfWeek, minutes, WEEK_ORDER } from '../../../shared/domain.js';
+import { iso, addDays, startOfWeek, WEEK_ORDER } from '../../../shared/domain.js';
 import { spots, availabilityCovers } from '../../../shared/rules.js';
 import { shell } from './shell.js';
 
@@ -99,33 +99,26 @@ function teaching(ctx) {
 }
 
 /* ---------- hours ----------
-   One window per day. A day is switched on or off with its box, and its
-   window opens in a sheet where the two times sit side by side. */
+   A day is switched on or off with its box, and its hours open in a sheet.
+   A day can be split, say 07:00–08:00 and again 15:00–18:00. */
 function availability(ctx) {
   const { user } = ctx;
   const avail = user.availability || {};
   const save = next => store.setAvailability(next);
 
   function editDay(day) {
-    const b = (avail[day] || [])[0] || { from: '09:00', to: '17:00' };
+    const hours = bandsEditor(avail[day] && avail[day].length ? avail[day] : [{ from: '09:00', to: '17:00' }]);
     const err = el('p.notice.notice--bad', { hidden: true });
-    const from = el('input', { type: 'time', name: 'from', value: b.from, required: true });
-    const to = el('input', { type: 'time', name: 'to', value: b.to, required: true });
     const form = el('form', { novalidate: true, onsubmit: async e => {
       e.preventDefault();
-      if (!from.value || !to.value || minutes(from.value) >= minutes(to.value)) { err.textContent = t('Start must be before end'); err.hidden = false; return; }
+      const bands = hours.read();
+      if (!bands) { err.textContent = t('Start must be before end'); err.hidden = false; return; }
       try {
-        await save({ ...avail, [day]: [{ from: from.value, to: to.value }] });
+        await save({ ...avail, [day]: bands });
         closeModal();
         toast('Saved');
       } catch (ex) { err.textContent = t(ex.message); err.hidden = false; }
-    } }, [
-      el('div.row.row--keep', null, [
-        el('label.field', null, [el('span', { text: 'From' }), from]),
-        el('label.field', null, [el('span', { text: 'Until' }), to])
-      ]),
-      err
-    ]);
+    } }, [hours.node, err]);
     modal(DAY_LABEL[day], form, [
       el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }),
       el('button.btn', { type: 'button', text: 'Save', onclick: () => form.requestSubmit() })
@@ -136,7 +129,6 @@ function availability(ctx) {
     ...WEEK_ORDER.map((day, i) => {
       const bands = avail[day] || [];
       const on = bands.length > 0;
-      const b = bands[0];
       return el('div', { style: 'display:flex;align-items:center;gap:12px;min-height:60px;' + (i ? 'border-top:1px solid var(--line-soft)' : '') }, [
         el('label.check', { style: 'flex:1;min-width:0' }, [
           el('input', { type: 'checkbox', checked: on,
@@ -148,7 +140,8 @@ function availability(ctx) {
             } }),
           el('span', { text: DAY_LABEL[day] })
         ]),
-        on ? el('button.btn.btn--ghost.btn--sm.num', { type: 'button', text: b.from + ' – ' + b.to, onclick: () => editDay(day) })
+        on ? el('button.btn.btn--ghost.btn--sm.num', { type: 'button', style: 'flex-direction:column;gap:2px', onclick: () => editDay(day) },
+               bands.map(b => el('span', { text: b.from + ' – ' + b.to })))
            : el('span.muted.small', { text: 'Not working' })
       ]);
     }),
