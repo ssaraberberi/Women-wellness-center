@@ -289,21 +289,24 @@ export async function setQualifications(user, body) {
   });
 }
 
+async function writeBands(c, id, avail) {
+  const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  await c.query('delete from instructor_availability where instructor_id=$1', [id]);
+  for (const key of Object.keys(avail || {})) {
+    const day = DAY_KEYS.indexOf(key);
+    if (day < 0) continue;
+    for (const b of avail[key] || []) {
+      if (!b || !b.from || !b.to || b.from >= b.to) continue;
+      await c.query(`insert into instructor_availability (instructor_id, weekday, starts, ends)
+                     values ($1,$2,$3,$4)`, [id, day, b.from, b.to]);
+    }
+  }
+}
+
 export async function setAvailability(user, body) {
   need(user, 'instructor');
-  const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const avail = body.availability || {};
   return tx(async c => {
-    await c.query('delete from instructor_availability where instructor_id=$1', [user.id]);
-    for (const key of Object.keys(avail)) {
-      const day = DAY_KEYS.indexOf(key);
-      if (day < 0) continue;
-      for (const b of avail[key] || []) {
-        if (!b || !b.from || !b.to || b.from >= b.to) continue;
-        await c.query(`insert into instructor_availability (instructor_id, weekday, starts, ends)
-                       values ($1,$2,$3,$4)`, [user.id, day, b.from, b.to]);
-      }
-    }
+    await writeBands(c, user.id, body.availability);
     return { ok: true };
   });
 }
@@ -512,15 +515,20 @@ export async function archivePlan(user, id) {
    qualified for, when they are free. */
 const JOBS = ['instructor', 'therapist'];
 
+async function checkedQuals(body) {
+  const quals = Array.isArray(body.qualifications) ? body.qualifications : [];
+  if (!quals.length) bad(400, 'Pick at least one kind of class they can take', 'qualifications');
+  const types = (await many('select id from class_types')).map(r => r.id);
+  for (const t of quals) if (!types.includes(t)) bad(400, 'No such class type: ' + t, 'qualifications');
+  return quals;
+}
+
 export async function addEmployee(user, body) {
   need(user, 'admin');
   requireFields(body, ['name', 'email', 'phone', 'password']);
   const job = JOBS.includes(body.job) ? body.job : bad(400, 'Pick what they do', 'job');
   if (String(body.password).length < 8) bad(400, 'Password must be at least 8 characters', 'password');
-  const quals = Array.isArray(body.qualifications) ? body.qualifications : [];
-  if (!quals.length) bad(400, 'Pick at least one kind of class they can take', 'qualifications');
-  const types = (await many('select id from class_types')).map(r => r.id);
-  for (const t of quals) if (!types.includes(t)) bad(400, 'No such class type: ' + t, 'qualifications');
+  const quals = await checkedQuals(body);
 
   const taken = await one('select 1 from users where lower(email)=lower($1)', [body.email]);
   if (taken) bad(409, 'That email already has an account', 'email');
@@ -531,17 +539,32 @@ export async function addEmployee(user, body) {
       [job, trim(body.name), trim(body.email), trim(body.phone), hash])).rows[0].id;
     for (const t of quals)
       await c.query('insert into instructor_qualifications values ($1,$2) on conflict do nothing', [id, t]);
-    const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const avail = body.availability || {};
-    for (const key of Object.keys(avail)) {
-      if (!DAY_KEYS.includes(key)) continue;
-      for (const b of avail[key] || []) {
-        if (!b || !b.from || !b.to || b.from >= b.to) continue;
-        await c.query(`insert into instructor_availability (instructor_id, weekday, starts, ends) values ($1,$2,$3,$4)`,
-                      [id, DAY_KEYS.indexOf(key), b.from, b.to]);
-      }
-    }
+    await writeBands(c, id, body.availability);
     return { ok: true, id };
+  });
+}
+
+/* Everything but the password, which has its own reset. A class left
+   outside the new hours is not blocked here: it shows up in the issues. */
+export async function updateEmployee(user, id, body) {
+  need(user, 'admin');
+  requireFields(body, ['name', 'email', 'phone']);
+  const job = JOBS.includes(body.job) ? body.job : bad(400, 'Pick what they do', 'job');
+  const quals = await checkedQuals(body);
+
+  const taken = await one('select 1 from users where lower(email)=lower($1) and id<>$2', [body.email, id]);
+  if (taken) bad(409, 'That email already has an account', 'email');
+  return tx(async c => {
+    const who = (await c.query(
+      `update users set job=$1, name=$2, email=$3, phone=$4, email_verified = email_verified and lower(email)=lower($3)
+        where id=$5 and role='instructor' and active returning id`,
+      [job, trim(body.name), trim(body.email), trim(body.phone), id])).rows[0];
+    if (!who) bad(404, 'No such employee');
+    await c.query('delete from instructor_qualifications where instructor_id=$1', [id]);
+    for (const t of quals)
+      await c.query('insert into instructor_qualifications values ($1,$2) on conflict do nothing', [id, t]);
+    await writeBands(c, id, body.availability);
+    return { ok: true };
   });
 }
 

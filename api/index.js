@@ -146,6 +146,7 @@ const routes = [
   ['POST', /^\/api\/admin\/classes\/([\w-]+)\/cancel$/, ctx => api.cancelClass(ctx.user, ctx.m[1])],
   ['DELETE', /^\/api\/admin\/classes\/([\w-]+)$/,       ctx => api.deleteClass(ctx.user, ctx.m[1])],
   ['POST', /^\/api\/admin\/employees$/,                 async ctx => api.addEmployee(ctx.user, await body(ctx.req))],
+  ['PUT',  /^\/api\/admin\/employees\/([\w-]+)$/,       async ctx => api.updateEmployee(ctx.user, ctx.m[1], await body(ctx.req))],
   ['DELETE', /^\/api\/admin\/employees\/([\w-]+)$/,     ctx => api.removeEmployee(ctx.user, ctx.m[1])],
   ['PUT',  /^\/api\/admin\/memberships\/([\w-]+)$/,     async ctx => api.updateMembership(ctx.user, ctx.m[1], await body(ctx.req))],
   ['POST', /^\/api\/admin\/memberships\/([\w-]+)\/credits$/, async ctx => booking.adminCredits(ctx.user, ctx.m[1], await body(ctx.req))],

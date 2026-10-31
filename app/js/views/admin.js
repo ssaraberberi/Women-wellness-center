@@ -398,6 +398,7 @@ function employeesView(ctx) {
       el('span.num', { text: String(upcoming) }),
       i.active
         ? el('div.rowend', null, [
+            el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Edit', onclick: () => employeeEditor(ctx, i) }),
             el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Reset password', onclick: () => resetFor(ctx, i) }),
             el('button.btn.btn--ghost.btn--sm', { type: 'button', text: 'Remove', onclick: () => removeDialog(ctx, i, upcoming) })
           ])
@@ -427,23 +428,32 @@ function removeDialog(ctx, i, upcoming) {
 
 /* What they do decides what they are qualified for to begin with — an
    instructor the reformer, a therapist the treatments — and the boxes can
-   be changed before saving. */
-function employeeEditor(ctx) {
+   be changed before saving. A new employee gets the same hours on every
+   working day; editing someone sets each day on its own. */
+function employeeEditor(ctx, who) {
   const types = ctx.state.classTypes;
   const DEFAULTS = { instructor: ['reformer'], therapist: ['spa'] };
   const err = el('p.notice.notice--bad', { hidden: true });
   const fail = msg => { err.textContent = t(msg); err.hidden = false; err.scrollIntoView({ block: 'nearest' }); };
 
   const quals = el('div.boxes', null, types.map(c =>
-    el('label', null, [el('input', { type: 'checkbox', name: 'q', value: c.id, checked: DEFAULTS.instructor.includes(c.id) }), el('span', { text: c.name })])));
+    el('label', null, [el('input', { type: 'checkbox', name: 'q', value: c.id, checked: (who ? who.qualifications : DEFAULTS.instructor).includes(c.id) }), el('span', { text: c.name })])));
   const pickJob = job => quals.querySelectorAll('input').forEach(b => { b.checked = (DEFAULTS[job] || []).includes(b.value); });
   const hours = bandsEditor([{ from: '09:00', to: '18:00' }]);
 
   const jobs = el('div.segments', { role: 'radiogroup', 'aria-label': 'Role' }, ['instructor', 'therapist'].map(job =>
     el('label', null, [
-      el('input', { type: 'radio', name: 'job', value: job, checked: job === 'instructor', onchange: () => pickJob(job) }),
+      el('input', { type: 'radio', name: 'job', value: job, checked: job === (who ? who.job : 'instructor'), onchange: who ? null : () => pickJob(job) }),
       el('span', { text: jobLabel(job) })
     ])));
+
+  const days = who && WEEK_ORDER.map(day => {
+    const bands = who.availability[day] || [];
+    const editor = bandsEditor(bands.length ? bands : [{ from: '09:00', to: '17:00' }]);
+    const wrap = el('div', { hidden: !bands.length }, editor.node);
+    const box = el('input', { type: 'checkbox', checked: bands.length > 0, onchange: () => { wrap.hidden = !box.checked; } });
+    return { day, box, editor, node: el('div', null, [el('label.check', { style: 'min-height:44px' }, [box, el('span', { text: day })]), wrap]) };
+  });
 
   const form = el('form', { novalidate: true, onsubmit: async e => {
     e.preventDefault();
@@ -453,38 +463,49 @@ function employeeEditor(ctx) {
     const phone = String(f.get('phone') || '').trim(), password = String(f.get('password') || '');
     if (!name || !email || !phone) return fail('Fill in the name, email and phone');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('That email does not look right');
-    if (password.length < 8) return fail('Password must be at least 8 characters');
+    if (!who && password.length < 8) return fail('Password must be at least 8 characters');
     const qualifications = f.getAll('q');
     if (!qualifications.length) return fail('Pick at least one kind of class they can take');
-    const bands = hours.read();
-    if (!bands) return fail('Start must be before end');
     const availability = {};
-    WEEK_ORDER.forEach(d => { availability[d] = f.getAll('day').includes(d) ? bands : []; });
+    if (who) {
+      for (const d of days) {
+        const bands = d.box.checked ? d.editor.read() : [];
+        if (!bands) return fail('Start must be before end');
+        availability[d.day] = bands;
+      }
+    } else {
+      const bands = hours.read();
+      if (!bands) return fail('Start must be before end');
+      WEEK_ORDER.forEach(d => { availability[d] = f.getAll('day').includes(d) ? bands : []; });
+    }
     save.disabled = true;
+    const data = { name, email, phone, job: f.get('job'), qualifications, availability };
     try {
-      await store.addEmployee({ name, email, phone, password, job: f.get('job'), qualifications, availability });
+      if (who) await store.updateEmployee(who.id, data);
+      else await store.addEmployee({ ...data, password });
       closeModal();
-      toast('Employee added — they can sign in now');
+      toast(who ? 'Saved' : 'Employee added — they can sign in now');
     } catch (ex) { save.disabled = false; fail(ex.message); }
   } }, [
     el('label.field', null, [el('span', { text: 'Role' }), jobs]),
-    field('Full name', input('name', { required: true, autocomplete: 'off', autocapitalize: 'words' })),
+    field('Full name', input('name', { required: true, autocomplete: 'off', autocapitalize: 'words', value: who && who.name })),
     el('div.row', null, [
-      field('Email', input('email', { type: 'email', required: true, inputmode: 'email', autocapitalize: 'off' })),
-      field('Phone', input('phone', { type: 'tel', required: true, inputmode: 'tel' }))
+      field('Email', input('email', { type: 'email', required: true, inputmode: 'email', autocapitalize: 'off', value: who && who.email })),
+      field('Phone', input('phone', { type: 'tel', required: true, inputmode: 'tel', value: who && who.phone }))
     ]),
-    field('Temporary password', input('password', { required: true, minlength: 8, autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
+    who ? null : field('Temporary password', input('password', { required: true, minlength: 8, autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false' }),
       'At least eight characters. Give it to them in person; they can change it later.'),
     el('div.field', null, [el('span', { text: 'Can take' }), quals]),
-    el('div.field', null, [el('span', { text: 'Working days' }),
-      el('div.boxes', null, WEEK_ORDER.map(d =>
-        el('label', null, [el('input', { type: 'checkbox', name: 'day', value: d, checked: d !== 'sat' && d !== 'sun' }), el('span', { text: t(d) })])))]),
-    hours.node,
+    who ? el('div.field', null, [el('span', { text: 'Working days' }), ...days.map(d => d.node)])
+      : el('div.field', null, [el('span', { text: 'Working days' }),
+          el('div.boxes', null, WEEK_ORDER.map(d =>
+            el('label', null, [el('input', { type: 'checkbox', name: 'day', value: d, checked: d !== 'sat' && d !== 'sun' }), el('span', { text: t(d) })])))]),
+    who ? null : hours.node,
     err
   ]);
 
-  const save = el('button.btn', { type: 'button', text: 'Add employee', onclick: () => form.requestSubmit() });
-  modal('Add an employee', form, [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save]);
+  const save = el('button.btn', { type: 'button', text: who ? 'Save changes' : 'Add employee', onclick: () => form.requestSubmit() });
+  modal(who ? t('Edit %s', who.name) : 'Add an employee', form, [el('button.btn.btn--ghost', { type: 'button', text: 'Close', onclick: closeModal }), save]);
 }
 
 /* ---------- packages ---------- */

@@ -151,6 +151,7 @@ export const saveClass        = act(data => api.post('/admin/classes', data));
 export const assignInstructor = act((classId, instructorId) => api.post('/admin/classes/' + classId + '/assign', { instructorId }));
 export const cancelClass      = act(classId => api.post('/admin/classes/' + classId + '/cancel'));
 export const addEmployee      = act(data => api.post('/admin/employees', data));
+export const updateEmployee   = act((id, data) => api.put('/admin/employees/' + id, data));
 export const removeEmployee   = act(id => api.del('/admin/employees/' + id));
 export const savePlan         = act(data => api.post('/admin/plans', data));
 export const archivePlan      = act(id => api.del('/admin/plans/' + id));

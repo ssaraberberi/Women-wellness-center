@@ -213,6 +213,7 @@ const SQ = {
     'Instruktoret dhe terapistet, dhe çfarë merr secila',
   'Add employee': 'Shto punonjëse',
   'Add an employee': 'Shto një punonjëse',
+  'Edit %s': 'Ndrysho %s',
   'Remove employee': 'Hiq punonjësen',
   'Employee added — they can sign in now': 'Punonjësja u shtua — mund të hyjë tani',
   'No employees yet. Add the first one and they can sign in straight away.':
