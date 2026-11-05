@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { ErrorState, Gap, Header, Row, Screen, Section, Segmented, SkeletonList, Stat, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { addDays, lek, todayISO } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { colors, radius, space } from '@/theme';
@@ -81,12 +82,14 @@ export default function AdminAnalytics() {
           <Section title={t('popularInstructors')}>
             <Bars rows={a.popularInstructors.map((p) => ({ label: p.name, value: p.booked, display: `${p.booked} · ${t('sessionsN', { n: p.sessions })}` }))} />
           </Section>
-          <Section title={t('popularTreatments')}>
-            <Bars rows={a.spa.popularTreatments.map((p) => ({ label: p.name, value: p.count, display: `${p.count} · ${lek(p.revenue)}` }))} />
-            <Row style={{ flexWrap: 'wrap', marginTop: space.sm }}>
-              {a.spa.byStatus.map((s) => <Text key={s.status} variant="small">{tEnum(s.status)}: {s.count}   </Text>)}
-            </Row>
-          </Section>
+          {SPA_ENABLED ? (
+            <Section title={t('popularTreatments')}>
+              <Bars rows={a.spa.popularTreatments.map((p) => ({ label: p.name, value: p.count, display: `${p.count} · ${lek(p.revenue)}` }))} />
+              <Row style={{ flexWrap: 'wrap', marginTop: space.sm }}>
+                {a.spa.byStatus.map((s) => <Text key={s.status} variant="small">{tEnum(s.status)}: {s.count}   </Text>)}
+              </Row>
+            </Section>
+          ) : null}
           <Section title={t('creditUsage')}>
             {Object.entries(a.creditUsage).map(([k, v]) => (
               <Row key={k} style={{ justifyContent: 'space-between', paddingVertical: 3 }}>

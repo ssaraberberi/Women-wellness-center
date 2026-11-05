@@ -107,7 +107,7 @@ export async function adminOpsRoutes(app: FastifyInstance) {
     format: z.string().trim().min(1).max(30).default('REFORMER'),
     difficulty: zDifficulty.default('ALL_LEVELS'),
     durationMin: z.number().int().min(10).max(240).default(50),
-    defaultCapacity: z.number().int().min(1).max(100).default(8),
+    defaultCapacity: z.number().int().min(1).max(100).default(5),
     creditsRequired: z.number().int().min(0).max(10).default(1),
     imageKey: z.string().max(60).nullish(),
     active: z.boolean().default(true),
@@ -147,21 +147,59 @@ export async function adminOpsRoutes(app: FastifyInstance) {
     await audit(prisma, user.id, 'template.create', 'class_schedule_template', row.id, body);
     return { ...row, generated: created };
   });
-  route(app, { method: 'PATCH', url: '/admin/templates/:id', access: [...ADMIN], summary: 'Change a weekly slot. Booked classes keep their shape.', tags: ['admin'], params: zIdParams, body: templateBody.partial() }, async ({ params, body, user }) => {
-    await assertInstructor(body.instructorId);
+  /**
+   * Change one weekly slot. Booked classes keep their time and size, but a new
+   * instructor takes over every upcoming class of the slot, booked or not.
+   */
+  async function updateTemplate(id: string, body: Partial<z.infer<typeof templateBody>>, actorId: string) {
     const row = await prisma.classScheduleTemplate.update({
-      where: { id: params.id },
+      where: { id },
       data: { ...body, validFrom: body.validFrom ? dbDate(body.validFrom) : undefined, validUntil: body.validUntil === undefined ? undefined : body.validUntil ? dbDate(body.validUntil) : null },
     });
+    if (body.instructorId !== undefined) {
+      await prisma.classSession.updateMany({ where: { templateId: id, startsAt: { gt: new Date() }, detached: false, status: 'SCHEDULED' }, data: { instructorId: body.instructorId ?? null } });
+    }
     const generated = await regenerateTemplate(row.id);
-    await audit(prisma, user.id, 'template.update', 'class_schedule_template', row.id, body);
+    await audit(prisma, actorId, 'template.update', 'class_schedule_template', row.id, body);
     return { ...row, generated };
+  }
+  async function removeTemplate(id: string, actorId: string) {
+    await prisma.classScheduleTemplate.update({ where: { id }, data: { active: false } });
+    const { count } = await prisma.classSession.deleteMany({ where: { templateId: id, startsAt: { gt: new Date() }, detached: false, bookings: { none: {} }, waitlist: { none: {} } } });
+    await audit(prisma, actorId, 'template.deactivate', 'class_schedule_template', id, { removedSessions: count });
+    return count;
+  }
+
+  // Bulk: the same change (or removal) for many weekly slots at once.
+  const zIds = z.array(z.uuid()).min(1).max(200);
+  route(
+    app,
+    {
+      method: 'PATCH',
+      url: '/admin/templates/bulk',
+      access: [...ADMIN],
+      summary: 'Apply the same change to many weekly slots (instructor, time, length, places, class)',
+      tags: ['admin'],
+      body: z.object({ ids: zIds, changes: templateBody.pick({ classTypeId: true, instructorId: true, startTime: true, durationMin: true, capacity: true }).partial() }),
+    },
+    async ({ body, user }) => {
+      await assertInstructor(body.changes.instructorId);
+      for (const id of body.ids) await updateTemplate(id, body.changes, user.id);
+      return { ok: true, updated: body.ids.length };
+    },
+  );
+  route(app, { method: 'POST', url: '/admin/templates/bulk-remove', access: [...ADMIN], summary: 'Stop many weekly slots at once (booked classes stay)', tags: ['admin'], body: z.object({ ids: zIds }) }, async ({ body, user }) => {
+    let removedSessions = 0;
+    for (const id of body.ids) removedSessions += await removeTemplate(id, user.id);
+    return { ok: true, removed: body.ids.length, removedSessions };
+  });
+
+  route(app, { method: 'PATCH', url: '/admin/templates/:id', access: [...ADMIN], summary: 'Change a weekly slot. Booked classes keep their shape; a new instructor takes them all.', tags: ['admin'], params: zIdParams, body: templateBody.partial() }, async ({ params, body, user }) => {
+    await assertInstructor(body.instructorId);
+    return updateTemplate(params.id, body, user.id);
   });
   route(app, { method: 'DELETE', url: '/admin/templates/:id', access: [...ADMIN], summary: 'Stop a weekly slot (booked classes stay)', tags: ['admin'], params: zIdParams }, async ({ params, user }) => {
-    await prisma.classScheduleTemplate.update({ where: { id: params.id }, data: { active: false } });
-    const { count } = await prisma.classSession.deleteMany({ where: { templateId: params.id, startsAt: { gt: new Date() }, detached: false, bookings: { none: {} }, waitlist: { none: {} } } });
-    await audit(prisma, user.id, 'template.deactivate', 'class_schedule_template', params.id, { removedSessions: count });
-    return { ok: true, removedSessions: count };
+    return { ok: true, removedSessions: await removeTemplate(params.id, user.id) };
   });
   route(app, { method: 'POST', url: '/admin/templates/generate', access: [...ADMIN], summary: 'Generate classes up to the horizon now', tags: ['admin'] }, async () => ({ created: await generateSessions() }));
 
@@ -349,8 +387,8 @@ export async function adminOpsRoutes(app: FastifyInstance) {
           phone: z.string().max(40),
           instagram: z.string().max(60),
           openingHours: z.record(z.enum(['1', '2', '3', '4', '5', '6', '7']), z.object({ open: zTime, close: zTime }).nullable()),
-          freeCancelHours: z.number().int().min(0).max(168),
-          lateCancelKeepsCredit: z.boolean(),
+          // Free cancellation up to N hours before (1 at the least); later, the session is used up.
+          freeCancelHours: z.number().int().min(1).max(168),
           bookingWindowDays: z.number().int().min(1).max(120),
           bookingCutoffMin: z.number().int().min(0).max(1440),
           defaultClassCapacity: z.number().int().min(1).max(100),
@@ -375,7 +413,19 @@ export async function adminOpsRoutes(app: FastifyInstance) {
   route(
     app,
     { method: 'GET', url: '/admin/audit-logs', access: [...ADMIN], summary: 'Sensitive actions, newest first', tags: ['admin'], query: z.object({ entityType: z.string().optional(), entityId: z.string().optional(), limit: z.coerce.number().min(1).max(200).default(100) }) },
-    ({ query }) => prisma.auditLog.findMany({ where: { entityType: query.entityType, entityId: query.entityId }, orderBy: { createdAt: 'desc' }, take: query.limit }),
+    async ({ query }) => {
+      const rows = await prisma.auditLog.findMany({ where: { entityType: query.entityType, entityId: query.entityId }, orderBy: { createdAt: 'desc' }, take: query.limit });
+      // Names instead of ids: who did it, and the person it was done to.
+      const field = (data: unknown, key: string) => (data && typeof data === 'object' && typeof (data as Record<string, unknown>)[key] === 'string' ? ((data as Record<string, string>)[key]) : null);
+      const subjectOf = (r: (typeof rows)[number]) => (r.entityType === 'user' ? r.entityId : field(r.data, 'clientId') ?? field(r.data, 'userId'));
+      const ids = [...new Set(rows.flatMap((r) => [r.actorId, subjectOf(r)]).filter((id): id is string => !!id && /^[0-9a-f-]{36}$/i.test(id)))];
+      const people = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, email: true, profile: true } });
+      const name = new Map(people.map((p) => [p.id, personName(p.profile, p.email)]));
+      return rows.map((r) => {
+        const subject = subjectOf(r);
+        return { ...r, actorName: r.actorId ? name.get(r.actorId) ?? null : null, subjectName: subject ? name.get(subject) ?? null : null };
+      });
+    },
   );
 }
 

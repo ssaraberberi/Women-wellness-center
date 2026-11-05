@@ -5,6 +5,9 @@ import { prisma } from '../lib/prisma.js';
 import { audit } from '../lib/settings.js';
 import { revokeAllSessions } from '../services/tokens.js';
 import { E } from '../lib/errors.js';
+import { zPassword } from '../lib/password.js';
+import { zPhone } from '../lib/phone.js';
+import { changePassword } from '../services/auth.js';
 
 export async function meRoutes(app: FastifyInstance) {
   route(app, { method: 'GET', url: '/me', access: 'user', summary: 'The signed-in user', tags: ['me'] }, async ({ user }) => {
@@ -18,12 +21,27 @@ export async function meRoutes(app: FastifyInstance) {
       role: u.role,
       status: u.status,
       isOwner: u.isOwner,
+      hasPassword: !!u.passwordHash,
       createdAt: u.createdAt,
       profile: u.profile,
       staff: u.staffProfile ? { isInstructor: u.staffProfile.isInstructor, isTherapist: u.staffProfile.isTherapist, canViewClientNotes: u.staffProfile.canViewClientNotes, bio: u.staffProfile.bio } : null,
       notificationPrefs: u.notificationPrefs ?? { pushEnabled: true, emailEnabled: true, reminders: true, waitlist: true, marketing: false },
     };
   });
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/me/password',
+      access: 'user',
+      summary: 'Set a password (first time) or change it (needs the current one)',
+      tags: ['me'],
+      rateLimit: { max: 10, timeWindow: '1 minute' },
+      body: z.object({ currentPassword: z.string().max(128).optional(), newPassword: zPassword }),
+    },
+    ({ user, body }) => changePassword(user.id, body.currentPassword, body.newPassword),
+  );
 
   route(
     app,
@@ -36,7 +54,7 @@ export async function meRoutes(app: FastifyInstance) {
       body: z.object({
         firstName: z.string().trim().min(1).max(60).optional(),
         lastName: z.string().trim().max(60).optional(),
-        phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/).optional(),
+        phone: zPhone.optional(),
         language: z.enum(['sq', 'en']).optional(),
         marketingConsent: z.boolean().optional(),
       }),

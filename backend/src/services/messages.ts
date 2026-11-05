@@ -44,8 +44,8 @@ export const MESSAGES: Record<string, Def> = {
     render: (l, p) => ({
       title: L(l, 'Rezervimi u anulua', 'Booking cancelled'),
       body: p.refunded
-        ? L(l, `${p.className} · ${p.when}. Krediti u kthye.`, `${p.className} · ${p.when}. Your credit was returned.`)
-        : L(l, `${p.className} · ${p.when}. Anulim i vonë — krediti nuk kthehet.`, `${p.className} · ${p.when}. Late cancellation — the credit is kept.`),
+        ? L(l, `${p.className} · ${p.when}. Seanca u kthye.`, `${p.className} · ${p.when}. Your session was returned.`)
+        : L(l, `${p.className} · ${p.when}. Anulim i vonë — seanca llogaritet e harxhuar.`, `${p.className} · ${p.when}. Late cancellation — the session is used up.`),
       details: classDetails(l, p),
     }),
   },
@@ -55,7 +55,7 @@ export const MESSAGES: Record<string, Def> = {
     critical: true,
     render: (l, p) => ({
       title: L(l, 'Klasa u anulua nga studio', 'Class cancelled by the studio'),
-      body: L(l, `Na vjen keq: ${p.className} · ${p.when} nuk do zhvillohet. Krediti u kthye.`, `We're sorry: ${p.className} · ${p.when} will not take place. Your credit was returned.`),
+      body: L(l, `Na vjen keq: ${p.className} · ${p.when} nuk do zhvillohet. Seanca u kthye.`, `We're sorry: ${p.className} · ${p.when} will not take place. Your session was returned.`),
       details: classDetails(l, p),
     }),
   },
@@ -75,6 +75,99 @@ export const MESSAGES: Record<string, Def> = {
     render: (l, p) => ({
       title: L(l, 'Kujtesë për klasën', 'Class reminder'),
       body: L(l, `${p.className} · ${p.when}`, `${p.className} · ${p.when}`),
+    }),
+  },
+  // The client's three reminders before a class.
+  CLASS_REMINDER_60: {
+    category: 'reminders',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'A je gati për klasën tënde të Pilates sot?', 'Ready for your Pilates class today?'),
+      body: L(l, `${p.className} fillon në ${p.time}. Shihemi së shpejti!`, `${p.className} starts at ${p.time}. See you soon!`),
+    }),
+  },
+  CLASS_REMINDER_30: {
+    category: 'reminders',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Nis e bëhu gati', 'Time to get ready'),
+      body: L(l, `${p.className} fillon pas 30 minutash, në ${p.time}.`, `${p.className} starts in 30 minutes, at ${p.time}.`),
+    }),
+  },
+  CLASS_REMINDER_15: {
+    category: 'reminders',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Të presim në studio', 'We are expecting you'),
+      body: L(
+        l,
+        `Të lutem të jesh në studio 10 minuta para se të nisë klasa (${p.className} · ${p.time}).`,
+        `Please be at the studio 10 minutes before the class starts (${p.className} · ${p.time}).`,
+      ),
+    }),
+  },
+
+  // The instructor's day: who booked, and her own reminders.
+  STAFF_NEW_BOOKING: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Rezervim i ri', 'New booking'),
+      body: L(l, `${p.client} rezervoi ${p.className} · ${p.when} (${p.booked}/${p.capacity}).`, `${p.client} booked ${p.className} · ${p.when} (${p.booked}/${p.capacity}).`),
+    }),
+  },
+  STAFF_BOOKING_CANCELLED: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Rezervim i anuluar', 'Booking cancelled'),
+      body: L(
+        l,
+        `${p.client} anuloi ${p.className} · ${p.when}${p.late ? ' (vonë — seanca u harxhua)' : ''} (${p.booked}/${p.capacity}).`,
+        `${p.client} cancelled ${p.className} · ${p.when}${p.late ? ' (late — the session is used up)' : ''} (${p.booked}/${p.capacity}).`,
+      ),
+    }),
+  },
+  INSTRUCTOR_REMINDER_120: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Ke klasë sot', 'You have a class today'),
+      body: L(l, `${p.className} në ${p.time} · ${p.booked}/${p.capacity} të rezervuara.`, `${p.className} at ${p.time} · ${p.booked}/${p.capacity} booked.`),
+    }),
+  },
+  INSTRUCTOR_REMINDER_60: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Klasa jote fillon për 1 orë', 'Your class starts in 1 hour'),
+      body: L(l, `${p.className} në ${p.time} · ${p.booked}/${p.capacity} të rezervuara.`, `${p.className} at ${p.time} · ${p.booked}/${p.capacity} booked.`),
+    }),
+  },
+  INSTRUCTOR_REMINDER_15: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Bëhu gati të nisësh klasën', 'Get ready to start your class'),
+      body: L(l, `${p.className} fillon në ${p.time} · ${p.booked} pjesëmarrëse.`, `${p.className} starts at ${p.time} · ${p.booked} participants.`),
+    }),
+  },
+
+  // What the admins hear about.
+  ADMIN_NEW_CLIENT: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Kliente e re', 'New client'),
+      body: L(l, `${p.client} u regjistrua në platformë${p.via ? ` (${p.via})` : ''}.`, `${p.client} signed up${p.via ? ` (${p.via})` : ''}.`),
+    }),
+  },
+  ADMIN_NEW_ORDER: {
+    category: 'essential',
+    email: false,
+    render: (l, p) => ({
+      title: L(l, 'Paketë e rezervuar', 'Package reserved'),
+      body: L(l, `${p.client} rezervoi ${p.product} · ${p.total}. Pret pagesën në studio (ref. ${p.reference}).`, `${p.client} reserved ${p.product} · ${p.total}. Awaiting payment at the studio (ref. ${p.reference}).`),
     }),
   },
   WAITLIST_OFFER: {
@@ -164,7 +257,7 @@ export const MESSAGES: Record<string, Def> = {
       body: L(l, `${p.product} · e vlefshme deri më ${p.expires}.`, `${p.product} · valid until ${p.expires}.`),
       details: [
         [L(l, 'Paketa', 'Package'), String(p.product)],
-        [L(l, 'Kredite', 'Credits'), String(p.credits)],
+        [L(l, 'Seanca', 'Sessions'), String(p.credits)],
         [L(l, 'Skadon', 'Expires'), String(p.expires)],
       ],
     }),
@@ -174,15 +267,15 @@ export const MESSAGES: Record<string, Def> = {
     email: true,
     render: (l, p) => ({
       title: L(l, 'Paketa po skadon', 'Your package is expiring'),
-      body: L(l, `${p.product} skadon më ${p.expires}. Të kanë mbetur ${p.remaining} kredite.`, `${p.product} expires on ${p.expires}. ${p.remaining} credits left.`),
+      body: L(l, `${p.product} skadon më ${p.expires}. Të kanë mbetur ${p.remaining} seanca.`, `${p.product} expires on ${p.expires}. ${p.remaining} sessions left.`),
     }),
   },
   CREDITS_ADJUSTED: {
     category: 'essential',
     email: false,
     render: (l, p) => ({
-      title: L(l, 'Kreditet u përditësuan', 'Credits updated'),
-      body: L(l, `${p.delta} kredite · ${p.reason ?? ''}`, `${p.delta} credits · ${p.reason ?? ''}`),
+      title: L(l, 'Seancat u përditësuan', 'Sessions updated'),
+      body: L(l, `${p.delta} seanca · ${p.reason ?? ''}`, `${p.delta} sessions · ${p.reason ?? ''}`),
     }),
   },
   STAFF_INVITE: {

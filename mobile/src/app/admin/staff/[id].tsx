@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Alert, Pressable } from 'react-native';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, Row, Screen, Section, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { useAuth } from '@/lib/auth-store';
 import { whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
@@ -46,9 +47,9 @@ export default function AdminStaffMember() {
   const { t, lang, tEnum } = useT();
   const amOwner = useAuth((s) => !!s.me?.isOwner);
   const q = useQuery({ queryKey: ['admin-staff', id], queryFn: () => api<Detail>('GET', `/admin/staff/${id}`) });
-  const treatments = useQuery({ queryKey: ['admin-treatments'], queryFn: () => api<Treatment[]>('GET', '/admin/spa/treatments') });
+  const treatments = useQuery({ queryKey: ['admin-treatments'], queryFn: () => api<Treatment[]>('GET', '/admin/spa/treatments'), enabled: SPA_ENABLED });
   const s = q.data;
-  const [flags, setFlags] = useState({ isInstructor: false, isTherapist: false, canViewClientNotes: false, bio: '', compensationModel: 'PER_CLASS' as 'FIXED_SALARY' | 'HOURLY' | 'PER_CLASS', compensationRate: '0' });
+  const [flags, setFlags] = useState({ isInstructor: false, isTherapist: false, canViewClientNotes: false, bio: '' });
   const [quals, setQuals] = useState<string[]>([]);
   const [hours, setHours] = useState<Hour[]>([]);
   const [day, setDay] = useState(1);
@@ -62,8 +63,6 @@ export default function AdminStaffMember() {
       isTherapist: s.staff.isTherapist,
       canViewClientNotes: s.staff.canViewClientNotes,
       bio: s.staff.bio ?? '',
-      compensationModel: s.staff.compensationModel,
-      compensationRate: String(s.staff.compensationRate),
     });
     setQuals(s.staff.qualifications.map((x) => x.treatmentId));
     setHours(s.staff.therapistAvailability.map(({ weekday, startTime, endTime, breakStart, breakEnd }) => ({ weekday, startTime, endTime, breakStart, breakEnd })));
@@ -93,16 +92,9 @@ export default function AdminStaffMember() {
 
       <Section title={t('settings')}>
         <ToggleRow label={t('isInstructor')} value={flags.isInstructor} onChange={(v) => setFlags({ ...flags, isInstructor: v })} />
-        <ToggleRow label={t('isTherapist')} value={flags.isTherapist} onChange={(v) => setFlags({ ...flags, isTherapist: v })} />
+        {SPA_ENABLED ? <ToggleRow label={t('isTherapist')} value={flags.isTherapist} onChange={(v) => setFlags({ ...flags, isTherapist: v })} /> : null}
         <ToggleRow label={t('canViewClientNotes')} value={flags.canViewClientNotes} onChange={(v) => setFlags({ ...flags, canViewClientNotes: v })} />
         <Gap h={space.md} />
-        <Text variant="label">{t('compensation')}</Text>
-        <Row style={{ flexWrap: 'wrap', marginVertical: space.sm }}>
-          {(['PER_CLASS', 'HOURLY', 'FIXED_SALARY'] as const).map((m) => (
-            <Chip key={m} label={t(m)} active={flags.compensationModel === m} onPress={() => setFlags({ ...flags, compensationModel: m })} />
-          ))}
-        </Row>
-        <Field label={t('rate')} value={flags.compensationRate} onChangeText={(v) => setFlags({ ...flags, compensationRate: v.replace(/\D/g, '') })} keyboardType="number-pad" />
         <Field label="Bio" value={flags.bio} onChangeText={(v) => setFlags({ ...flags, bio: v })} multiline />
         <Button
           title={t('save')}
@@ -110,14 +102,14 @@ export default function AdminStaffMember() {
           onPress={() =>
             run.mutate(() =>
               api('PATCH', `/admin/staff/${id}`, {
-                body: { isInstructor: flags.isInstructor, isTherapist: flags.isTherapist, canViewClientNotes: flags.canViewClientNotes, bio: flags.bio || null, compensationModel: flags.compensationModel, compensationRate: Number(flags.compensationRate || 0) },
+                body: { isInstructor: flags.isInstructor, isTherapist: flags.isTherapist, canViewClientNotes: flags.canViewClientNotes, bio: flags.bio || null },
               }),
             )
           }
         />
       </Section>
 
-      {flags.isTherapist ? (
+      {SPA_ENABLED && flags.isTherapist ? (
         <>
           <Section title={t('qualifications')}>
             <Row style={{ flexWrap: 'wrap' }}>
@@ -177,7 +169,7 @@ export default function AdminStaffMember() {
       ) : null}
 
       <Section title={t('upcoming')}>
-        {[...(s.staff?.sessions ?? []).map((x) => ({ id: x.id, at: x.startsAt, label: `${x.classType.name} · ${x._count.bookings}` })), ...(s.staff?.appointments ?? []).map((x) => ({ id: x.id, at: x.startsAt, label: `SPA · ${x.treatment.name}` }))]
+        {[...(s.staff?.sessions ?? []).map((x) => ({ id: x.id, at: x.startsAt, label: `${x.classType.name} · ${x._count.bookings}` })), ...(SPA_ENABLED ? (s.staff?.appointments ?? []) : []).map((x) => ({ id: x.id, at: x.startsAt, label: `SPA · ${x.treatment.name}` }))]
           .sort((a, b) => a.at.localeCompare(b.at))
           .slice(0, 15)
           .map((x) => (

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Alert, Pressable } from 'react-native';
 import { Button, Card, Chip, Field, Gap, Header, Notice, Row, Screen, Section, Text, ToggleRow } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { errorText, useT } from '@/lib/i18n';
 import type { Product, Treatment } from '@/lib/types';
 import { colors, space } from '@/theme';
@@ -21,7 +22,7 @@ export default function ProductEdit() {
   const qc = useQueryClient();
   const { t, lang, tEnum } = useT();
   const all = useQuery({ queryKey: ['admin-products'], queryFn: () => api<Product[]>('GET', '/admin/products'), enabled: !isNew });
-  const treatments = useQuery({ queryKey: ['admin-treatments'], queryFn: () => api<Treatment[]>('GET', '/admin/spa/treatments') });
+  const treatments = useQuery({ queryKey: ['admin-treatments'], queryFn: () => api<Treatment[]>('GET', '/admin/spa/treatments'), enabled: SPA_ENABLED });
   const p = all.data?.find((x) => x.id === id);
   const [f, setF] = useState({ kind: 'PACKAGE' as (typeof KINDS)[number], name: '', nameEn: '', description: '', price: '', originalPrice: '', classCredits: '0', validityDays: '30', sessionsPerWeekHint: '', terms: '', firstTimeOnly: false, active: true, imageKey: '' });
   const [items, setItems] = useState<SpaItem[]>([]);
@@ -87,7 +88,7 @@ export default function ProductEdit() {
       <Gap h={space.md} />
       <Text variant="label">{t('kind')}</Text>
       <Row style={{ flexWrap: 'wrap', marginVertical: space.sm }}>
-        {KINDS.map((k) => <Chip key={k} label={tEnum(k)} active={f.kind === k} onPress={() => setF({ ...f, kind: k })} />)}
+        {KINDS.filter((k) => SPA_ENABLED || k === f.kind || (k !== 'SPA' && k !== 'COMBO')).map((k) => <Chip key={k} label={tEnum(k)} active={f.kind === k} onPress={() => setF({ ...f, kind: k })} />)}
       </Row>
       <Field label={t('name')} value={f.name} onChangeText={set('name')} />
       <Field label={`${t('name')} (EN)`} value={f.nameEn} onChangeText={set('nameEn')} />
@@ -105,6 +106,8 @@ export default function ProductEdit() {
       <ToggleRow label={t('firstTimeOnly')} value={f.firstTimeOnly} onChange={(v) => setF({ ...f, firstTimeOnly: v })} />
       <ToggleRow label={t('active')} value={f.active} onChange={(v) => setF({ ...f, active: v })} />
 
+      {/* Hidden while SPA is off; a package's existing SPA items are kept on save. */}
+      {SPA_ENABLED ? (
       <Section title={t('spaIncluded')}>
         {items.map((it, i) => (
           <Row key={i} style={{ paddingVertical: 6 }}>
@@ -129,6 +132,7 @@ export default function ProductEdit() {
           </Row>
         </Card>
       </Section>
+      ) : null}
     </Screen>
   );
 }

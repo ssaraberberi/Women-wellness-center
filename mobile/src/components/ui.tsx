@@ -20,24 +20,28 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { HIT, colors, fonts, radius, space } from '@/theme';
+import { HIT, colors, fonts, radius, shadow, space } from '@/theme';
 import { errorText, useT } from '@/lib/i18n';
 import { openLegal } from '@/lib/legal';
+import { checkPhone, flag } from '@/lib/phone';
 
 export type IconName = keyof typeof Feather.glyphMap;
 
 // ───────────────────────── type ─────────────────────────
 
-type TextVariant = 'display' | 'title' | 'heading' | 'body' | 'bodyMedium' | 'small' | 'caption' | 'label';
+type TextVariant = 'display' | 'title' | 'heading' | 'body' | 'bodyMedium' | 'small' | 'caption' | 'label' | 'eyebrow' | 'serifItalic';
 const textStyles: Record<TextVariant, TextStyle> = {
-  display: { fontFamily: fonts.display, fontSize: 30, lineHeight: 36, color: colors.ink, letterSpacing: -0.3 },
-  title: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.ink },
-  heading: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22, color: colors.ink },
-  body: { fontFamily: fonts.body, fontSize: 15, lineHeight: 21, color: colors.inkSoft },
+  display: { fontFamily: fonts.display, fontSize: 34, lineHeight: 40, color: colors.ink, letterSpacing: -0.6 },
+  title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 34, color: colors.ink, letterSpacing: -0.4 },
+  heading: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 22, color: colors.ink, letterSpacing: -0.1 },
+  body: { fontFamily: fonts.body, fontSize: 15, lineHeight: 22, color: colors.inkSoft },
   bodyMedium: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.ink },
   small: { fontFamily: fonts.body, fontSize: 13, lineHeight: 18, color: colors.muted },
-  caption: { fontFamily: fonts.medium, fontSize: 11, lineHeight: 14, color: colors.muted },
-  label: { fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16, color: colors.inkSoft, letterSpacing: 0.4 },
+  caption: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 15, color: colors.muted, letterSpacing: 0.2 },
+  label: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 15, color: colors.inkSoft, letterSpacing: 1.4, textTransform: 'uppercase' },
+  // Small spaced capitals above a title, as in a magazine.
+  eyebrow: { fontFamily: fonts.semibold, fontSize: 10.5, lineHeight: 14, color: colors.muted, letterSpacing: 2, textTransform: 'uppercase' },
+  serifItalic: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 24, color: colors.wine },
 };
 
 export function Text({ variant = 'body', style, children, numberOfLines, center }: { variant?: TextVariant; style?: StyleProp<TextStyle>; children: ReactNode; numberOfLines?: number; center?: boolean }) {
@@ -125,11 +129,14 @@ export const Row = ({ children, style, gap = space.sm }: { children: ReactNode; 
 
 export const Gap = ({ h = space.lg }: { h?: number }) => <View style={{ height: h }} />;
 
-export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+export function Section({ title, eyebrow, action, children }: { title: string; eyebrow?: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <View style={{ marginTop: space.xl }}>
-      <Row style={{ justifyContent: 'space-between', marginBottom: space.md }}>
-        <Text variant="heading">{title}</Text>
+    <View style={{ marginTop: space.xxl }}>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: space.md }}>
+        <View style={{ flex: 1 }}>
+          {eyebrow ? <Text variant="eyebrow" style={{ marginBottom: 4 }}>{eyebrow}</Text> : null}
+          <RNText maxFontSizeMultiplier={1.4} style={styles.sectionTitle}>{title}</RNText>
+        </View>
         {action}
       </Row>
       {children}
@@ -188,7 +195,7 @@ export function Button({
 
 const buttonVariants: Record<string, { box: ViewStyle; text: TextStyle }> = {
   primary: { box: { backgroundColor: colors.wine }, text: { color: colors.white } },
-  secondary: { box: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.wine }, text: { color: colors.wine } },
+  secondary: { box: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.blushDeep }, text: { color: colors.wine } },
   ghost: { box: { backgroundColor: 'transparent' }, text: { color: colors.wine } },
   danger: { box: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger }, text: { color: colors.danger } },
 };
@@ -208,7 +215,8 @@ export function Chip({ label, active, onPress }: { label: string; active?: boole
 
 export function Segmented<T extends string>({ options, value, onChange }: { options: { value: T; label: string }[]; value: T; onChange: (v: T) => void }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingVertical: 2 }}>
+    // flexGrow 0 + alignItems: a horizontal ScrollView otherwise stretches to fill the screen and the chips with it.
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: space.sm, paddingVertical: 2, alignItems: 'center' }}>
       {options.map((o) => (
         <Chip key={o.value} label={o.label} active={o.value === value} onPress={() => onChange(o.value)} />
       ))}
@@ -216,17 +224,60 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
   );
 }
 
-export function Field({ label, error, style, ...props }: TextInputProps & { label?: string; error?: string }) {
+export function Field({ label, error, style, secureTextEntry, ...props }: TextInputProps & { label?: string; error?: string }) {
+  const { t } = useT();
+  // Password fields get an eye to show what was typed.
+  const [hidden, setHidden] = useState(true);
   return (
     <View style={{ marginBottom: space.md }}>
       {label ? <Text variant="label" style={{ marginBottom: 6 }}>{label}</Text> : null}
-      <TextInput
-        placeholderTextColor={colors.muted}
-        style={[styles.input, !!error && { borderColor: colors.danger }, style]}
-        accessibilityLabel={label ?? props.placeholder}
-        {...props}
-      />
+      <View>
+        <TextInput
+          placeholderTextColor={colors.muted}
+          style={[styles.input, !!error && { borderColor: colors.danger }, secureTextEntry && { paddingRight: 48 }, style]}
+          accessibilityLabel={label ?? props.placeholder}
+          secureTextEntry={secureTextEntry && hidden}
+          {...props}
+        />
+        {secureTextEntry ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={hidden ? t('showPassword') : t('hidePassword')} onPress={() => setHidden((h) => !h)} hitSlop={8} style={styles.eye}>
+            <Feather name={hidden ? 'eye' : 'eye-off'} size={18} color={colors.muted} />
+          </Pressable>
+        ) : null}
+      </View>
       {error ? <Text variant="small" style={{ color: colors.danger, marginTop: 4 }}>{error}</Text> : null}
+    </View>
+  );
+}
+
+/**
+ * A phone number from any country. Shows the country and the number as it
+ * will be saved once it is valid; an Albanian number needs no prefix.
+ */
+export function PhoneField({ label, value, onChangeText, error }: { label?: string; value: string; onChangeText: (v: string) => void; error?: string }) {
+  const { t } = useT();
+  const ok = checkPhone(value);
+  const typed = value.replace(/\D/g, '').length >= 6;
+  return (
+    <View style={{ marginBottom: space.md }}>
+      <Field
+        label={label}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        textContentType="telephoneNumber"
+        placeholder="069 123 4567 / +39 …"
+        error={error ?? (typed && !ok ? t('invalidPhone') : undefined)}
+        style={{ marginBottom: 0 }}
+      />
+      {ok ? (
+        <Text variant="small" style={{ color: colors.success, marginTop: -6 }}>
+          {flag(ok.country)} {ok.pretty} ✓
+        </Text>
+      ) : (
+        <Text variant="small" style={{ marginTop: -6 }}>{t('phoneHint')}</Text>
+      )}
     </View>
   );
 }
@@ -349,11 +400,12 @@ export function EmptyState({ icon = 'feather', title, body, action }: { icon?: I
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Feather name={icon} size={24} color={colors.wine} />
+        <Feather name={icon} size={22} color={colors.wine} />
+        <RNText style={styles.sparkle}>✦</RNText>
       </View>
-      <Text variant="heading" center>
+      <RNText maxFontSizeMultiplier={1.4} style={[styles.sectionTitle, { textAlign: 'center' }]}>
         {title}
-      </Text>
+      </RNText>
       {body ? (
         <Text variant="body" center style={{ marginTop: 6 }}>
           {body}
@@ -402,24 +454,27 @@ export function Notice({ text, tone = 'wine', icon = 'info' }: { text: string; t
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   padded: { paddingHorizontal: space.xl, paddingTop: space.sm },
-  footer: { paddingHorizontal: space.xl, paddingTop: space.md, paddingBottom: space.lg, backgroundColor: colors.bg, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md, minHeight: 56 },
-  iconBtn: { width: HIT, height: HIT, alignItems: 'center', justifyContent: 'center', marginLeft: -10 },
-  badgeDot: { position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.wine, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  footer: { paddingHorizontal: space.xl, paddingTop: space.md, paddingBottom: space.lg, backgroundColor: colors.bg },
+  header: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md, minHeight: 60 },
+  iconBtn: { width: HIT, height: HIT, borderRadius: HIT / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, ...shadow, shadowOpacity: 0.05 },
+  badgeDot: { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: colors.wine, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: colors.surface },
   badgeDotText: { color: colors.white, fontSize: 9, fontFamily: fonts.semibold },
-  button: { minHeight: 52, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 21, lineHeight: 27, color: colors.ink, letterSpacing: -0.3 },
+  button: { minHeight: 54, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl },
   buttonSmall: { minHeight: HIT, paddingHorizontal: space.lg },
-  buttonText: { fontFamily: fonts.semibold, fontSize: 15.5 },
-  chip: { minHeight: 36, paddingHorizontal: 16, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, justifyContent: 'center' },
-  chipText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.inkSoft },
-  input: { minHeight: 52, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: space.lg, fontSize: 16, fontFamily: fonts.body, color: colors.ink },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line, overflow: 'hidden' },
-  badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
-  badgeText: { fontFamily: fonts.semibold, fontSize: 11.5 },
-  stat: { flex: 1, minWidth: '46%', backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
+  buttonText: { fontFamily: fonts.semibold, fontSize: 15, letterSpacing: 0.3 },
+  chip: { minHeight: 38, paddingHorizontal: 18, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, justifyContent: 'center' },
+  chipText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.inkSoft, letterSpacing: 0.1 },
+  input: { minHeight: 54, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface, paddingHorizontal: space.lg, fontSize: 16, fontFamily: fonts.body, color: colors.ink },
+  eye: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 48, alignItems: 'center', justifyContent: 'center' },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 58, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, ...shadow },
+  badge: { borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 5, alignSelf: 'flex-start' },
+  badgeText: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 0.3 },
+  stat: { flex: 1, minWidth: '46%', backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, ...shadow },
   empty: { alignItems: 'center', paddingVertical: space.xxxl, paddingHorizontal: space.xl },
-  emptyIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.wineSoft, alignItems: 'center', justifyContent: 'center', marginBottom: space.lg },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.blush, alignItems: 'center', justifyContent: 'center', marginBottom: space.lg },
+  sparkle: { position: 'absolute', top: 6, right: 4, fontSize: 12, color: colors.blushDeep },
   offline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.inkSoft, paddingVertical: 6 },
   offlineText: { color: colors.white, fontFamily: fonts.medium, fontSize: 12 },
   notice: { padding: space.md, borderRadius: radius.md, alignItems: 'flex-start' },

@@ -1,6 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { Gap, Header, ListRow, Screen } from '@/components/ui';
 import type { IconName } from '@/components/ui';
+import { SPA_ENABLED } from '@/lib/features';
 import { useT, type TKey } from '@/lib/i18n';
 import { signOut } from '@/lib/session';
 import { space } from '@/theme';
@@ -9,14 +10,12 @@ const LINKS: { icon: IconName; key: TKey; href: Href }[] = [
   { icon: 'credit-card', key: 'orders', href: '/admin/orders' },
   { icon: 'dollar-sign', key: 'payments', href: '/admin/payments' },
   { icon: 'package', key: 'products', href: '/admin/products' },
-  { icon: 'tag', key: 'promotions', href: '/admin/promotions' },
   { icon: 'trending-up', key: 'analytics', href: '/admin/analytics' },
   { icon: 'grid', key: 'timetable', href: '/admin/timetable' },
-  { icon: 'feather', key: 'spaManagement', href: '/admin/spa-manage' },
+  ...(SPA_ENABLED ? [{ icon: 'feather' as const, key: 'spaManagement' as const, href: '/admin/spa-manage' as const }] : []),
   { icon: 'inbox', key: 'requests', href: '/admin/requests' },
   { icon: 'x-octagon', key: 'closures', href: '/admin/closures' },
   { icon: 'volume-2', key: 'announcements', href: '/admin/announcements' },
-  { icon: 'briefcase', key: 'payroll', href: '/admin/payroll' },
   { icon: 'settings', key: 'settings', href: '/admin/settings' },
   { icon: 'shield', key: 'auditLog', href: '/admin/audit' },
 ];

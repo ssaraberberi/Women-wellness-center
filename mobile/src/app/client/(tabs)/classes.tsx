@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Badge, Button, EmptyState, ErrorState, Gap, IconButton, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { dayNum, lek, monthShort, tirane, time, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import { loc, type SessionDto } from '@/lib/types';
@@ -71,7 +72,7 @@ function List({ scope }: { scope: Scope }) {
   const qc = useQueryClient();
   const { t, lang } = useT();
   const bq = useQuery({ queryKey: ['bookings', scope], queryFn: () => api<BookingItem[]>('GET', `/me/bookings?scope=${scope}`) });
-  const spaScope = scope === 'upcoming' || scope === 'past' ? scope : null;
+  const spaScope = SPA_ENABLED && (scope === 'upcoming' || scope === 'past') ? scope : null;
   const sq = useQuery({ queryKey: ['spa-appointments', spaScope], queryFn: () => api<SpaItem[]>('GET', `/me/spa-appointments?scope=${spaScope}`), enabled: !!spaScope });
 
   const cancelSpa = useMutation({
@@ -96,7 +97,7 @@ function List({ scope }: { scope: Scope }) {
       data={rows}
       keyExtractor={(r) => (r.type === 'class' ? r.b.id : r.a.id)}
       contentContainerStyle={{ paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={bq.isRefetching} onRefresh={() => { void bq.refetch(); void sq.refetch(); }} tintColor={colors.wine} />}
+      refreshControl={<RefreshControl refreshing={bq.isRefetching} onRefresh={() => { void bq.refetch(); if (spaScope) void sq.refetch(); }} tintColor={colors.wine} />}
       ListEmptyComponent={
         <EmptyState
           icon="calendar"

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { Badge, EmptyState, ErrorState, Gap, IconButton, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { lek } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
@@ -29,8 +30,13 @@ export default function Packages() {
         <IconButton name="credit-card" label={t('myMemberships')} onPress={() => router.push('/client/memberships')} />
       </Row>
       <Gap h={space.md} />
-      <Segmented options={[{ value: 'pilates', label: t('pilates') }, { value: 'spa', label: t('spa') }, { value: 'combo', label: t('combos') }]} value={tab} onChange={setTab} />
-      <Gap h={space.md} />
+      {/* Without SPA only the Pilates packages are on sale, so there is nothing to switch between. */}
+      {SPA_ENABLED ? (
+        <>
+          <Segmented options={[{ value: 'pilates', label: t('pilates') }, { value: 'spa', label: t('spa') }, { value: 'combo', label: t('combos') }]} value={tab} onChange={setTab} />
+          <Gap h={space.md} />
+        </>
+      ) : null}
       {q.isPending ? (
         <SkeletonList count={3} height={130} />
       ) : q.isError && !q.data ? (
@@ -67,7 +73,7 @@ export default function Packages() {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', minHeight: 120, borderRadius: radius.lg, overflow: 'hidden', backgroundColor: colors.card, marginBottom: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
-  img: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '45%', opacity: 0.85 },
-  shade: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '70%', backgroundColor: colors.card, opacity: 0.88 },
+  card: { flexDirection: 'row', alignItems: 'center', minHeight: 140, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.surface, marginBottom: space.lg },
+  img: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '48%' },
+  shade: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '66%', backgroundColor: colors.surface, opacity: 0.92 },
 });

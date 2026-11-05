@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, View } from 'react-native';
 import { Badge, Button, Card, EmptyState, Header, Notice, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import { space } from '@/theme';
@@ -50,7 +51,7 @@ export default function AdminRequests() {
               <Badge label={t(r.status)} tone={r.status === 'APPROVED' ? 'success' : r.status === 'REJECTED' ? 'danger' : 'warning'} />
             </Row>
             {r.status === 'PENDING' && (r.affectedSessions || r.affectedAppointments) ? (
-              <Notice tone="warning" text={`${t('sessionsN', { n: r.affectedSessions })} · ${r.affectedAppointments} SPA`} />
+              <Notice tone="warning" text={`${t('sessionsN', { n: r.affectedSessions })}${SPA_ENABLED ? ` · ${r.affectedAppointments} SPA` : ''}`} />
             ) : null}
             {r.status === 'PENDING' ? (
               <Row style={{ marginTop: space.sm }}>

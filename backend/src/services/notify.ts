@@ -51,6 +51,18 @@ export async function notify(
   await db.notification.createMany({ data: rows, skipDuplicates: true });
 }
 
+/** The same notification to every active admin, except whoever caused it. */
+export async function notifyAdmins(
+  db: Tx | typeof prisma,
+  opts: { type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue; exceptUserId?: string },
+) {
+  const admins = await db.user.findMany({ where: { role: 'ADMIN', status: 'ACTIVE' }, select: { id: true } });
+  for (const a of admins) {
+    if (a.id === opts.exceptUserId) continue;
+    await notify(db, { userId: a.id, type: opts.type, dedupeKey: `${opts.dedupeKey}:admin:${a.id}`, params: opts.params, data: opts.data });
+  }
+}
+
 const BACKOFF_MIN = [1, 5, 15, 60, 240];
 const MAX_ATTEMPTS = BACKOFF_MIN.length + 1;
 

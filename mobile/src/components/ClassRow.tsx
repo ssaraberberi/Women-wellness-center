@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { time } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { loc, type SessionDto } from '@/lib/types';
-import { colors, fonts, radius, space } from '@/theme';
+import { colors, fonts, radius, shadow, space } from '@/theme';
 import { Badge } from './ui';
 
 /** One line of the timetable: time, class, instructor, places — as on the studio's board. */
@@ -34,7 +34,7 @@ export function ClassRow({ s, onPress, showAvailability = true }: { s: SessionDt
           {loc(lang, s.classType.name, s.classType.nameEn)}
         </Text>
         <Text style={styles.sub} numberOfLines={1}>
-          {s.instructor?.name ?? '—'} · {t(s.classType.difficulty)}
+          {s.instructor?.name ?? '—'}
         </Text>
       </View>
       {status}
@@ -44,10 +44,11 @@ export function ClassRow({ s, onPress, showAvailability = true }: { s: SessionDt
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 14, paddingHorizontal: space.lg, marginBottom: space.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
-  time: { width: 52 },
-  hh: { fontFamily: fonts.semibold, fontSize: 15.5, color: colors.ink },
-  dur: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: colors.surface, borderRadius: radius.lg, paddingVertical: 16, paddingHorizontal: space.lg, marginBottom: space.md, ...shadow },
+  // The time sits on a blush tile, like a little calendar stamp.
+  time: { width: 58, paddingVertical: 8, borderRadius: radius.md, backgroundColor: colors.blush, alignItems: 'center' },
+  hh: { fontFamily: fonts.display, fontSize: 16, color: colors.wine },
+  dur: { fontFamily: fonts.body, fontSize: 10.5, color: colors.inkSoft },
   name: { fontFamily: fonts.semibold, fontSize: 15, color: colors.ink },
   sub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   places: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.inkSoft },

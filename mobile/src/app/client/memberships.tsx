@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Badge, Button, Card, EmptyState, ErrorState, Gap, Header, Row, Screen, Section, Segmented, SkeletonList, Stat, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { dateShort, lek } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import { colors, space } from '@/theme';
@@ -84,7 +85,7 @@ export default function Memberships() {
                       {t('ofCredits', { n: p.credits.remaining, total: p.credits.total })}
                     </Text>
                   ) : null}
-                  {p.spa.map((s) => (
+                  {(SPA_ENABLED ? p.spa : []).map((s) => (
                     <Text key={s.id} variant="small" style={{ color: colors.inkSoft }}>
                       {t('spaIncluded')}: {s.name} · {s.remaining}/{s.total}
                     </Text>

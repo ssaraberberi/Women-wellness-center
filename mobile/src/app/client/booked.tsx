@@ -51,7 +51,6 @@ export default function Booked() {
         title: `DUA · ${item.title}`,
         startDate: new Date(item.startsAt),
         endDate: new Date(item.endsAt),
-        location: 'DUA Pilates & SPA, Rruga Anton Lufi, Komuna e Parisit, Tiranë',
         timeZone: 'Europe/Tirane',
         alarms: [{ relativeOffset: -120 }],
       });

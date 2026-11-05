@@ -28,6 +28,8 @@ const schema = z.object({
   CORS_ORIGINS: z.string().optional().default(''),
   PAYMENT_PROVIDER: z.string().default('none'),
   PAYMENT_WEBHOOK_SECRET: z.string().optional().default(''),
+  // Sign in with Apple: the iOS bundle id(s) an Apple identity token may be issued for, comma-separated.
+  APPLE_AUDIENCES: z.string().default('com.duapilatesandspa.app'),
 });
 
 const parsed = schema.safeParse(process.env);

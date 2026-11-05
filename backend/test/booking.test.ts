@@ -53,7 +53,7 @@ describe('class booking', () => {
     expect(await creditsOf(one.id)).toBe(1);
   });
 
-  it('cancelling in time returns the credit; late keeps it unless the policy says otherwise', async () => {
+  it('cancelling in time returns the session; late always uses it up', async () => {
     const app = await getApp();
     const c = await makeClientWithCredits(5);
     const early = await makeSession({ inHours: 48 });
@@ -76,12 +76,19 @@ describe('class booking', () => {
     expect(again.statusCode).toBe(409);
     expect(await creditsOf(c.id)).toBe(5);
 
-    // Policy switched: late cancellations refund.
+    // The old switch no longer gives late sessions back.
     await prisma.studioSettings.update({ where: { id: 1 }, data: { lateCancelKeepsCredit: false } });
     const late2 = await makeSession({ inHours: 2 });
     const b3 = (await app.inject({ method: 'POST', url: `/sessions/${late2.id}/book`, headers: c.auth })).json();
     const c3 = await app.inject({ method: 'POST', url: `/bookings/${b3.id}/cancel`, headers: c.auth });
-    expect(c3.json()).toMatchObject({ status: 'LATE_CANCELLED', refunded: true });
+    expect(c3.json()).toMatchObject({ status: 'LATE_CANCELLED', refunded: false });
+
+    // With a 1-hour window, cancelling 2 hours before is still in time.
+    await prisma.studioSettings.update({ where: { id: 1 }, data: { freeCancelHours: 1 } });
+    const soon = await makeSession({ inHours: 2 });
+    const b4 = (await app.inject({ method: 'POST', url: `/sessions/${soon.id}/book`, headers: c.auth })).json();
+    const c4 = await app.inject({ method: 'POST', url: `/bookings/${b4.id}/cancel`, headers: c.auth });
+    expect(c4.json()).toMatchObject({ status: 'CANCELLED', refunded: true });
 
     // The ledger explains the balance.
     const ledger = await prisma.creditTransaction.findMany({ where: { userId: c.id } });

@@ -4,7 +4,7 @@ import { E } from '../lib/errors.js';
 import { getSettings, audit } from '../lib/settings.js';
 import { addMinutes, formatStudio, studioDate, dbDate } from '../lib/time.js';
 import { refundBookingCredits, spendCredits, usableCredits } from './credits.js';
-import { notify } from './notify.js';
+import { notify, notifyAdmins } from './notify.js';
 
 type Actor = { id: string; role: 'CLIENT' | 'STAFF' | 'ADMIN' };
 
@@ -114,6 +114,7 @@ export async function bookClass(
         params: { className: session.classType.name, when: whenText(session.startsAt), instructor: instructorName(session) },
         data: { kind: 'class', bookingId: booking.id, sessionId },
       });
+      await tellStaff(tx, session, { type: 'STAFF_NEW_BOOKING', dedupeKey: `booked:${booking.id}`, clientId: userId, actorId: opts.actor.id });
       if (opts.actor.role === 'ADMIN') {
         await audit(tx, opts.actor.id, 'booking.create_for_client', 'class_booking', booking.id, { userId, sessionId });
       }
@@ -134,13 +135,42 @@ export async function bookClass(
 export const instructorName = (s: { instructor?: { user: { profile: { firstName: string; lastName: string } | null } } | null }) =>
   s.instructor?.user.profile ? `${s.instructor.user.profile.firstName} ${s.instructor.user.profile.lastName}`.trim() : undefined;
 
+/**
+ * Tell the class's instructor and every admin that someone booked or
+ * cancelled — with who, and how full the class is now. Whoever did it
+ * (an admin booking at the desk) is not told about her own action.
+ */
+async function tellStaff(
+  tx: Tx,
+  session: { id: string; startsAt: Date; capacity: number; instructorId: string | null; classType: { name: string } },
+  opts: { type: 'STAFF_NEW_BOOKING' | 'STAFF_BOOKING_CANCELLED'; dedupeKey: string; clientId: string; actorId: string; late?: boolean },
+) {
+  const [profile, booked] = await Promise.all([
+    tx.userProfile.findUnique({ where: { userId: opts.clientId }, select: { firstName: true, lastName: true } }),
+    tx.classBooking.count({ where: { sessionId: session.id, status: 'BOOKED' } }),
+  ]);
+  const params = {
+    client: profile ? `${profile.firstName} ${profile.lastName}`.trim() : '—',
+    className: session.classType.name,
+    when: whenText(session.startsAt),
+    booked,
+    capacity: session.capacity,
+    late: opts.late ? 1 : undefined,
+  };
+  const data = { kind: 'class', sessionId: session.id };
+  if (session.instructorId && session.instructorId !== opts.actorId) {
+    await notify(tx, { userId: session.instructorId, type: opts.type, dedupeKey: `${opts.dedupeKey}:instructor`, params, data });
+  }
+  await notifyAdmins(tx, { type: opts.type, dedupeKey: opts.dedupeKey, params, data, exceptUserId: opts.actorId });
+}
+
 /** When free cancellation ends for a class. */
 export const freeCancelDeadline = (startsAt: Date, settings: StudioSettings) => addMinutes(startsAt, -settings.freeCancelHours * 60);
 
 /**
- * Cancel a booking. In time: the credit comes back. Late: it is kept or
- * returned according to the studio's policy. An admin may always choose to
- * return it.
+ * Cancel a booking. In time (at least `freeCancelHours` before, never less
+ * than 1 hour): the session comes back. Late: the session counts as used, just
+ * like not turning up. Only an admin can choose to give it back.
  */
 export async function cancelBooking(bookingId: string, actor: Actor, opts: { restoreCredit?: boolean } = {}) {
   const settings = await getSettings();
@@ -156,7 +186,7 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { res
     if (actor.role === 'CLIENT' && session.startsAt <= now) throw E.conflict('CANCEL_CLOSED', 'The class has already started');
 
     const inTime = now <= freeCancelDeadline(session.startsAt, settings);
-    const refund = inTime || !settings.lateCancelKeepsCredit || (actor.role === 'ADMIN' && opts.restoreCredit === true);
+    const refund = inTime || (actor.role === 'ADMIN' && opts.restoreCredit === true);
     await tx.classBooking.update({
       where: { id: booking.id },
       data: { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', cancelledAt: now, cancelledById: actor.id },
@@ -177,6 +207,7 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { res
       params: { className: session.classType.name, when: whenText(session.startsAt), refunded: refunded ? 1 : undefined },
       data: { kind: 'class', bookingId: booking.id, sessionId: session.id },
     });
+    await tellStaff(tx, session, { type: 'STAFF_BOOKING_CANCELLED', dedupeKey: `cancel:${booking.id}`, clientId: booking.userId, actorId: actor.id, late: !inTime });
     if (actor.role === 'ADMIN') await audit(tx, actor.id, 'booking.cancel', 'class_booking', booking.id, { refunded });
     await offerFreedPlaces(tx, session.id, settings);
     return { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', refunded };

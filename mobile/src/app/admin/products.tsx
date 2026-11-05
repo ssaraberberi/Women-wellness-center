@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { Badge, Button, Card, ErrorState, Header, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { lek } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import type { Product } from '@/lib/types';
@@ -20,7 +21,8 @@ export default function AdminProducts() {
       ) : !q.data ? (
         <ErrorState error={q.error} onRetry={() => void q.refetch()} />
       ) : (
-        q.data.map((p) => (
+        // SPA and combo packages are hidden while SPA is off.
+        q.data.filter((p) => SPA_ENABLED || !p.spaItems.length).map((p) => (
           <Card key={p.id} onPress={() => router.push({ pathname: '/admin/product/[id]', params: { id: p.id } })} style={{ marginBottom: space.sm, opacity: p.active ? 1 : 0.6 }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <View style={{ flex: 1 }}>

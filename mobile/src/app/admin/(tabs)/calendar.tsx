@@ -6,6 +6,7 @@ import { ClassRow } from '@/components/ClassRow';
 import { DateStrip } from '@/components/DateStrip';
 import { Badge, Button, Card, EmptyState, ErrorState, Gap, Header, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { lek, time, todayISO } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { SessionDto } from '@/lib/types';
@@ -55,8 +56,12 @@ export default function AdminCalendar() {
   return (
     <Screen refreshing={sq.isRefetching || aq.isRefetching} onRefresh={() => void (tab === 'pilates' ? sq.refetch() : aq.refetch())}>
       <Header title={t('tabCalendar')} right={<Button small title={t('create')} icon="plus" onPress={() => router.push(tab === 'pilates' ? '/admin/session-new' : '/admin/spa-new')} />} />
-      <Segmented options={[{ value: 'pilates', label: t('pilates') }, { value: 'spa', label: t('spa') }]} value={tab} onChange={setTab} />
-      <Gap h={space.md} />
+      {SPA_ENABLED ? (
+        <>
+          <Segmented options={[{ value: 'pilates', label: t('pilates') }, { value: 'spa', label: t('spa') }]} value={tab} onChange={setTab} />
+          <Gap h={space.md} />
+        </>
+      ) : null}
       <DateStrip value={date} onChange={setDate} />
       <Gap h={space.lg} />
       {tab === 'pilates' ? (

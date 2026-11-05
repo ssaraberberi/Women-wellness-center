@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, Row, Screen, Section, Segmented, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
-import { dateShort, lek, whenShort } from '@/lib/format';
+import { SPA_ENABLED } from '@/lib/features';
+import { dateShort, lek, manualDiscountAmount, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { Product } from '@/lib/types';
 import { colors, space } from '@/theme';
@@ -26,7 +27,7 @@ interface ClientDetail {
   transactions: { id: string; type: string; delta: number; balanceAfter: number; reason: string | null; createdAt: string }[];
 }
 
-type Panel = null | 'sell' | 'adjust' | 'note' | 'message';
+type Panel = null | 'sell' | 'adjust' | 'note';
 
 /** Everything about one client, and what the desk can do for her. */
 export default function AdminClient() {
@@ -42,15 +43,16 @@ export default function AdminClient() {
 
   // panel state
   const [productId, setProductId] = useState<string | null>(null);
-  const [promo, setPromo] = useState('');
+  const [discType, setDiscType] = useState<'PERCENT' | 'AMOUNT' | null>(null);
+  const [discValue, setDiscValue] = useState('');
+  const selected = products.data?.find((p) => p.id === productId);
+  const discount = selected && discType && discValue ? manualDiscountAmount(selected.price, discType, Number(discValue)) : 0;
   const [paidMethod, setPaidMethod] = useState<'CASH' | 'CARD_AT_STUDIO' | null>('CASH');
   const [walletId, setWalletId] = useState<string | null>(null);
   const [delta, setDelta] = useState('1');
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [noteService, setNoteService] = useState(false);
-  const [msgTitle, setMsgTitle] = useState('');
-  const [msgBody, setMsgBody] = useState('');
 
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
@@ -86,7 +88,6 @@ export default function AdminClient() {
       <Row style={{ flexWrap: 'wrap' }}>
         <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />
         <Button small variant="secondary" icon="plus-circle" title={t('addCredits')} onPress={() => setPanel(panel === 'adjust' ? null : 'adjust')} disabled={!wallets.length} />
-        <Button small variant="secondary" icon="message-circle" title={t('sendMessage')} onPress={() => setPanel(panel === 'message' ? null : 'message')} />
         <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
       </Row>
 
@@ -98,7 +99,29 @@ export default function AdminClient() {
             ))}
           </Row>
           <Gap h={space.sm} />
-          <Field label={t('promoCode')} value={promo} onChangeText={(v) => setPromo(v.toUpperCase())} autoCapitalize="characters" />
+          <Text variant="label">{t('discount')}</Text>
+          <Row style={{ marginVertical: space.sm }}>
+            <Chip label={t('noDiscount')} active={!discType} onPress={() => setDiscType(null)} />
+            <Chip label="%" active={discType === 'PERCENT'} onPress={() => setDiscType('PERCENT')} />
+            <Chip label={t('amountOff')} active={discType === 'AMOUNT'} onPress={() => setDiscType('AMOUNT')} />
+          </Row>
+          {discType ? (
+            <Field
+              label={discType === 'PERCENT' ? t('percentOff') : t('lekOff')}
+              value={discValue}
+              onChangeText={(v) => setDiscValue(v.replace(/\D/g, '').slice(0, discType === 'PERCENT' ? 3 : 7))}
+              keyboardType="number-pad"
+              placeholder={discType === 'PERCENT' ? '15' : '2000'}
+            />
+          ) : null}
+          {selected ? (
+            <Row style={{ justifyContent: 'space-between', marginBottom: space.md }}>
+              <Text variant="body">{t('total')}</Text>
+              <Text variant="heading">
+                {discount ? `${lek(selected.price)} → ${lek(selected.price - discount)}` : lek(selected.price)}
+              </Text>
+            </Row>
+          ) : null}
           <Text variant="label">{t('paidNow')}</Text>
           <Row style={{ marginVertical: space.sm }}>
             <Chip label={t('CASH')} active={paidMethod === 'CASH'} onPress={() => setPaidMethod('CASH')} />
@@ -107,12 +130,12 @@ export default function AdminClient() {
           </Row>
           <Button
             title={t('confirm')}
-            disabled={!productId}
+            disabled={!productId || (discType === 'PERCENT' && Number(discValue) > 100)}
             loading={run.isPending}
             onPress={() =>
               run.mutate(() =>
                 api('POST', `/admin/clients/${id}/assign-package`, {
-                  body: { productId, ...(promo.trim() ? { promoCode: promo.trim() } : {}), ...(paidMethod ? { payment: { method: paidMethod } } : {}) },
+                  body: { productId, ...(discount ? { discount: { type: discType, value: Number(discValue) } } : {}), ...(paidMethod ? { payment: { method: paidMethod } } : {}) },
                   idempotencyKey: newIdempotencyKey(),
                 }),
               )
@@ -129,7 +152,7 @@ export default function AdminClient() {
             ))}
           </Row>
           <Gap h={space.sm} />
-          <Field label="± credits" value={delta} onChangeText={setDelta} keyboardType="numbers-and-punctuation" />
+          <Field label={lang === 'sq' ? '± seanca' : '± sessions'} value={delta} onChangeText={setDelta} keyboardType="numbers-and-punctuation" />
           <Field label={t('reason')} value={reason} onChangeText={setReason} />
           <Button
             title={t('confirm')}
@@ -149,13 +172,6 @@ export default function AdminClient() {
         </Card>
       ) : null}
 
-      {panel === 'message' ? (
-        <Card style={{ marginTop: space.md }}>
-          <Field label={t('title')} value={msgTitle} onChangeText={setMsgTitle} />
-          <Field label={t('message')} value={msgBody} onChangeText={setMsgBody} multiline />
-          <Button title={t('send')} disabled={!msgTitle.trim() || !msgBody.trim()} loading={run.isPending} onPress={() => run.mutate(() => api('POST', `/admin/clients/${id}/notify`, { body: { title: msgTitle.trim(), body: msgBody.trim() } }))} />
-        </Card>
-      ) : null}
 
       <Gap h={space.lg} />
       <Segmented options={[{ value: 'overview', label: t('myMemberships') }, { value: 'history', label: t('bookingHistory') }, { value: 'ledger', label: t('creditHistory') }]} value={tab} onChange={setTab} />
@@ -171,14 +187,7 @@ export default function AdminClient() {
                 </Row>
                 <Text variant="small">{lek(p.price)}{p.expiresAt ? ` · ${t('expires', { date: dateShort(p.expiresAt, lang) })}` : ''}</Text>
                 {p.wallet ? <Text variant="bodyMedium">{t('ofCredits', { n: p.wallet.remaining, total: p.wallet.total })}</Text> : null}
-                {p.spa.map((s) => <Text key={s.id} variant="small">{s.name} · {s.remaining}/{s.total}</Text>)}
-                {p.expiresAt ? (
-                  <Row style={{ marginTop: space.sm }}>
-                    {[7, 14, 30].map((d) => (
-                      <Chip key={d} label={`+${d} ${t('days')}`} onPress={() => Alert.alert(t('extend'), `${p.name} +${d} ${t('days')}`, [{ text: t('cancel'), style: 'cancel' }, { text: t('confirm'), onPress: () => run.mutate(() => api('POST', `/admin/purchases/${p.id}/extend`, { body: { days: d } })) }])} />
-                    ))}
-                  </Row>
-                ) : null}
+                {(SPA_ENABLED ? p.spa : []).map((s) => <Text key={s.id} variant="small">{s.name} · {s.remaining}/{s.total}</Text>)}
               </Card>
             ))}
           </Section>
@@ -245,7 +254,7 @@ export default function AdminClient() {
               </Row>
             </Card>
           ))}
-          {c.spa.map((a) => (
+          {(SPA_ENABLED ? c.spa : []).map((a) => (
             <Card key={a.id} style={{ marginBottom: space.sm }}>
               <Text variant="heading">SPA · {a.title}</Text>
               <Text variant="small">{whenShort(a.startsAt, lang)} · {a.therapist} · {tEnum(a.status)}</Text>

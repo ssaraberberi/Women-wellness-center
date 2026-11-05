@@ -75,17 +75,14 @@ export function brandedEmail(opts: { heading: string; lines: string[]; code?: st
   return { html, text };
 }
 
-export function otpEmail(code: string, lang: 'sq' | 'en', purpose: 'LOGIN' | 'REGISTER') {
+export function otpEmail(code: string, lang: 'sq' | 'en', purpose: 'LOGIN' | 'REGISTER' | 'RESET') {
   const sq = lang === 'sq';
   const subject = sq ? `${code} është kodi yt DUA` : `${code} is your DUA code`;
-  const heading =
-    purpose === 'REGISTER'
-      ? sq
-        ? 'Mirë se vjen te DUA'
-        : 'Welcome to DUA'
-      : sq
-        ? 'Kodi yt i hyrjes'
-        : 'Your sign-in code';
+  const heading = {
+    REGISTER: sq ? 'Mirë se vjen te DUA' : 'Welcome to DUA',
+    LOGIN: sq ? 'Kodi yt i hyrjes' : 'Your sign-in code',
+    RESET: sq ? 'Rivendos fjalëkalimin' : 'Reset your password',
+  }[purpose];
   const { html, text } = brandedEmail({
     heading,
     lines: [sq ? 'Fut këtë kod në aplikacion për të vazhduar. Skadon pas 10 minutash.' : 'Enter this code in the app to continue. It expires in 10 minutes.'],

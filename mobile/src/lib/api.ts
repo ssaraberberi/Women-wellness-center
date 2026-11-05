@@ -25,11 +25,15 @@ export function refreshSession(): Promise<boolean> {
   refreshing ??= (async () => {
     const { refreshToken, setTokens, signOutLocal } = useAuth.getState();
     if (!refreshToken) return false;
+    // A server that never answers must not hold the launch splash forever.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10_000);
     try {
       const res = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken }),
+        signal: ctrl.signal,
       });
       if (res.status === 401) {
         await signOutLocal();
@@ -42,6 +46,7 @@ export function refreshSession(): Promise<boolean> {
     } catch {
       return false; // offline: keep the stored session, try again later
     } finally {
+      clearTimeout(timer);
       setTimeout(() => (refreshing = null), 0);
     }
   })();

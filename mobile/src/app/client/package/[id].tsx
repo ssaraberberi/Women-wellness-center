@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, View } from 'react-native';
-import { Badge, Button, Card, ErrorState, Field, Gap, Header, KeyValue, Notice, Row, Screen, SkeletonList, Text } from '@/components/ui';
+import { useRef } from 'react';
+import { Alert } from 'react-native';
+import { Button, Card, ErrorState, Gap, Header, KeyValue, Notice, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { lek } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
@@ -16,24 +16,11 @@ export default function PackageDetail() {
   const { t, lang } = useT();
   const q = useQuery({ queryKey: ['products'], queryFn: () => api<Product[]>('GET', '/products') });
   const p = q.data?.find((x) => x.id === id);
-  const [code, setCode] = useState('');
-  const [quote, setQuote] = useState<{ code: string; discount: number; total: number } | null>(null);
-  const [codeError, setCodeError] = useState<string | null>(null);
   const key = useRef(newIdempotencyKey());
 
-  const check = useMutation({
-    mutationFn: () => api<{ code: string; discount: number; total: number }>('POST', '/promotions/check', { body: { code: code.trim(), productId: id } }),
-    onSuccess: (r) => {
-      setQuote(r);
-      setCodeError(null);
-    },
-    onError: (e) => {
-      setQuote(null);
-      setCodeError(errorText(e, lang));
-    },
-  });
+  // No promo codes in the app: any discount is given by the studio when it sells the package.
   const order = useMutation({
-    mutationFn: () => api<any>('POST', '/orders', { body: { productId: id, ...(quote ? { promoCode: quote.code } : {}) }, idempotencyKey: key.current }),
+    mutationFn: () => api<any>('POST', '/orders', { body: { productId: id }, idempotencyKey: key.current }),
     onSuccess: (o) => {
       void qc.invalidateQueries({ queryKey: ['memberships'] });
       void qc.invalidateQueries({ queryKey: ['home'] });
@@ -47,7 +34,7 @@ export default function PackageDetail() {
   return (
     <Screen
       edges={['top']}
-      footer={p ? <Button title={`${t('buy')} · ${lek(quote?.total ?? p.price)}`} onPress={() => order.mutate()} loading={order.isPending} /> : undefined}
+      footer={p ? <Button title={`${t('buy')} · ${lek(p.price)}`} onPress={() => order.mutate()} loading={order.isPending} /> : undefined}
     >
       <Header title={p ? loc(lang, p.name, p.nameEn) : ''} back />
       {q.isPending ? (
@@ -72,26 +59,14 @@ export default function PackageDetail() {
             </>
           ) : null}
           <Gap h={space.xl} />
-          <Row style={{ alignItems: 'flex-end' }}>
-            <View style={{ flex: 1 }}>
-              <Field label={t('promoCode')} value={code} onChangeText={(v) => { setCode(v.toUpperCase()); setQuote(null); setCodeError(null); }} autoCapitalize="characters" error={codeError ?? undefined} />
-            </View>
-            <Button small variant="secondary" title={t('apply')} onPress={() => check.mutate()} disabled={!code.trim()} loading={check.isPending} style={{ marginBottom: space.md + (codeError ? 22 : 0) }} />
-          </Row>
           <Card>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="body">{t('subtotal')}</Text>
               <Text variant="bodyMedium">{p.originalPrice ? `${lek(p.originalPrice)} → ` : ''}{lek(p.price)}</Text>
             </Row>
-            {quote ? (
-              <Row style={{ justifyContent: 'space-between', marginTop: 6 }}>
-                <Row><Text variant="body">{t('discount')}</Text><Badge label={quote.code} tone="success" /></Row>
-                <Text variant="bodyMedium" style={{ color: colors.success }}>−{lek(quote.discount)}</Text>
-              </Row>
-            ) : null}
             <Row style={{ justifyContent: 'space-between', marginTop: space.md }}>
               <Text variant="heading">{t('total')}</Text>
-              <Text variant="title">{lek(quote?.total ?? p.price)}</Text>
+              <Text variant="title">{lek(p.price)}</Text>
             </Row>
           </Card>
           <Gap h={space.md} />

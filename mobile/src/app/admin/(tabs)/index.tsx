@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Badge, Card, ErrorState, Gap, IconButton, ListRow, Notice, Row, Screen, Section, Segmented, SkeletonList, Stat, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
+import { SPA_ENABLED } from '@/lib/features';
 import { lek, time } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { colors, space } from '@/theme';
@@ -82,18 +83,20 @@ export default function AdminDashboard() {
               <Text variant="small">—</Text>
             )}
           </Section>
-          <Section title={t('todaySpa')}>
-            {d.today.spa.length ? (
-              d.today.spa.map((a) => (
-                <Card key={a.id} style={{ marginBottom: space.sm }}>
-                  <Text variant="heading">{time(a.startsAt)} · {a.title}</Text>
-                  <Text variant="small">{a.client} · {a.therapist} · {a.room}</Text>
-                </Card>
-              ))
-            ) : (
-              <Text variant="small">—</Text>
-            )}
-          </Section>
+          {SPA_ENABLED ? (
+            <Section title={t('todaySpa')}>
+              {d.today.spa.length ? (
+                d.today.spa.map((a) => (
+                  <Card key={a.id} style={{ marginBottom: space.sm }}>
+                    <Text variant="heading">{time(a.startsAt)} · {a.title}</Text>
+                    <Text variant="small">{a.client} · {a.therapist} · {a.room}</Text>
+                  </Card>
+                ))
+              ) : (
+                <Text variant="small">—</Text>
+              )}
+            </Section>
+          ) : null}
           <Section title={t('staffToday')}>
             {d.today.staff.length ? (
               d.today.staff.map((s) => (

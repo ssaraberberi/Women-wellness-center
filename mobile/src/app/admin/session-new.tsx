@@ -48,7 +48,7 @@ export default function NewSession() {
       <DateStrip value={date} onChange={setDate} />
       <Gap h={space.md} />
       <Field label="HH:mm" value={startTime} onChangeText={setStart} />
-      <Field label={t('capacity')} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" placeholder={String(types.data?.find((x) => x.id === classTypeId)?.defaultCapacity ?? 8)} />
+      <Field label={t('capacity')} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" placeholder={String(types.data?.find((x) => x.id === classTypeId)?.defaultCapacity ?? 5)} />
     </Screen>
   );
 }

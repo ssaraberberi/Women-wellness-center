@@ -97,6 +97,16 @@ export const monthTitle = (iso: string, lang: Lang) => `${MONTHS[lang][+iso.slic
 /** 14500 → "14,500 L" */
 export const lek = (n: number) => `${n.toLocaleString('en-US')} L`;
 
+/**
+ * The discount the desk gives by hand — the same sum the API makes. A percentage
+ * leaves a price rounded down to 100 L (15% off 14,523 L → 12,300 L); an amount comes off as typed.
+ */
+export function manualDiscountAmount(price: number, type: 'PERCENT' | 'AMOUNT', value: number) {
+  if (type === 'AMOUNT') return Math.min(Math.max(0, Math.round(value)), price);
+  const after = Math.floor((price * (100 - Math.min(Math.max(value, 0), 100))) / 100 / 100) * 100;
+  return price - Math.max(0, after);
+}
+
 /** Tirana wall time → the UTC instant (handles daylight saving by asking Intl what the offset was). */
 export function studioInstant(iso: string, hhmm: string) {
   const guess = new Date(`${iso}T${hhmm}:00Z`);

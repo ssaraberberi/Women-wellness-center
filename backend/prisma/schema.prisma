@@ -44,6 +44,10 @@ model User {
   status        UserStatus @default(ACTIVE)
   isOwner       Boolean    @default(false) @map("is_owner")
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  // scrypt hash; null = signs in with an emailed code only (until a password is set).
+  passwordHash  String?    @map("password_hash")
+  // Sign in with Apple: Apple's stable id for this person ("sub" of the identity token).
+  appleSub      String?    @unique @map("apple_sub")
   createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
   lastLoginAt   DateTime?  @map("last_login_at") @db.Timestamptz(3)
@@ -112,6 +116,7 @@ model StaffProfile {
 enum OtpPurpose {
   LOGIN
   REGISTER
+  RESET
 }
 
 model AuthOtpChallenge {
@@ -192,7 +197,7 @@ model ClassType {
   format          String     @default("REFORMER") // REFORMER, MAT, …
   difficulty      Difficulty @default(ALL_LEVELS)
   durationMin     Int        @default(50) @map("duration_min")
-  defaultCapacity Int        @default(8) @map("default_capacity")
+  defaultCapacity Int        @default(5) @map("default_capacity")
   creditsRequired Int        @default(1) @map("credits_required")
   imageKey        String?    @map("image_key")
   active          Boolean    @default(true)
@@ -870,7 +875,7 @@ model StudioSettings {
   lateCancelKeepsCredit   Boolean  @default(true) @map("late_cancel_keeps_credit")
   bookingWindowDays       Int      @default(21) @map("booking_window_days")
   bookingCutoffMin        Int      @default(0) @map("booking_cutoff_min")
-  defaultClassCapacity    Int      @default(8) @map("default_class_capacity")
+  defaultClassCapacity    Int      @default(5) @map("default_class_capacity")
   waitlistEnabled         Boolean  @default(true) @map("waitlist_enabled")
   waitlistOfferMinutes    Int      @default(60) @map("waitlist_offer_minutes")
   spaFreeCancelHours      Int      @default(24) @map("spa_free_cancel_hours")

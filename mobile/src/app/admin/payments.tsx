@@ -45,7 +45,7 @@ export default function AdminPayments() {
             onPress={
               p.status === 'COMPLETED'
                 ? () =>
-                    Alert.alert(t('refund'), `${p.client} · ${lek(p.amount - p.refunded)}\n${lang === 'sq' ? 'Kreditet e mbetura të paketës hiqen.' : 'Remaining package credits are withdrawn.'}`, [
+                    Alert.alert(t('refund'), `${p.client} · ${lek(p.amount - p.refunded)}\n${lang === 'sq' ? 'Seancat e mbetura të paketës hiqen.' : 'Remaining package sessions are withdrawn.'}`, [
                       { text: t('cancel'), style: 'cancel' },
                       { text: t('refund'), style: 'destructive', onPress: () => refund.mutate(p) },
                     ])

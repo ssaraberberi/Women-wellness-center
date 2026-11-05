@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { Button, Chip, Field, Gap, Header, Notice, Row, Screen, Text, ToggleRow } from '@/components/ui';
+import { Button, Chip, Field, Gap, Header, Notice, PhoneField, Row, Screen, Text, ToggleRow } from '@/components/ui';
+import { checkPhone } from '@/lib/phone';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { errorText, useT } from '@/lib/i18n';
@@ -23,7 +24,7 @@ export default function StaffInvite() {
   const invite = useMutation({
     mutationFn: () =>
       api('POST', '/admin/staff/invite', {
-        body: { ...f, email: f.email.trim(), phone: f.phone.trim() || undefined, role, isInstructor, isTherapist, isOwner: role === 'ADMIN' && owner },
+        body: { ...f, email: f.email.trim(), phone: checkPhone(f.phone)?.e164, role, isInstructor, isTherapist, isOwner: role === 'ADMIN' && owner },
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['admin-staff'] });
@@ -32,12 +33,12 @@ export default function StaffInvite() {
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
   return (
-    <Screen footer={<Button title={t('invite')} onPress={() => invite.mutate()} loading={invite.isPending} disabled={!f.firstName || !f.email} />}>
+    <Screen footer={<Button title={t('invite')} onPress={() => invite.mutate()} loading={invite.isPending} disabled={!f.firstName || !f.email || (!!f.phone.trim() && !checkPhone(f.phone))} />}>
       <Header title={t('inviteStaff')} back />
       <Field label={t('firstName')} value={f.firstName} onChangeText={set('firstName')} />
       <Field label={t('lastName')} value={f.lastName} onChangeText={set('lastName')} />
       <Field label={t('email')} value={f.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" />
-      <Field label={t('phone')} value={f.phone} onChangeText={set('phone')} keyboardType="phone-pad" />
+      <PhoneField label={t('phone')} value={f.phone} onChangeText={set('phone')} />
       <Text variant="label">{t('kind')}</Text>
       <Row style={{ marginVertical: space.sm }}>
         <Chip label={t('roleStaff')} active={role === 'STAFF'} onPress={() => setRole('STAFF')} />

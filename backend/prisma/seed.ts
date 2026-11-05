@@ -73,7 +73,7 @@ async function main() {
 
   // ─── Pilates ───
   const ct = async (name: string, nameEn: string, difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ALL_LEVELS', format: string, description: string, descriptionEn: string, imageKey: string) =>
-    prisma.classType.create({ data: { name, nameEn, difficulty, format, description, descriptionEn, durationMin: 50, defaultCapacity: format === 'MAT' ? 10 : 8, creditsRequired: 1, imageKey } });
+    prisma.classType.create({ data: { name, nameEn, difficulty, format, description, descriptionEn, durationMin: 50, defaultCapacity: 5, creditsRequired: 1, imageKey } });
   const basics = await ct('Reformer Basics', 'Reformer Basics', 'BEGINNER', 'REFORMER', 'Hyrje e qetë në reformer: frymëmarrje, qendër, kontroll.', 'A calm introduction to the reformer: breath, centre, control.', 'reformer-room');
   const flow = await ct('Reformer Flow', 'Reformer Flow', 'INTERMEDIATE', 'REFORMER', 'Një klasë dinamike që fokusohet në forcë, kontroll dhe fleksibilitet duke përdorur reformer.', 'A dynamic class focused on strength, control and flexibility on the reformer.', 'reformer-evening');
   const inter = await ct('Reformer Intermediate', 'Reformer Intermediate', 'ADVANCED', 'REFORMER', 'Sekuenca më të gjata dhe rezistencë më e lartë.', 'Longer sequences and more resistance.', 'studio-reformers');

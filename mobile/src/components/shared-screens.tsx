@@ -7,11 +7,13 @@ import { api } from '@/lib/api';
 import { whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import { openLegal } from '@/lib/legal';
+import { strongPassword } from '@/lib/password';
+import { checkPhone } from '@/lib/phone';
 import { pushUnavailableInThisBuild, registerForPush, type PushStatus } from '@/lib/push';
 import { loadMe, signOut } from '@/lib/session';
 import type { NotificationItem } from '@/lib/types';
 import { colors, space } from '@/theme';
-import { Badge, Button, EmptyState, ErrorState, Field, Gap, Header, ListRow, Notice, Row, Screen, SkeletonList, Text, ToggleRow, type IconName } from './ui';
+import { Badge, Button, EmptyState, ErrorState, Field, Gap, Header, ListRow, Notice, PhoneField, Row, Screen, SkeletonList, Text, ToggleRow, type IconName } from './ui';
 
 export function ProfileScreen({ links, base }: { links: { icon: IconName; label: string; href: Href }[]; base: '/client' | '/staff' | '/admin' }) {
   const router = useRouter();
@@ -84,7 +86,7 @@ export function ProfileScreen({ links, base }: { links: { icon: IconName; label:
         />
       ) : null}
       <Gap h={space.xl} />
-      <Text variant="caption" center>DUA Pilates & SPA · Rruga Anton Lufi, Komuna e Parisit, Tiranë · @dua_pilates_spa</Text>
+      <Text variant="caption" center>{t('allRights', { year: new Date().getFullYear() })}</Text>
     </Screen>
   );
 }
@@ -95,21 +97,45 @@ export function DetailsScreen() {
   const [firstName, setFirst] = useState(me?.profile?.firstName ?? '');
   const [lastName, setLast] = useState(me?.profile?.lastName ?? '');
   const [phone, setPhone] = useState(me?.profile?.phone ?? '');
+  const phoneOk = checkPhone(phone);
   const save = useMutation({
-    mutationFn: () => api('PATCH', '/me/profile', { body: { firstName: firstName.trim(), lastName: lastName.trim(), ...(phone.trim() ? { phone: phone.trim() } : {}) } }),
+    mutationFn: () => api('PATCH', '/me/profile', { body: { firstName: firstName.trim(), lastName: lastName.trim(), ...(phoneOk ? { phone: phoneOk.e164 } : {}) } }),
     onSuccess: async () => {
       await loadMe();
       Alert.alert(t('saved'));
     },
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
+
+  // Password: set one (signed up with a code only) or change it (needs the current one).
+  const hasPassword = !!me?.hasPassword;
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const pw = useMutation({
+    mutationFn: () => api('POST', '/me/password', { body: { ...(hasPassword ? { currentPassword: current } : {}), newPassword: next } }),
+    onSuccess: async () => {
+      setCurrent('');
+      setNext('');
+      await loadMe();
+      Alert.alert(t('passwordSaved'));
+    },
+    onError: (e) => Alert.alert('DUA', errorText(e, lang)),
+  });
+
   return (
-    <Screen footer={<Button title={t('save')} onPress={() => save.mutate()} loading={save.isPending} disabled={!firstName.trim()} />}>
+    <Screen footer={<Button title={t('save')} onPress={() => save.mutate()} loading={save.isPending} disabled={!firstName.trim() || (!!phone.trim() && !phoneOk)} />}>
       <Header title={t('myDetails')} back />
-      <Field label={t('firstName')} value={firstName} onChangeText={setFirst} />
-      <Field label={t('lastName')} value={lastName} onChangeText={setLast} />
-      <Field label={t('phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+      <Field label={t('firstName')} value={firstName} onChangeText={setFirst} autoComplete="given-name" />
+      <Field label={t('lastName')} value={lastName} onChangeText={setLast} autoComplete="family-name" />
+      <PhoneField label={t('phone')} value={phone} onChangeText={setPhone} />
       <Field label={t('email')} value={me?.email ?? ''} editable={false} style={{ color: colors.muted }} />
+
+      <Gap h={space.lg} />
+      <Text variant="label">{hasPassword ? t('changePassword') : t('setPassword')}</Text>
+      <Text variant="small" style={{ marginTop: 4, marginBottom: space.md }}>{hasPassword ? t('passwordHint') : t('setPasswordSub')}</Text>
+      {hasPassword ? <Field label={t('currentPassword')} value={current} onChangeText={setCurrent} secureTextEntry autoCapitalize="none" autoComplete="current-password" textContentType="password" /> : null}
+      <Field label={t('newPassword')} value={next} onChangeText={setNext} secureTextEntry autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" />
+      <Button variant="secondary" title={hasPassword ? t('changePassword') : t('setPassword')} onPress={() => pw.mutate()} loading={pw.isPending} disabled={!strongPassword(next) || (hasPassword && !current)} />
     </Screen>
   );
 }

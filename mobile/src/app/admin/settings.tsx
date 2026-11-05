@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { Button, Field, Header, Screen, Section, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api } from '@/lib/api';
+import { SPA_ENABLED } from '@/lib/features';
 import { errorText, useT, type TKey } from '@/lib/i18n';
 import { space } from '@/theme';
 
@@ -16,7 +17,11 @@ const MORE: [string, string][] = [
   ['expiryReminderDays', 'Expiry reminder (days before)'],
   ['scheduleHorizonDays', 'Generate classes (days ahead)'],
 ];
-const BOOLS: TKey[] = ['lateCancelKeepsCredit', 'waitlistEnabled', 'activateBeforePayment'];
+// A late cancellation always uses up the session, so there is no switch for it.
+const BOOLS: TKey[] = ['waitlistEnabled', 'activateBeforePayment'];
+// SPA settings are hidden while SPA is off; their saved values still go back unchanged.
+// Class reminders go at fixed times (1 h, 30 min, 15 min); "reminderHoursBefore" is only for SPA now.
+const shown = (k: string) => SPA_ENABLED || (!k.startsWith('spa') && k !== 'reminderHoursBefore');
 const DAYS = { sq: ['Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht', 'Die'], en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] };
 
 /** Every studio rule lives here, not in the app: the app only shows what the server says. */
@@ -66,7 +71,6 @@ export default function AdminSettings() {
         <>
           <Section title={t('studio')}>
             <Field label={t('name')} value={s.studioName} onChangeText={(v) => setS({ ...s, studioName: v })} />
-            <Field label="Adresa / Address" value={s.address} onChangeText={(v) => setS({ ...s, address: v })} />
             <Field label={t('phone')} value={s.phone} onChangeText={(v) => setS({ ...s, phone: v })} />
             <Field label="Instagram" value={s.instagram} onChangeText={(v) => setS({ ...s, instagram: v })} />
           </Section>
@@ -77,10 +81,10 @@ export default function AdminSettings() {
             ))}
           </Section>
           <Section title={t('policies')}>
-            {NUMBERS.map((k) => (
+            {NUMBERS.filter(shown).map((k) => (
               <Field key={k} label={t(k)} value={String(s[k] ?? '')} onChangeText={num(k)} keyboardType="number-pad" />
             ))}
-            {MORE.map(([k, label]) => (
+            {MORE.filter(([k]) => shown(k)).map(([k, label]) => (
               <Field key={k} label={label} value={String(s[k] ?? '')} onChangeText={num(k)} keyboardType="number-pad" />
             ))}
             {BOOLS.map((k) => (

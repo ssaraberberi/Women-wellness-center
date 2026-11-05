@@ -5,6 +5,7 @@ import { route, zDate, zIdParams, zTime } from '../lib/http.js';
 import { prisma, transaction } from '../lib/prisma.js';
 import { E } from '../lib/errors.js';
 import { audit } from '../lib/settings.js';
+import { normalizePhone, zPhone } from '../lib/phone.js';
 import { studioDayRange } from '../lib/time.js';
 import { personName, userSummary } from '../lib/dto.js';
 import { notify } from '../services/notify.js';
@@ -14,7 +15,6 @@ import { adjustWallet } from '../services/credits.js';
 import { createOrder, recordManualPayment } from '../services/orders.js';
 
 const ADMIN = ['ADMIN'] as const;
-const zPhone = z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/);
 
 export async function adminPeopleRoutes(app: FastifyInstance) {
   // ─────────────── staff ───────────────
@@ -313,6 +313,8 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
                   { profile: { firstName: { contains: q, mode: 'insensitive' } } },
                   { profile: { lastName: { contains: q, mode: 'insensitive' } } },
                   { profile: { phone: { contains: q.replace(/\s/g, '') } } },
+                  // "069 123 4567" finds "+355691234567": phones are stored in E.164.
+                  ...(normalizePhone(q) ? [{ profile: { phone: normalizePhone(q)! } }] : []),
                 ],
               }
             : {}),
@@ -444,12 +446,21 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       summary: 'Sell a package at the desk; record the payment in the same step if it was paid',
       tags: ['admin-clients'],
       params: zIdParams,
-      body: z.object({ productId: z.uuid(), promoCode: z.string().max(40).optional(), payment: z.object({ method: z.enum(['CASH', 'CARD_AT_STUDIO']), note: z.string().max(300).optional() }).optional() }),
+      body: z.object({
+        productId: z.uuid(),
+        promoCode: z.string().max(40).optional(),
+        // A discount given by hand: a percentage (price rounded down to 100 L) or an amount in lek.
+        discount: z.discriminatedUnion('type', [
+          z.object({ type: z.literal('PERCENT'), value: z.number().min(0).max(100) }),
+          z.object({ type: z.literal('AMOUNT'), value: z.number().int().min(0) }),
+        ]).optional(),
+        payment: z.object({ method: z.enum(['CASH', 'CARD_AT_STUDIO']), note: z.string().max(300).optional() }).optional(),
+      }),
     },
     async ({ params, body, user, idempotencyKey }) => {
-      const order = await createOrder({ userId: params.id, productId: body.productId, promoCode: body.promoCode, actorId: user.id, idempotencyKey });
+      const order = await createOrder({ userId: params.id, productId: body.productId, promoCode: body.promoCode, manualDiscount: body.discount, actorId: user.id, idempotencyKey });
       if (body.payment && order.status === 'PENDING') await recordManualPayment({ orderId: order.id, method: body.payment.method, note: body.payment.note, actorId: user.id });
-      await audit(prisma, user.id, 'package.assign', 'order', order.id, { clientId: params.id, productId: body.productId, paid: !!body.payment });
+      await audit(prisma, user.id, 'package.assign', 'order', order.id, { clientId: params.id, productId: body.productId, paid: !!body.payment, discount: body.discount ?? null });
       return prisma.order.findUniqueOrThrow({ where: { id: order.id }, include: { purchase: true, payments: true } });
     },
   );

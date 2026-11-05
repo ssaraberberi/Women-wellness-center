@@ -9,6 +9,8 @@ export interface Me {
   role: Role;
   status: string;
   isOwner: boolean;
+  /** false: signs in with an emailed code only, until she sets a password. */
+  hasPassword: boolean;
   createdAt: string;
   profile: { firstName: string; lastName: string; phone: string | null; language: 'sq' | 'en'; marketingConsent: boolean } | null;
   staff: { isInstructor: boolean; isTherapist: boolean; canViewClientNotes: boolean; bio: string | null } | null;

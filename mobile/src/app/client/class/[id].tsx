@@ -112,7 +112,6 @@ export default function ClassDetail() {
             <>
               <Text variant="display">{loc(lang, s.classType.name, s.classType.nameEn)}</Text>
               <Row style={{ flexWrap: 'wrap', marginVertical: space.md }}>
-                <Badge label={t(s.classType.difficulty)} />
                 <Badge label={t('min', { n: s.durationMin })} />
                 {s.instructor ? <Badge label={s.instructor.name} /> : null}
                 {s.myBookingId ? <Badge label={t('booked')} tone="wine" /> : null}
@@ -120,7 +119,7 @@ export default function ClassDetail() {
               </Row>
               <KeyValue icon="calendar" text={longDate(s.startsAt, lang)} />
               <KeyValue icon="clock" text={`${time(s.startsAt)} – ${time(s.endsAt)}`} />
-              <KeyValue icon="map-pin" text={s.room ?? 'DUA · Komuna e Parisit'} />
+              {s.room ? <KeyValue icon="map-pin" text={s.room} /> : null}
               <KeyValue icon="users" text={`${t('placesLeft', { n: s.available })} · ${t('capacity')} ${s.capacity}`} />
               <Gap h={space.md} />
               <Text variant="body">{loc(lang, s.classType.description, s.classType.descriptionEn)}</Text>

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { addDays, dayNum, dayShort, isoWeekday, monthTitle, todayISO } from '@/lib/format';
 import { useT } from '@/lib/i18n';
-import { colors, fonts, radius, space } from '@/theme';
+import { colors, fonts, radius, shadow, space } from '@/theme';
 
 /**
  * A week at a time, Monday first, swiped with the arrows (or by tapping past
@@ -58,7 +58,7 @@ export function DateStrip({ value, onChange, maxDate }: { value: string; onChang
             >
               <Text style={[styles.dow, selected && { color: colors.wineSoft }]}>{dayShort(d, lang)}</Text>
               <Text style={[styles.num, selected && { color: colors.white }]}>{dayNum(d)}</Text>
-              {d === today && !selected ? <View style={styles.dot} /> : null}
+              {d === today && !selected ? <Text style={styles.today}>✦</Text> : null}
             </Pressable>
           );
         })}
@@ -69,12 +69,12 @@ export function DateStrip({ value, onChange, maxDate }: { value: string; onChang
 
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.sm },
-  month: { fontFamily: fonts.medium, fontSize: 14, color: colors.inkSoft },
-  arrow: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  day: { width: 44, height: 64, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  month: { fontFamily: fonts.displayItalic, fontSize: 18, color: colors.ink },
+  arrow: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, marginLeft: 6 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.xl, padding: 6, ...shadow },
+  day: { width: 42, height: 66, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', gap: 3 },
   daySelected: { backgroundColor: colors.wine },
-  dow: { fontFamily: fonts.body, fontSize: 11.5, color: colors.muted },
-  num: { fontFamily: fonts.semibold, fontSize: 16, color: colors.ink },
-  dot: { position: 'absolute', bottom: 7, width: 4, height: 4, borderRadius: 2, backgroundColor: colors.wine },
+  dow: { fontFamily: fonts.medium, fontSize: 10, color: colors.muted, letterSpacing: 1, textTransform: 'uppercase' },
+  num: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
+  today: { position: 'absolute', bottom: 5, fontSize: 8, color: colors.wine },
 });

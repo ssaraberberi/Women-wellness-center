@@ -4,7 +4,7 @@ import { E } from '../lib/errors.js';
 import { getSettings, audit } from '../lib/settings.js';
 import { reference } from '../lib/crypto.js';
 import { formatStudio } from '../lib/time.js';
-import { notify } from './notify.js';
+import { notify, notifyAdmins } from './notify.js';
 import { env } from '../env.js';
 
 const lek = (n: number) => `${n.toLocaleString('en-US')} L`;
@@ -30,6 +30,19 @@ async function applyPromotion(tx: Tx, code: string, productId: string, userId: s
   return { promo, discount };
 }
 
+export type ManualDiscount = { type: 'PERCENT' | 'AMOUNT'; value: number };
+
+/**
+ * A discount the desk gives by hand. A percentage leaves a price rounded down
+ * to the nearest 100 L (15% off 14,523 L = 12,344.55 → 12,300 L); an amount is
+ * taken off as typed. Never below zero.
+ */
+export function manualDiscountAmount(subtotal: number, d: ManualDiscount) {
+  if (d.type === 'AMOUNT') return Math.min(Math.max(0, Math.round(d.value)), subtotal);
+  const after = Math.floor((subtotal * (100 - Math.min(Math.max(d.value, 0), 100))) / 100 / 100) * 100;
+  return subtotal - Math.max(0, after);
+}
+
 /**
  * Ordering a package writes the purchase with the terms of today (price,
  * credits, validity, wording). Changing the product later changes nothing here.
@@ -38,6 +51,8 @@ export async function createOrder(opts: {
   userId: string;
   productId: string;
   promoCode?: string;
+  /** Only the desk sets this (admin selling a package); clients cannot. */
+  manualDiscount?: ManualDiscount;
   actorId: string;
   idempotencyKey?: string | null;
 }) {
@@ -72,6 +87,8 @@ export async function createOrder(opts: {
         discount = p.discount;
         promotionId = p.promo.id;
         await tx.promotionCode.update({ where: { id: p.promo.id }, data: { redemptionCount: { increment: 1 } } });
+      } else if (opts.manualDiscount) {
+        discount = manualDiscountAmount(product.price, opts.manualDiscount);
       }
       const order = await tx.order.create({
         data: {
@@ -106,6 +123,16 @@ export async function createOrder(opts: {
           dedupeKey: `order:${order.id}`,
           params: { product: product.name, total: lek(order.total), reference: order.reference },
           data: { kind: 'order', orderId: order.id },
+        });
+      }
+      // A client reserving a package herself in the app: the desk should know (a sale at the desk it already knows).
+      if (opts.actorId === opts.userId) {
+        const profile = await tx.userProfile.findUnique({ where: { userId: opts.userId }, select: { firstName: true, lastName: true } });
+        await notifyAdmins(tx, {
+          type: 'ADMIN_NEW_ORDER',
+          dedupeKey: `order:${order.id}`,
+          params: { client: profile ? `${profile.firstName} ${profile.lastName}`.trim() : '—', product: product.name, total: lek(order.total), reference: order.reference },
+          data: { kind: 'client', clientId: opts.userId, orderId: order.id },
         });
       }
       return tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { purchase: true } });

@@ -40,7 +40,9 @@ export default function RootLayout() {
       if (r0 === 'CLIENT' && d?.sessionId) router.push({ pathname: '/client/class/[id]', params: { id: d.sessionId } });
       else if (r0 === 'CLIENT' && d?.kind === 'spa') router.push('/client/classes');
       else if (r0 === 'STAFF' && d?.sessionId) router.push({ pathname: '/staff/session/[id]', params: { id: d.sessionId } });
-      else if (r0) router.push(r0 === 'ADMIN' ? '/admin' : r0 === 'STAFF' ? '/staff/notifications' : '/client/notifications');
+      else if (r0 === 'ADMIN' && d?.sessionId) router.push({ pathname: '/admin/session/[id]', params: { id: d.sessionId } });
+      else if (r0 === 'ADMIN' && d?.clientId) router.push({ pathname: '/admin/client/[id]', params: { id: d.clientId } });
+      else if (r0) router.push(r0 === 'ADMIN' ? '/admin/notifications' : r0 === 'STAFF' ? '/staff/notifications' : '/client/notifications');
     });
     return () => sub.remove();
   }, [router]);

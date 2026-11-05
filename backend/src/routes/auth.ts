@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { route } from '../lib/http.js';
-import { completeRegistration, requestOtp, verifyOtp } from '../services/auth.js';
+import { completeRegistration, loginWithPassword, requestOtp, requestPasswordReset, resetPassword, signInWithApple, verifyOtp } from '../services/auth.js';
+import { zPassword } from '../lib/password.js';
+import { zPhone } from '../lib/phone.js';
 import { revokeRefreshToken, rotateRefreshToken } from '../services/tokens.js';
 import { getSettings } from '../lib/settings.js';
 import { prisma } from '../lib/prisma.js';
@@ -51,7 +53,8 @@ export async function authRoutes(app: FastifyInstance) {
         registrationToken: z.string().min(10),
         firstName: z.string().trim().min(1).max(60),
         lastName: z.string().trim().max(60).default(''),
-        phone: z.string().trim().regex(/^\+?[0-9 ()-]{7,20}$/),
+        phone: zPhone,
+        password: zPassword.optional(),
         language: z.enum(['sq', 'en']).default('sq'),
         marketingConsent: z.boolean().default(false),
       }),
@@ -60,6 +63,62 @@ export async function authRoutes(app: FastifyInstance) {
       const { registrationToken, ...profile } = body;
       return { status: 'signed_in', ...(await completeRegistration(registrationToken, profile, meta(req))) };
     },
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/auth/login',
+      access: 'public',
+      summary: 'Sign in with email and password',
+      tags: ['auth'],
+      rateLimit: tight,
+      body: z.object({ email: z.email().max(200), password: z.string().min(1).max(128) }),
+    },
+    ({ body, req }) => loginWithPassword(body.email, body.password, meta(req)),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/auth/apple',
+      access: 'public',
+      summary: 'Sign in with Apple (identity token from the device); new people get a registration token',
+      tags: ['auth'],
+      rateLimit: tight,
+      body: z.object({ identityToken: z.string().min(20).max(5000) }),
+    },
+    ({ body, req }) => signInWithApple(body.identityToken, meta(req)),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/auth/password/forgot',
+      access: 'public',
+      summary: 'Email a code to reset the password (same answer for every address)',
+      tags: ['auth'],
+      rateLimit: tight,
+      body: z.object({ email: z.email().max(200), lang: z.enum(['sq', 'en']).default('sq') }),
+    },
+    ({ body, req }) => requestPasswordReset(body.email, body.lang, req.ip),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/auth/password/reset',
+      access: 'public',
+      summary: 'Set a new password with the emailed code; signs in and ends every other sign-in',
+      tags: ['auth'],
+      rateLimit: tight,
+      body: z.object({ email: z.email().max(200), code: z.string().regex(/^\d{6}$/), password: zPassword }),
+    },
+    ({ body, req }) => resetPassword(body.email, body.code, body.password, meta(req)),
   );
 
   route(

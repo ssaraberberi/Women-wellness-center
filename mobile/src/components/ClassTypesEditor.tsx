@@ -20,9 +20,9 @@ interface ClassType {
   active: boolean;
 }
 const LEVELS: Difficulty[] = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL_LEVELS'];
-const blank = { name: '', nameEn: '', description: '', format: 'REFORMER', difficulty: 'ALL_LEVELS' as Difficulty, durationMin: '50', defaultCapacity: '8', creditsRequired: '1' };
+const blank = { name: '', nameEn: '', description: '', format: 'REFORMER', difficulty: 'ALL_LEVELS' as Difficulty, durationMin: '50', defaultCapacity: '5', creditsRequired: '1' };
 
-/** The kinds of class the timetable is built from: Reformer Flow, Mat… */
+/** The kinds of class the timetable is built from: Reformer Flow… (Reformer only — the studio has no mat classes). */
 export function ClassTypesEditor() {
   const qc = useQueryClient();
   const { t, lang } = useT();
@@ -38,7 +38,7 @@ export function ClassTypesEditor() {
         format: f.format.trim().toUpperCase() || 'REFORMER',
         difficulty: f.difficulty,
         durationMin: Number(f.durationMin || 50),
-        defaultCapacity: Number(f.defaultCapacity || 8),
+        defaultCapacity: Number(f.defaultCapacity || 5),
         creditsRequired: Number(f.creditsRequired || 0),
       };
       return editing === 'new' ? api('POST', '/admin/class-types', { body }) : api('PATCH', `/admin/class-types/${editing}`, { body });
@@ -62,7 +62,7 @@ export function ClassTypesEditor() {
       <Field label={`${t('name')} (EN)`} value={f.nameEn} onChangeText={(v) => setF({ ...f, nameEn: v })} />
       <Field label={t('description')} value={f.description} onChangeText={(v) => setF({ ...f, description: v })} multiline />
       <Row style={{ marginBottom: space.sm }}>
-        {['REFORMER', 'MAT'].map((x) => <Chip key={x} label={x} active={f.format === x} onPress={() => setF({ ...f, format: x })} />)}
+        {['REFORMER'].map((x) => <Chip key={x} label={x} active={f.format === x} onPress={() => setF({ ...f, format: x })} />)}
       </Row>
       <Row style={{ flexWrap: 'wrap', marginBottom: space.sm }}>
         {LEVELS.map((d) => <Chip key={d} label={t(d)} active={f.difficulty === d} onPress={() => setF({ ...f, difficulty: d })} />)}
