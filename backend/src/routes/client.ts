@@ -7,7 +7,7 @@ import { E } from '../lib/errors.js';
 import { getSettings } from '../lib/settings.js';
 import { studioDayRange, addMinutes } from '../lib/time.js';
 import { personName, sessionInclude, sessionsForUser } from '../lib/dto.js';
-import { acceptWaitlistOffer, bookClass, cancelBooking, freeCancelDeadline, joinWaitlist, leaveWaitlist } from '../services/booking.js';
+import { acceptWaitlistOffer, bookClass, cancelBooking, joinWaitlist, lastFreeCancel, leaveWaitlist } from '../services/booking.js';
 import { usableCredits } from '../services/credits.js';
 import { bookSpa, cancelSpa, spaAvailability } from '../services/spa.js';
 import { cancelOrder, createOrder } from '../services/orders.js';
@@ -73,7 +73,7 @@ export async function clientRoutes(app: FastifyInstance) {
       instructorBio: row.instructor?.bio ?? null,
       myCredits: credits,
       eligible: credits >= row.classType.creditsRequired,
-      freeCancelUntil: freeCancelDeadline(row.startsAt, settings),
+      freeCancelUntil: lastFreeCancel(row.startsAt, settings),
       lateCancelKeepsCredit: settings.lateCancelKeepsCredit,
       waitlistEnabled: settings.waitlistEnabled,
       bookable: row.status === 'SCHEDULED' && row.startsAt > addMinutes(new Date(), settings.bookingCutoffMin) && row.startsAt <= addMinutes(new Date(), settings.bookingWindowDays * 1440),
@@ -148,7 +148,7 @@ export async function clientRoutes(app: FastifyInstance) {
         bookedAt: r.bookedAt,
         cancelledAt: r.cancelledAt,
         attendance: r.attendance?.status ?? null,
-        freeCancelUntil: freeCancelDeadline(r.session.startsAt, settings),
+        freeCancelUntil: lastFreeCancel(r.session.startsAt, settings),
         canCancel: r.status === 'BOOKED' && r.session.startsAt > now,
         session: sessions[i],
       }));

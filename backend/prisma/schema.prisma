@@ -871,7 +871,7 @@ model StudioSettings {
   currency                String   @default("ALL")
   // { "1": {"open":"07:00","close":"21:00"}, …, "7": null }
   openingHours            Json     @map("opening_hours")
-  freeCancelHours         Int      @default(12) @map("free_cancel_hours")
+  freeCancelHours         Int      @default(3) @map("free_cancel_hours")
   lateCancelKeepsCredit   Boolean  @default(true) @map("late_cancel_keeps_credit")
   bookingWindowDays       Int      @default(21) @map("booking_window_days")
   bookingCutoffMin        Int      @default(0) @map("booking_cutoff_min")

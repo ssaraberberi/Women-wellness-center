@@ -83,6 +83,17 @@ describe('class booking', () => {
     const c3 = await app.inject({ method: 'POST', url: `/bookings/${b3.id}/cancel`, headers: c.auth });
     expect(c3.json()).toMatchObject({ status: 'LATE_CANCELLED', refunded: false });
 
+    // 3 hours: a minute before the deadline is free and shows as the last free minute; a minute after is late.
+    await prisma.studioSettings.update({ where: { id: 1 }, data: { freeCancelHours: 3 } });
+    const justIn = await makeSession({ inHours: 3 + 1 / 60 });
+    const justLate = await makeSession({ inHours: 3 - 1 / 60 });
+    const bIn = (await app.inject({ method: 'POST', url: `/sessions/${justIn.id}/book`, headers: c.auth })).json();
+    const bLate = (await app.inject({ method: 'POST', url: `/sessions/${justLate.id}/book`, headers: c.auth })).json();
+    const shown = (await app.inject({ method: 'GET', url: `/sessions/${justIn.id}`, headers: c.auth })).json();
+    expect(+new Date(shown.freeCancelUntil)).toBe(+justIn.startsAt - 3 * 3_600_000 - 1000);
+    expect((await app.inject({ method: 'POST', url: `/bookings/${bIn.id}/cancel`, headers: c.auth })).json()).toMatchObject({ status: 'CANCELLED', refunded: true });
+    expect((await app.inject({ method: 'POST', url: `/bookings/${bLate.id}/cancel`, headers: c.auth })).json()).toMatchObject({ status: 'LATE_CANCELLED', refunded: false });
+
     // With a 1-hour window, cancelling 2 hours before is still in time.
     await prisma.studioSettings.update({ where: { id: 1 }, data: { freeCancelHours: 1 } });
     const soon = await makeSession({ inHours: 2 });

@@ -168,6 +168,13 @@ async function tellStaff(
 export const freeCancelDeadline = (startsAt: Date, settings: StudioSettings) => addMinutes(startsAt, -settings.freeCancelHours * 60);
 
 /**
+ * The last moment a cancellation is still free, for showing: one second before
+ * the deadline, so a 17:00 class with 3 hours reads "until 13:59" — from 14:00 the
+ * session is used up.
+ */
+export const lastFreeCancel = (startsAt: Date, settings: StudioSettings) => new Date(+freeCancelDeadline(startsAt, settings) - 1000);
+
+/**
  * Cancel a booking. In time (at least `freeCancelHours` before, never less
  * than 1 hour): the session comes back. Late: the session counts as used, just
  * like not turning up. Only an admin can choose to give it back.
@@ -185,7 +192,8 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { res
     const now = new Date();
     if (actor.role === 'CLIENT' && session.startsAt <= now) throw E.conflict('CANCEL_CLOSED', 'The class has already started');
 
-    const inTime = now <= freeCancelDeadline(session.startsAt, settings);
+    // Strictly before the deadline: with 3 hours, 13:59 is free and 14:00 is late.
+    const inTime = now < freeCancelDeadline(session.startsAt, settings);
     const refund = inTime || (actor.role === 'ADMIN' && opts.restoreCredit === true);
     await tx.classBooking.update({
       where: { id: booking.id },
