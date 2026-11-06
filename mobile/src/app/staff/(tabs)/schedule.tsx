@@ -29,7 +29,7 @@ export default function StaffSchedule() {
       <Header title={t('tabSchedule')} />
       <Segmented options={[{ value: 'day', label: t('day') }, { value: 'week', label: t('week') }]} value={mode} onChange={setMode} />
       <Gap h={space.md} />
-      <DateStrip value={date} onChange={setDate} />
+      <DateStrip value={date} onChange={setDate} marks allowPast />
       <Gap h={space.lg} />
       {q.isPending ? (
         <SkeletonList count={4} />

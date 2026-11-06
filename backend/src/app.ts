@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import { clientRoutes } from './routes/client.js';
 import { staffRoutes } from './routes/staff.js';
+import { calendarRoutes } from './routes/calendar.js';
 import { adminOpsRoutes } from './routes/admin-ops.js';
 import { adminPeopleRoutes } from './routes/admin-people.js';
 import { adminCommerceRoutes } from './routes/admin-commerce.js';
@@ -70,6 +71,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(meRoutes);
   await app.register(clientRoutes);
   await app.register(staffRoutes);
+  await app.register(calendarRoutes);
   await app.register(adminOpsRoutes);
   await app.register(adminPeopleRoutes);
   await app.register(adminCommerceRoutes);

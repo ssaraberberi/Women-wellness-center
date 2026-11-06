@@ -7,6 +7,7 @@ export default function StaffProfile() {
     <ProfileScreen
       base="/staff"
       links={[
+        { icon: 'check-circle', label: t('classHistory'), href: '/staff/history' },
         { icon: 'clock', label: t('myHours'), href: '/staff/hours' },
         { icon: 'inbox', label: t('requests'), href: '/staff/requests' },
       ]}

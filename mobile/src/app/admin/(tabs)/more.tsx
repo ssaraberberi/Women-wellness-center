@@ -12,6 +12,7 @@ const LINKS: { icon: IconName; key: TKey; href: Href }[] = [
   { icon: 'package', key: 'products', href: '/admin/products' },
   { icon: 'trending-up', key: 'analytics', href: '/admin/analytics' },
   { icon: 'grid', key: 'timetable', href: '/admin/timetable' },
+  { icon: 'check-circle', key: 'classHistory', href: '/admin/history' },
   ...(SPA_ENABLED ? [{ icon: 'feather' as const, key: 'spaManagement' as const, href: '/admin/spa-manage' as const }] : []),
   { icon: 'inbox', key: 'requests', href: '/admin/requests' },
   { icon: 'x-octagon', key: 'closures', href: '/admin/closures' },

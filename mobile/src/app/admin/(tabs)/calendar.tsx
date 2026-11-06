@@ -63,7 +63,7 @@ export default function AdminCalendar() {
           <Gap h={space.md} />
         </>
       ) : null}
-      <DateStrip value={date} onChange={setDate} />
+      <DateStrip value={date} onChange={setDate} marks allowPast />
       <Gap h={space.lg} />
       {tab === 'pilates' ? (
         sq.isPending ? (

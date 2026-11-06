@@ -29,6 +29,7 @@ export default function ClassDetail() {
     void qc.invalidateQueries({ queryKey: ['home'] });
     void qc.invalidateQueries({ queryKey: ['bookings'] });
     void qc.invalidateQueries({ queryKey: ['memberships'] });
+    void qc.invalidateQueries({ queryKey: ['calendar-days'] });
   };
   const fail = (e: unknown) => {
     Alert.alert('DUA', errorText(e, lang));

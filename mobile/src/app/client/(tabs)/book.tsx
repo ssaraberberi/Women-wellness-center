@@ -61,7 +61,7 @@ function PilatesTimetable() {
 
   return (
     <View style={{ flex: 1 }}>
-      <DateStrip value={date} onChange={setDate} maxDate={addDays(todayISO(), 30)} />
+      <DateStrip value={date} onChange={setDate} maxDate={addDays(todayISO(), 30)} marks />
       <Gap h={space.md} />
       <Row style={{ justifyContent: 'flex-end' }}>
         <IconButton name="sliders" label={t('filters')} badge={filtersOn ? 1 : undefined} onPress={() => setShowFilters((v) => !v)} />
