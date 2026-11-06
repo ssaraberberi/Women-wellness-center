@@ -41,8 +41,7 @@ export default function AdminOrders() {
   const pay = (o: Order) =>
     Alert.alert(`${t('recordPayment')} · ${lek(o.total)}`, `${o.client.name} · ${o.product ?? ''} · ${o.reference}`, [
       { text: t('cancel'), style: 'cancel' },
-      { text: t('CASH'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${o.id}/payments`, { body: { method: 'CASH' } })) },
-      { text: t('CARD_AT_STUDIO'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${o.id}/payments`, { body: { method: 'CARD_AT_STUDIO' } })) },
+      { text: t('paidInCash'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${o.id}/payments`, { body: { method: 'CASH' } })) },
     ]);
 
   return (

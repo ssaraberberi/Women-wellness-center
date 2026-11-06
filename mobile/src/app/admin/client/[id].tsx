@@ -48,7 +48,7 @@ export default function AdminClient() {
   const [discValue, setDiscValue] = useState('');
   const selected = products.data?.find((p) => p.id === productId);
   const discount = selected && discType && discValue ? manualDiscountAmount(selected.price, discType, Number(discValue)) : 0;
-  const [paidMethod, setPaidMethod] = useState<'CASH' | 'CARD_AT_STUDIO' | null>('CASH');
+  const [paidMethod, setPaidMethod] = useState<'CASH' | null>('CASH'); // the studio takes cash only
   const [walletId, setWalletId] = useState<string | null>(null);
   const [delta, setDelta] = useState('1');
   const [reason, setReason] = useState('');
@@ -69,8 +69,7 @@ export default function AdminClient() {
   const payOrder = (orderId: string, total: number) =>
     Alert.alert(t('recordPayment'), lek(total), [
       { text: t('cancel'), style: 'cancel' },
-      { text: t('CASH'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${orderId}/payments`, { body: { method: 'CASH' } })) },
-      { text: t('CARD_AT_STUDIO'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${orderId}/payments`, { body: { method: 'CARD_AT_STUDIO' } })) },
+      { text: t('paidInCash'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${orderId}/payments`, { body: { method: 'CASH' } })) },
     ]);
 
   if (q.isPending) return <Screen><Header title="" back /><SkeletonList count={6} /></Screen>;
@@ -125,9 +124,7 @@ export default function AdminClient() {
           ) : null}
           <Text variant="label">{t('paidNow')}</Text>
           <Row style={{ marginVertical: space.sm }}>
-            <Chip label={t('CASH')} active={paidMethod === 'CASH'} onPress={() => setPaidMethod('CASH')} />
-            <Chip label={t('CARD_AT_STUDIO')} active={paidMethod === 'CARD_AT_STUDIO'} onPress={() => setPaidMethod('CARD_AT_STUDIO')} />
-            <Chip label={t('PENDING')} active={!paidMethod} onPress={() => setPaidMethod(null)} />
+            <Chip label={t('CASH')} active={paidMethod === 'CASH'} onPress={() => setPaidMethod('CASH')} />            <Chip label={t('PENDING')} active={!paidMethod} onPress={() => setPaidMethod(null)} />
           </Row>
           <Button
             title={t('confirm')}
