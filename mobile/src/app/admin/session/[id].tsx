@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { ClientPicker } from '@/components/ClientPicker';
-import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, Row, Screen, Section, SkeletonList, Text } from '@/components/ui';
+import { z } from 'zod';
+import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, PhoneField, Row, Screen, Section, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
+import { checkPhone } from '@/lib/phone';
 import { longDate, time } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { SessionDto } from '@/lib/types';
@@ -23,6 +25,12 @@ export default function AdminSessionScreen() {
   const qc = useQueryClient();
   const { t, lang } = useT();
   const [adding, setAdding] = useState(false);
+  // Someone not in the app yet: a name is enough, phone and email optional.
+  const [addMode, setAddMode] = useState<'existing' | 'guest'>('existing');
+  const [guest, setGuest] = useState({ firstName: '', lastName: '', phone: '', email: '' });
+  const phone = guest.phone.trim() ? checkPhone(guest.phone) : null;
+  const emailOk = !guest.email.trim() || z.email().safeParse(guest.email.trim()).success;
+  const guestOk = !!guest.firstName.trim() && !!guest.lastName.trim() && (!guest.phone.trim() || !!phone) && emailOk;
   const [editing, setEditing] = useState(false);
   const [capacity, setCapacity] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -60,6 +68,22 @@ export default function AdminSessionScreen() {
         ? [{ text: t('restoreCredit'), onPress: () => run.mutate(() => api('POST', `/admin/bookings/${b.id}/restore-credit`, { body: { reason: 'Desk' } })) }]
         : []),
     ]);
+
+  const addGuest = () =>
+    run.mutate(async () => {
+      const r = await api<{ usedSession: boolean }>('POST', `/admin/sessions/${id}/guest-bookings`, {
+        body: {
+          firstName: guest.firstName.trim(),
+          lastName: guest.lastName.trim(),
+          ...(phone ? { phone: phone.e164 } : {}),
+          ...(guest.email.trim() ? { email: guest.email.trim() } : {}),
+        },
+        idempotencyKey: newIdempotencyKey(),
+      });
+      setGuest({ firstName: '', lastName: '', phone: '', email: '' });
+      setAdding(false);
+      Alert.alert(t('guestAdded'), r.usedSession ? t('guestUsedSession') : t('guestPaysAtDesk'));
+    });
 
   const saveEdit = () =>
     run.mutate(async () => {
@@ -108,14 +132,41 @@ export default function AdminSessionScreen() {
 
           {adding ? (
             <Card style={{ marginTop: space.md }}>
-              <ClientPicker
-                onPick={(c) =>
-                  run.mutate(async () => {
-                    await api('POST', `/admin/sessions/${id}/bookings`, { body: { userId: c.id }, idempotencyKey: newIdempotencyKey() });
-                    setAdding(false);
-                  })
-                }
+              <Segmented
+                options={[
+                  { value: 'existing', label: t('existingClient') },
+                  { value: 'guest', label: t('newParticipant') },
+                ]}
+                value={addMode}
+                onChange={setAddMode}
               />
+              <Gap h={space.md} />
+              {addMode === 'existing' ? (
+                <ClientPicker
+                  onPick={(c) =>
+                    run.mutate(async () => {
+                      await api('POST', `/admin/sessions/${id}/bookings`, { body: { userId: c.id }, idempotencyKey: newIdempotencyKey() });
+                      setAdding(false);
+                    })
+                  }
+                />
+              ) : (
+                <>
+                  <Text variant="small" style={{ marginBottom: space.md }}>{t('guestHint')}</Text>
+                  <Field label={t('firstName')} value={guest.firstName} onChangeText={(v) => setGuest((g) => ({ ...g, firstName: v }))} autoCapitalize="words" />
+                  <Field label={t('lastName')} value={guest.lastName} onChangeText={(v) => setGuest((g) => ({ ...g, lastName: v }))} autoCapitalize="words" />
+                  <PhoneField label={t('optionalField', { label: t('phone') })} value={guest.phone} onChangeText={(v) => setGuest((g) => ({ ...g, phone: v }))} />
+                  <Field
+                    label={t('optionalField', { label: t('email') })}
+                    value={guest.email}
+                    onChangeText={(v) => setGuest((g) => ({ ...g, email: v }))}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    error={guest.email.trim() && !emailOk ? t('invalidEmail') : undefined}
+                  />
+                  <Button title={t('addParticipant')} onPress={addGuest} loading={run.isPending} disabled={!guestOk} />
+                </>
+              )}
             </Card>
           ) : null}
 

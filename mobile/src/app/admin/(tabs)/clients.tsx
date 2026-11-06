@@ -10,7 +10,7 @@ import { colors } from '@/theme';
 interface ClientRow {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   status: string;
   remainingCredits: number;

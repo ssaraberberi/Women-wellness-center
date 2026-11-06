@@ -9,7 +9,7 @@ import { Field, Text } from './ui';
 export interface ClientLite {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   remainingCredits: number;
 }

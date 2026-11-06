@@ -49,7 +49,7 @@ describe('passwordless auth', () => {
     const app = await getApp();
     const u = await makeUser('CLIENT');
     await app.inject({ method: 'POST', url: '/auth/otp/request', payload: { email: u.email } });
-    const code = codeFrom(u.email)!;
+    const code = codeFrom(u.email!)!;
     const wrong = code === '000000' ? '111111' : '000000';
     for (let i = 0; i < 5; i++) {
       const r = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: wrong } });
@@ -60,7 +60,7 @@ describe('passwordless auth', () => {
 
     await prisma.authOtpChallenge.deleteMany({});
     await app.inject({ method: 'POST', url: '/auth/otp/request', payload: { email: u.email } });
-    const code2 = codeFrom(u.email)!;
+    const code2 = codeFrom(u.email!)!;
     const ok = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: code2 } });
     expect(ok.json().status).toBe('signed_in');
     const again = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: code2 } });
@@ -72,7 +72,7 @@ describe('passwordless auth', () => {
     const u = await makeUser('CLIENT');
     await app.inject({ method: 'POST', url: '/auth/otp/request', payload: { email: u.email } });
     await prisma.authOtpChallenge.updateMany({ data: { expiresAt: new Date(Date.now() - 1000) } });
-    const r = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: codeFrom(u.email)! } });
+    const r = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: codeFrom(u.email!)! } });
     expect(r.json().error.code).toBe('OTP_EXPIRED');
   });
 
@@ -88,7 +88,7 @@ describe('passwordless auth', () => {
     const app = await getApp();
     const u = await makeUser('CLIENT');
     await app.inject({ method: 'POST', url: '/auth/otp/request', payload: { email: u.email } });
-    const s = (await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: codeFrom(u.email)! } })).json();
+    const s = (await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code: codeFrom(u.email!)! } })).json();
     const r1 = await app.inject({ method: 'POST', url: '/auth/refresh', payload: { refreshToken: s.refreshToken } });
     expect(r1.statusCode).toBe(200);
     const reuse = await app.inject({ method: 'POST', url: '/auth/refresh', payload: { refreshToken: s.refreshToken } });

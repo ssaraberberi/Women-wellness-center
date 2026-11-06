@@ -1,8 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from './prisma.js';
 
-export const personName = (p?: { firstName: string; lastName: string } | null, fallback = '') =>
-  p ? `${p.firstName} ${p.lastName}`.trim() : fallback;
+export const personName = (p?: { firstName: string; lastName: string } | null, fallback?: string | null) =>
+  p ? `${p.firstName} ${p.lastName}`.trim() : (fallback ?? '');
 
 export const sessionInclude = {
   classType: true,
@@ -68,7 +68,7 @@ export async function sessionsForUser(sessions: SessionRow[], userId?: string) {
   );
 }
 
-export const userSummary = (u: { id: string; email: string; role: string; profile: { firstName: string; lastName: string; phone: string | null } | null }) => ({
+export const userSummary = (u: { id: string; email: string | null; role: string; profile: { firstName: string; lastName: string; phone: string | null } | null }) => ({
   id: u.id,
   email: u.email,
   role: u.role,

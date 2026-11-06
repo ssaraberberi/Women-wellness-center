@@ -96,7 +96,7 @@ export async function spaAvailability(
           therapists: [],
         };
         const p = t.user.profile;
-        slot.therapists.push({ id: t.userId, name: p ? `${p.firstName} ${p.lastName}`.trim() : t.user.email });
+        slot.therapists.push({ id: t.userId, name: p ? `${p.firstName} ${p.lastName}`.trim() : (t.user.email ?? '') });
         slots.set(span.start, slot);
       }
     }

@@ -54,8 +54,10 @@ async function assertBookable(tx: Tx, session: ClassSession, settings: StudioSet
 export async function bookClass(
   userId: string,
   sessionId: string,
-  opts: { actor: Actor; idempotencyKey?: string | null; source?: 'CLIENT' | 'ADMIN' | 'WAITLIST' },
+  // useCredit: false only for the desk adding someone who pays there (she has no package yet).
+  opts: { actor: Actor; idempotencyKey?: string | null; source?: 'CLIENT' | 'ADMIN' | 'WAITLIST'; useCredit?: boolean },
 ) {
+  const useCredit = opts.useCredit !== false || opts.actor.role !== 'ADMIN';
   if (opts.idempotencyKey) {
     const existing = await prisma.classBooking.findUnique({ where: { userId_idempotencyKey: { userId, idempotencyKey: opts.idempotencyKey } } });
     if (existing) return existing;
@@ -89,17 +91,20 @@ export async function bookClass(
           status: 'BOOKED',
           source: offer ? 'WAITLIST' : (opts.source ?? 'CLIENT'),
           idempotencyKey: opts.idempotencyKey ?? undefined,
-          creditsUsed: session.classType.creditsRequired,
+          creditsUsed: useCredit ? session.classType.creditsRequired : 0,
         },
       });
-      const { walletId } = await spendCredits(tx, {
-        userId,
-        credits: session.classType.creditsRequired,
-        at: session.startsAt,
-        bookingId: booking.id,
-        actorId: opts.actor.id,
-      });
-      await tx.classBooking.update({ where: { id: booking.id }, data: { walletId } });
+      let walletId: string | null = null;
+      if (useCredit) {
+        ({ walletId } = await spendCredits(tx, {
+          userId,
+          credits: session.classType.creditsRequired,
+          at: session.startsAt,
+          bookingId: booking.id,
+          actorId: opts.actor.id,
+        }));
+        await tx.classBooking.update({ where: { id: booking.id }, data: { walletId } });
+      }
 
       // Booking directly while waiting (a place opened for everyone) settles the entry too.
       await tx.classWaitlist.updateMany({
@@ -116,7 +121,7 @@ export async function bookClass(
       });
       await tellStaff(tx, session, { type: 'STAFF_NEW_BOOKING', dedupeKey: `booked:${booking.id}`, clientId: userId, actorId: opts.actor.id });
       if (opts.actor.role === 'ADMIN') {
-        await audit(tx, opts.actor.id, 'booking.create_for_client', 'class_booking', booking.id, { userId, sessionId });
+        await audit(tx, opts.actor.id, 'booking.create_for_client', 'class_booking', booking.id, { userId, sessionId, useCredit });
       }
       return { ...booking, walletId };
     });

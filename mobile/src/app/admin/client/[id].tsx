@@ -14,7 +14,7 @@ import { colors, space } from '@/theme';
 interface ClientDetail {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   status: string;
   createdAt: string;
@@ -75,7 +75,7 @@ export default function AdminClient() {
 
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <Header title={c.name} back subtitle={`${c.email}${c.phone ? ` · ${c.phone}` : ''}`} />
+      <Header title={c.name} back subtitle={[c.email, c.phone].filter(Boolean).join(' · ')} />
       <Row style={{ flexWrap: 'wrap' }}>
         <Badge label={t('creditsLeft', { n: c.remainingCredits })} tone="wine" />
         {c.status !== 'ACTIVE' ? <Badge label={tEnum(c.status)} tone="danger" /> : null}
@@ -165,7 +165,7 @@ export default function AdminClient() {
               </Card>
             ))}
           </Section>
-          <Section title={t('orders')}>
+          <Section title={t('payments')}>
             {c.orders.map((o) => (
               <Card key={o.id} style={{ marginBottom: space.sm }}>
                 <Row style={{ justifyContent: 'space-between' }}>

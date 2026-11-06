@@ -87,6 +87,11 @@ export async function deliverPending(limit = 50) {
   for (const n of rows) {
     try {
       if (n.channel === 'EMAIL') {
+        // A client the desk added without an email has nowhere to send it; not worth retrying.
+        if (!n.user.email) {
+          await prisma.notification.update({ where: { id: n.id }, data: { status: 'FAILED', lastError: 'No email address' } });
+          continue;
+        }
         const d = (n.data ?? {}) as { details?: [string, string][]; lang?: 'sq' | 'en' };
         const { html, text } = brandedEmail({
           heading: n.title,

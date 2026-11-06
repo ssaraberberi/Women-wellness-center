@@ -11,6 +11,9 @@ import { bookClass, cancelBooking, cancelSession, lockSession, offerFreedPlaces,
 import { addClosure, generateSessions, regenerateTemplate } from '../services/schedule.js';
 import { analytics } from '../services/analytics.js';
 import { notify } from '../services/notify.js';
+import { usableCredits } from '../services/credits.js';
+import { normalizeEmail } from '../services/auth.js';
+import { zPhone } from '../lib/phone.js';
 
 const ADMIN = ['ADMIN'] as const;
 const zDifficulty = z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL_LEVELS']);
@@ -327,6 +330,44 @@ export async function adminOpsRoutes(app: FastifyInstance) {
     app,
     { method: 'POST', url: '/admin/sessions/:id/bookings', access: [...ADMIN], summary: "Book a client into a class (uses the client's credits)", tags: ['admin'], params: zIdParams, body: z.object({ userId: z.uuid() }) },
     ({ params, body, user, idempotencyKey }) => bookClass(body.userId, params.id, { actor: { id: user.id, role: 'ADMIN' }, source: 'ADMIN', idempotencyKey }),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/admin/sessions/:id/guest-bookings',
+      access: [...ADMIN],
+      summary: 'Add someone who has no account yet: a name is enough, phone and email optional. She pays at the desk; a matching client is reused.',
+      tags: ['admin'],
+      params: zIdParams,
+      body: z.object({
+        firstName: z.string().trim().min(1).max(60),
+        lastName: z.string().trim().min(1).max(60),
+        phone: zPhone.optional(),
+        email: z.email().optional(),
+      }),
+    },
+    async ({ params, body, user, idempotencyKey }) => {
+      const email = body.email ? normalizeEmail(body.email) : undefined;
+      // The same person twice should not become two clients: match on email, then phone.
+      const existing =
+        (email ? await prisma.user.findUnique({ where: { email } }) : null) ??
+        (body.phone ? await prisma.user.findFirst({ where: { role: 'CLIENT', status: { not: 'DELETED' }, profile: { phone: body.phone } } }) : null);
+      if (existing && existing.role !== 'CLIENT') throw E.conflict('EMAIL_TAKEN', 'This email belongs to a staff account');
+      const client =
+        existing ??
+        (await prisma.user.create({
+          data: { email, role: 'CLIENT', profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone } }, notificationPrefs: { create: {} } },
+        }));
+      if (!existing) await audit(prisma, user.id, 'client.create', 'user', client.id, { email: email ?? null, phone: body.phone ?? null, via: 'class' });
+      // A client with sessions left uses one, like any booking; anyone else pays at the desk.
+      const s = await prisma.classSession.findUnique({ where: { id: params.id }, include: { classType: true } });
+      if (!s) throw E.notFound('Class');
+      const useCredit = !!existing && (await usableCredits(prisma, client.id, s.startsAt)) >= s.classType.creditsRequired;
+      const booking = await bookClass(client.id, params.id, { actor: { id: user.id, role: 'ADMIN' }, source: 'ADMIN', idempotencyKey, useCredit });
+      return { booking, clientId: client.id, created: !existing, usedSession: useCredit };
+    },
   );
 
   route(

@@ -61,7 +61,7 @@ describe('email + password', () => {
     const unknown = await app.inject({ method: 'POST', url: '/auth/password/forgot', payload: { email: 'ghost@test.dev' } });
     const known = await app.inject({ method: 'POST', url: '/auth/password/forgot', payload: { email: u.email } });
     expect(known.json()).toEqual(unknown.json());
-    const code = codeFrom(u.email)!;
+    const code = codeFrom(u.email!)!;
 
     // A reset code does not work as a sign-in code.
     const asLogin = await app.inject({ method: 'POST', url: '/auth/otp/verify', payload: { email: u.email, code } });
