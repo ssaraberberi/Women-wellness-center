@@ -1,7 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { LayoutAnimation, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { FadeIn, FadeInLeft, FadeInRight, LinearTransition, useAnimatedStyle, useSharedValue, withSpring, ZoomIn } from 'react-native-reanimated';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-store';
 import { addDays, dayNum, dayShort, isoWeekday, monthTitle, todayISO } from '@/lib/format';
@@ -19,6 +20,10 @@ const shiftMonth = (first: string, n: number) => {
 
 type DayMark = { date: string; classes: number; booked: number; mine: number };
 
+// One soft spring for everything that moves, so the calendar feels like one piece.
+const SPRING = { damping: 18, stiffness: 190, mass: 0.8 };
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * A real month calendar, Monday first: the whole month at a glance, changed
  * with the arrows or a swipe, folding to a single week when the list below
@@ -34,6 +39,10 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
   const minDate = allowPast ? undefined : today;
   const [open, setOpen] = useState(true);
   const [month, setMonth] = useState(firstOfMonth(value));
+  // Which way the last page turn went: the new page glides in from that side.
+  const [dir, setDir] = useState<-1 | 0 | 1>(0);
+  const dragX = useSharedValue(0);
+  const dragStyle = useAnimatedStyle(() => ({ transform: [{ translateX: dragX.get() }] }));
   const [seen, setSeen] = useState(value);
   // Picking a day elsewhere (e.g. "today") brings its month into view.
   if (seen !== value) {
@@ -66,29 +75,41 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
   const canForward = open ? !maxDate || shiftMonth(month, 1) <= maxDate : !maxDate || addDays(monday, 7) <= maxDate;
   const back = () => {
     if (!canBack) return;
+    setDir(-1);
     if (open) setMonth(shiftMonth(month, -1));
     else onChange(minDate && addDays(monday, -7) < minDate ? minDate : addDays(monday, -7));
   };
   const forward = () => {
     if (!canForward) return;
+    setDir(1);
     if (open) setMonth(shiftMonth(month, 1));
     else onChange(addDays(monday, 7));
   };
+  // The page follows the finger (with some resistance) and springs back if the swipe was short.
   const pan = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 20 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
-        onPanResponderRelease: (_, g) => (g.dx < -40 ? forward() : g.dx > 40 ? back() : undefined),
+        onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+        onPanResponderMove: (_, g) => dragX.set(g.dx * ((g.dx > 0 ? canBack : canForward) ? 0.45 : 0.15)),
+        onPanResponderRelease: (_, g) => {
+          const go = g.dx < -50 && canForward ? forward : g.dx > 50 && canBack ? back : null;
+          if (go) {
+            dragX.set(0);
+            go();
+          } else dragX.set(withSpring(0, SPRING));
+        },
+        onPanResponderTerminate: () => dragX.set(withSpring(0, SPRING)),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [open, monday, month, canBack, canForward],
   );
 
   const toggle = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setDir(0);
     if (!open) setMonth(firstOfMonth(value));
     setOpen((o) => !o);
   };
+  const entering = dir === 0 ? FadeIn.duration(260) : (dir > 0 ? FadeInRight : FadeInLeft).springify().damping(SPRING.damping).stiffness(SPRING.stiffness);
 
   const cell = (d: string, inMonth: boolean) => {
     const selected = d === value;
@@ -99,14 +120,13 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
     const soft = !strong && (m?.classes ?? 0) > 0;
     const count = role === 'CLIENT' ? 0 : (m?.booked ?? 0);
     return (
-      <Pressable
+      <DayCell
         key={d}
-        accessibilityRole="button"
-        accessibilityState={{ selected, disabled }}
-        accessibilityLabel={`${dayShort(d, lang)} ${dayNum(d)}${strong ? ` · ${role === 'CLIENT' ? t('booked') : t('spotsTaken', { n: count })}` : ''}`}
+        label={`${dayShort(d, lang)} ${dayNum(d)}${strong ? ` · ${role === 'CLIENT' ? t('booked') : t('spotsTaken', { n: count })}` : ''}`}
+        selected={selected}
         disabled={disabled}
         onPress={() => onChange(d)}
-        style={({ pressed }) => [styles.cell, strong && !selected && styles.cellBusy, selected && styles.cellSelected, pressed && { opacity: 0.7 }, (disabled || !inMonth) && !selected && { opacity: disabled ? 0.28 : 0.4 }]}
+        style={[strong && !selected && styles.cellBusy, (disabled || !inMonth) && !selected && { opacity: disabled ? 0.28 : 0.4 }]}
       >
         <Text style={[styles.num, selected && { color: colors.white }, strong && !selected && { color: colors.wine }]}>{dayNum(d)}</Text>
         <View style={styles.markRow}>
@@ -120,12 +140,12 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
             <Text style={[styles.today, selected && { color: colors.white }]}>✦</Text>
           ) : null}
         </View>
-      </Pressable>
+      </DayCell>
     );
   };
 
   return (
-    <View style={styles.card}>
+    <Animated.View layout={LinearTransition.springify().damping(SPRING.damping).stiffness(SPRING.stiffness)} style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.month}>{monthTitle(open ? month : value, lang)}</Text>
         <View style={styles.actions}>
@@ -146,16 +166,18 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
           <Text key={d} style={styles.head}>{dayShort(d, lang)}</Text>
         ))}
       </View>
-      <View {...pan.panHandlers}>
-        {open ? (
-          grid.map((w) => (
-            <View key={w[0]} style={styles.weekRow}>
-              {w.map((d) => cell(d, d.slice(0, 7) === month.slice(0, 7)))}
-            </View>
-          ))
-        ) : (
-          <View style={styles.weekRow}>{week.map((d) => cell(d, true))}</View>
-        )}
+      <View {...pan.panHandlers} style={styles.page}>
+        <Animated.View key={open ? `m${month}` : `w${monday}`} entering={entering} style={dragStyle}>
+          {open ? (
+            grid.map((w) => (
+              <View key={w[0]} style={styles.weekRow}>
+                {w.map((d) => cell(d, d.slice(0, 7) === month.slice(0, 7)))}
+              </View>
+            ))
+          ) : (
+            <View style={styles.weekRow}>{week.map((d) => cell(d, true))}</View>
+          )}
+        </Animated.View>
       </View>
 
       {marks ? (
@@ -170,11 +192,34 @@ export function DateStrip({ value, onChange, maxDate, marks = false, allowPast =
           </View>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
+  );
+}
+
+/** A day that gives a little under the finger; the wine bubble of the chosen day springs in. */
+function DayCell({ label, selected, disabled, onPress, style, children }: { label: string; selected: boolean; disabled: boolean; onPress: () => void; style: StyleProp<ViewStyle>; children: React.ReactNode }) {
+  const scale = useSharedValue(1);
+  const press = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      accessibilityLabel={label}
+      disabled={disabled}
+      onPress={onPress}
+      onPressIn={() => scale.set(withSpring(0.88, SPRING))}
+      onPressOut={() => scale.set(withSpring(1, SPRING))}
+      style={[styles.cell, style, press]}
+    >
+      {selected ? <Animated.View entering={ZoomIn.springify().damping(14).stiffness(220)} style={styles.bubble} /> : null}
+      {children}
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
+  page: { overflow: 'hidden' },
+  bubble: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, borderRadius: radius.md, backgroundColor: colors.wine, ...shadow },
   card: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.md, ...shadow },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.sm, paddingHorizontal: 4 },
   month: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, letterSpacing: -0.3, textTransform: 'capitalize' },
@@ -185,7 +230,6 @@ const styles = StyleSheet.create({
   head: { flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 10, color: colors.muted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   cell: { flex: 1, aspectRatio: 1, maxHeight: 56, margin: 2, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   cellBusy: { backgroundColor: colors.blush },
-  cellSelected: { backgroundColor: colors.wine },
   num: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
   markRow: { height: 12, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 5, height: 5, borderRadius: 3 },
