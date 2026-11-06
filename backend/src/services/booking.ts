@@ -169,7 +169,7 @@ export const freeCancelDeadline = (startsAt: Date, settings: StudioSettings) => 
 
 /**
  * The last moment a cancellation is still free, for showing: one second before
- * the deadline, so a 17:00 class with 3 hours reads "until 13:59" — from 14:00 the
+ * the deadline, so a 17:00 class with 1 hour reads "until 15:59" — from 16:00 the
  * session is used up.
  */
 export const lastFreeCancel = (startsAt: Date, settings: StudioSettings) => new Date(+freeCancelDeadline(startsAt, settings) - 1000);
@@ -192,7 +192,7 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { res
     const now = new Date();
     if (actor.role === 'CLIENT' && session.startsAt <= now) throw E.conflict('CANCEL_CLOSED', 'The class has already started');
 
-    // Strictly before the deadline: with 3 hours, 13:59 is free and 14:00 is late.
+    // Strictly before the deadline: with 1 hour, 15:59 is free and 16:00 is late.
     const inTime = now < freeCancelDeadline(session.startsAt, settings);
     const refund = inTime || (actor.role === 'ADMIN' && opts.restoreCredit === true);
     await tx.classBooking.update({
