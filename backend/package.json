@@ -17,6 +17,7 @@
     "migrate:dev": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
     "schedule:week": "tsx scripts/weekly-schedule.ts",
+    "reformer-only": "tsx scripts/reformer-only.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
