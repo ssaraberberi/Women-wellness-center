@@ -28,7 +28,8 @@ interface ClientDetail {
   transactions: { id: string; type: string; delta: number; balanceAfter: number; reason: string | null; createdAt: string }[];
 }
 
-type Panel = null | 'sell' | 'adjust' | 'note';
+// Sessions come only from selling a package; there is no manual add / deduct.
+type Panel = null | 'sell' | 'note';
 
 /** Everything about one client, and what the desk can do for her. */
 export default function AdminClient() {
@@ -49,9 +50,6 @@ export default function AdminClient() {
   const selected = products.data?.find((p) => p.id === productId);
   const discount = selected && discType && discValue ? manualDiscountAmount(selected.price, discType, Number(discValue)) : 0;
   const [paidMethod, setPaidMethod] = useState<'CASH' | null>('CASH'); // the studio takes cash only
-  const [walletId, setWalletId] = useState<string | null>(null);
-  const [delta, setDelta] = useState('1');
-  const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [noteService, setNoteService] = useState(false);
 
@@ -74,7 +72,6 @@ export default function AdminClient() {
 
   if (q.isPending) return <Screen><Header title="" back /><SkeletonList count={6} /></Screen>;
   if (!c) return <Screen><Header title="" back /><ErrorState error={q.error} onRetry={() => void q.refetch()} /></Screen>;
-  const wallets = c.purchases.filter((p) => p.wallet && p.status === 'ACTIVE');
 
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
@@ -86,9 +83,7 @@ export default function AdminClient() {
       </Row>
       <Gap h={space.md} />
       <Row style={{ flexWrap: 'wrap' }}>
-        <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />
-        <Button small variant="secondary" icon="plus-circle" title={t('addCredits')} onPress={() => setPanel(panel === 'adjust' ? null : 'adjust')} disabled={!wallets.length} />
-        <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
+        <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />        <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
       </Row>
 
       {panel === 'sell' ? (
@@ -138,25 +133,6 @@ export default function AdminClient() {
                 }),
               )
             }
-          />
-        </Card>
-      ) : null}
-
-      {panel === 'adjust' ? (
-        <Card style={{ marginTop: space.md }}>
-          <Row style={{ flexWrap: 'wrap' }}>
-            {wallets.map((p) => (
-              <Chip key={p.wallet!.id} label={`${p.name} (${p.wallet!.remaining})`} active={walletId === p.wallet!.id} onPress={() => setWalletId(p.wallet!.id)} />
-            ))}
-          </Row>
-          <Gap h={space.sm} />
-          <Field label={lang === 'sq' ? '± seanca' : '± sessions'} value={delta} onChangeText={setDelta} keyboardType="numbers-and-punctuation" />
-          <Field label={t('reason')} value={reason} onChangeText={setReason} />
-          <Button
-            title={t('confirm')}
-            disabled={!walletId || !reason.trim() || !/^-?\d+$/.test(delta) || Number(delta) === 0}
-            loading={run.isPending}
-            onPress={() => run.mutate(() => api('POST', `/admin/wallets/${walletId}/adjust`, { body: { delta: Number(delta), reason: reason.trim() }, idempotencyKey: newIdempotencyKey() }))}
           />
         </Card>
       ) : null}
