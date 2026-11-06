@@ -18,11 +18,11 @@
   "rewrites": [
     {
       "source": "/app",
-      "destination": "https://dua-app.vercel.app/app"
+      "destination": "https://dua-app-snowy.vercel.app/app"
     },
     {
       "source": "/app/:path*",
-      "destination": "https://dua-app.vercel.app/app/:path*"
+      "destination": "https://dua-app-snowy.vercel.app/app/:path*"
     },
     {
       "source": "/healthz",
