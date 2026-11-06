@@ -72,12 +72,31 @@ export default function ClassDetail() {
       { text: t('yesCancel'), style: 'destructive', onPress: () => cancel.mutate(s.myBookingId!) },
     ]);
 
+  // Booking uses a session, so she confirms the exact class, day and hours first.
+  const confirmBook = (go: () => void) =>
+    s &&
+    Alert.alert(
+      t('bookConfirmTitle'),
+      t('bookConfirmBody', {
+        class: loc(lang, s.classType.name, s.classType.nameEn),
+        date: longDate(s.startsAt, lang),
+        from: time(s.startsAt),
+        to: time(s.endsAt),
+        with: s.instructor ? t('bookConfirmWith', { name: s.instructor.name }) : '',
+        until: whenShort(s.freeCancelUntil, lang),
+      }),
+      [
+        { text: t('notNow'), style: 'cancel' },
+        { text: t('yesBook'), onPress: go },
+      ],
+    );
+
   let action: React.ReactNode = null;
   if (s) {
     if (s.myBookingId) {
       action = <Button variant="danger" title={t('cancelBooking')} onPress={confirmCancel} loading={cancel.isPending} disabled={new Date(s.startsAt) <= new Date()} />;
     } else if (s.myWaitlist?.status === 'OFFERED') {
-      action = <Button title={t('acceptOffer')} onPress={() => accept.mutate(s.myWaitlist!.id)} loading={accept.isPending} />;
+      action = <Button title={t('acceptOffer')} onPress={() => confirmBook(() => accept.mutate(s.myWaitlist!.id))} loading={accept.isPending} />;
     } else if (s.myWaitlist) {
       action = <Button variant="secondary" title={t('leaveWaitlist')} onPress={() => leave.mutate(s.myWaitlist!.id)} loading={leave.isPending} />;
     } else if (!s.bookable) {
@@ -85,7 +104,7 @@ export default function ClassDetail() {
     } else if (!s.eligible) {
       action = <Button title={t('seePackages')} onPress={() => router.push('/client/packages')} />;
     } else if (s.available > 0) {
-      action = <Button title={t('bookClass')} onPress={() => book.mutate()} loading={book.isPending} />;
+      action = <Button title={t('bookClass')} onPress={() => confirmBook(() => book.mutate())} loading={book.isPending} />;
     } else if (s.waitlistEnabled) {
       action = <Button variant="secondary" title={t('joinWaitlist')} onPress={() => join.mutate()} loading={join.isPending} />;
     } else {
