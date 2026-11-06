@@ -7,10 +7,12 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { AlertHost } from '@/lib/alert';
 import { useAuth } from '@/lib/auth-store';
 import { queryClient } from '@/lib/query';
 import { restoreSession } from '@/lib/session';
-import { colors } from '@/theme';
+import { colors, shadow } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -32,8 +34,9 @@ export default function RootLayout() {
     if (ready && fontsLoaded) void SplashScreen.hideAsync();
   }, [ready, fontsLoaded]);
 
-  // Tapping a notification opens what it is about.
+  // Tapping a notification opens what it is about. (No push in the browser.)
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((r) => {
       const d = r.notification.request.content.data as Record<string, string>;
       const r0 = useAuth.getState().me?.role;
@@ -49,10 +52,8 @@ export default function RootLayout() {
 
   if (!ready || !fontsLoaded) return null;
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+  const stack = (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="index" />
         <Stack.Protected guard={!role}>
           <Stack.Screen name="(auth)" />
@@ -67,6 +68,25 @@ export default function RootLayout() {
           <Stack.Screen name="admin" />
         </Stack.Protected>
       </Stack>
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <StatusBar style="dark" />
+      {Platform.OS === 'web' ? (
+        // In a browser the app keeps its phone proportions: a centred column on the linen background.
+        <View style={styles.webPage}>
+          <View style={styles.webColumn}>{stack}</View>
+        </View>
+      ) : (
+        stack
+      )}
+      <AlertHost />
     </QueryClientProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  webPage: { flex: 1, backgroundColor: colors.sand, alignItems: 'center' },
+  webColumn: { flex: 1, width: '100%', maxWidth: 560, backgroundColor: colors.bg, ...shadow },
+});

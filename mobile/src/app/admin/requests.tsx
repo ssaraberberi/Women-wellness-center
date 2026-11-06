@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Badge, Button, Card, EmptyState, Header, Notice, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';

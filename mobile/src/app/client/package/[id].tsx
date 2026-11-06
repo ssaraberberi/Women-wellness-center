@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, ErrorState, Gap, Header, KeyValue, Notice, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { lek } from '@/lib/format';

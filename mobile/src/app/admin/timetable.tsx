@@ -1,7 +1,8 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { ClassTypesEditor } from '@/components/ClassTypesEditor';
 import { Button, Card, Chip, Field, Gap, Header, Notice, Row, Screen, Section, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';

@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -176,7 +177,7 @@ export function Button({
       accessibilityState={{ disabled: !!off, busy: !!loading }}
       disabled={off}
       onPress={() => {
-        void Haptics.selectionAsync().catch(() => {});
+        if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => {});
         onPress();
       }}
       style={({ pressed }) => [styles.button, small && styles.buttonSmall, v.box, pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }, off && { opacity: 0.55 }, style]}

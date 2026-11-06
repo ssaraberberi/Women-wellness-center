@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Badge, Button, Card, ErrorState, Gap, Header, KeyValue, Row, Screen, Section, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { longDate, time } from '@/lib/format';

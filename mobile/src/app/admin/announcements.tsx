@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Badge, Button, Card, Chip, Field, Header, Row, Screen, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { dateShort } from '@/lib/format';

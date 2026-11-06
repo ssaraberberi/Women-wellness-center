@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { useAuth } from '@/lib/auth-store';
 import { api } from '@/lib/api';
 import { whenShort } from '@/lib/format';

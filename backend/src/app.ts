@@ -32,7 +32,13 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   app.setValidatorCompiler(() => () => true);
 
   await app.register(helmet, { contentSecurityPolicy: false });
-  await app.register(cors, { origin: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map((s) => s.trim()) : false });
+  // The web app at dua-pilates.com/app calls the API from the browser; phones need no CORS.
+  await app.register(cors, {
+    origin: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map((s) => s.trim()) : false,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
+    maxAge: 600,
+  });
   await app.register(rateLimit, { global: true, max: 300, timeWindow: '1 minute' });
   await app.register(swagger, {
     openapi: {

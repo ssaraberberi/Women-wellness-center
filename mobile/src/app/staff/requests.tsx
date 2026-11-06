@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { DateStrip } from '@/components/DateStrip';
 import { Badge, Button, Card, EmptyState, Field, Gap, Header, Row, Screen, Section, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';

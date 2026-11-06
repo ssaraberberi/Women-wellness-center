@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { api } from '@/lib/api';
 import { errorText, useT } from '@/lib/i18n';
 import type { Difficulty } from '@/lib/types';

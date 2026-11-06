@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { DateStrip } from '@/components/DateStrip';
 import { Button, Chip, Field, Gap, Header, Row, Screen, Text } from '@/components/ui';
 import { api } from '@/lib/api';

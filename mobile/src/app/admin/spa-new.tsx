@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { ClientPicker, type ClientLite } from '@/components/ClientPicker';
 import { DateStrip } from '@/components/DateStrip';
 import { Badge, Button, Chip, EmptyState, Field, Gap, Header, Row, Screen, Section, SkeletonList, Text } from '@/components/ui';

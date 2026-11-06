@@ -4,7 +4,8 @@ import * as Calendar from 'expo-calendar';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Button, Card, Gap, Row, Screen, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { longDate, time } from '@/lib/format';
@@ -93,7 +94,10 @@ export default function Booked() {
       <Gap h={space.xxl} />
       <Button title={t('seeMyClasses')} onPress={() => router.replace('/client/classes')} />
       <Gap h={space.md} />
-      <Button variant="secondary" icon={added ? 'check' : 'calendar'} title={added ? t('addedToCalendar') : t('addToCalendar')} onPress={addToCalendar} disabled={added || !item} />
+      {/* The phone calendar is not reachable from a browser. */}
+      {Platform.OS !== 'web' ? (
+        <Button variant="secondary" icon={added ? 'check' : 'calendar'} title={added ? t('addedToCalendar') : t('addToCalendar')} onPress={addToCalendar} disabled={added || !item} />
+      ) : null}
       <Gap h={space.sm} />
       <Button variant="ghost" title={t('done')} onPress={() => router.replace('/client')} />
     </Screen>

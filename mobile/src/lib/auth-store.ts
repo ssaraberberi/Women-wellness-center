@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { storage } from './storage';
 import { create } from 'zustand';
 
 export type Role = 'CLIENT' | 'STAFF' | 'ADMIN';
@@ -37,7 +37,7 @@ interface AuthState {
 }
 
 /**
- * The refresh token lives in the Keychain / Keystore (SecureStore); the
+ * The refresh token lives in the Keychain / Keystore (localStorage on the web); the
  * short-lived access token only in memory.
  */
 export const useAuth = create<AuthState>((set) => ({
@@ -47,27 +47,27 @@ export const useAuth = create<AuthState>((set) => ({
   me: null,
   lang: 'sq',
   setTokens: async (accessToken, refreshToken) => {
-    await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
+    await storage.set(REFRESH_KEY, refreshToken);
     set({ accessToken, refreshToken });
   },
   setMe: (me) => {
     set({ me });
-    if (me) void SecureStore.setItemAsync(ME_KEY, JSON.stringify(me));
+    if (me) void storage.set(ME_KEY, JSON.stringify(me));
     if (me?.profile?.language) {
       set({ lang: me.profile.language });
-      void SecureStore.setItemAsync(LANG_KEY, me.profile.language);
+      void storage.set(LANG_KEY, me.profile.language);
     }
   },
   setLang: (lang) => {
     set({ lang });
-    void SecureStore.setItemAsync(LANG_KEY, lang);
+    void storage.set(LANG_KEY, lang);
   },
   signOutLocal: async () => {
-    await Promise.all([SecureStore.deleteItemAsync(REFRESH_KEY), SecureStore.deleteItemAsync(ME_KEY)]);
+    await Promise.all([storage.remove(REFRESH_KEY), storage.remove(ME_KEY)]);
     set({ accessToken: null, refreshToken: null, me: null });
   },
   hydrate: async () => {
-    const [refreshToken, lang, meJson] = await Promise.all([SecureStore.getItemAsync(REFRESH_KEY), SecureStore.getItemAsync(LANG_KEY), SecureStore.getItemAsync(ME_KEY)]);
+    const [refreshToken, lang, meJson] = await Promise.all([storage.get(REFRESH_KEY), storage.get(LANG_KEY), storage.get(ME_KEY)]);
     let me: Me | null = null;
     try {
       me = refreshToken && meJson ? (JSON.parse(meJson) as Me) : null;
