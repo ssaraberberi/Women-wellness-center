@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { ClassRow } from '@/components/ClassRow';
 import { DateStrip } from '@/components/DateStrip';
@@ -48,6 +48,12 @@ function PilatesTimetable() {
   const [date, setDate] = useState(todayISO());
   const [showFilters, setShowFilters] = useState(false);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
+  // Ticks each minute so finished classes drop off and the running one is marked while the screen is open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const weekStart = date;
   const q = useQuery({
@@ -55,7 +61,11 @@ function PilatesTimetable() {
     queryFn: () => api<SessionDto[]>('GET', `/sessions?from=${weekStart}&to=${weekStart}`),
   });
   // Clients don't filter by instructor or level, and class-type (format) chips are off for now.
-  const list = useMemo(() => (q.data ?? []).filter((s) => !onlyAvailable || s.available > 0 || s.myBookingId), [q.data, onlyAvailable]);
+  // Classes that have already ended today are not shown; the one running stays, marked "in progress".
+  const list = useMemo(
+    () => (q.data ?? []).filter((s) => Date.parse(s.endsAt) > now && (!onlyAvailable || s.available > 0 || s.myBookingId)),
+    [q.data, onlyAvailable, now],
+  );
   const groups = (['morning', 'afternoon'] as const).map((p) => ({ p, items: list.filter((s) => partOfDay(s.startsAt) === p) })).filter((g) => g.items.length);
   const filtersOn = onlyAvailable;
 
@@ -82,14 +92,14 @@ function PilatesTimetable() {
         ) : groups.length === 0 ? (
           <EmptyState icon="calendar" title={t('noClasses')} body={t('noClassesSub')} />
         ) : (
-          <SessionGroups groups={groups} onOpen={(id) => router.push({ pathname: '/client/class/[id]', params: { id } })} refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />
+          <SessionGroups groups={groups} now={now} onOpen={(id) => router.push({ pathname: '/client/class/[id]', params: { id } })} refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />
         )}
       </View>
     </View>
   );
 }
 
-function SessionGroups({ groups, onOpen, refreshing, onRefresh }: { groups: { p: 'morning' | 'afternoon'; items: SessionDto[] }[]; onOpen: (id: string) => void; refreshing: boolean; onRefresh: () => void }) {
+function SessionGroups({ groups, now, onOpen, refreshing, onRefresh }: { groups: { p: 'morning' | 'afternoon'; items: SessionDto[] }[]; now: number; onOpen: (id: string) => void; refreshing: boolean; onRefresh: () => void }) {
   const { t } = useT();
   const rows = groups.flatMap((g) => [{ kind: 'h' as const, key: g.p, p: g.p }, ...g.items.map((s) => ({ kind: 's' as const, key: s.id, s }))]);
   return (
@@ -102,7 +112,7 @@ function SessionGroups({ groups, onOpen, refreshing, onRefresh }: { groups: { p:
         item.kind === 'h' ? (
           <Text variant="heading" style={{ marginTop: space.sm, marginBottom: space.sm }}>{t(item.p)}</Text>
         ) : (
-          <ClassRow s={item.s} onPress={() => onOpen(item.s.id)} />
+          <ClassRow s={item.s} now={now} onPress={() => onOpen(item.s.id)} />
         )
       }
     />

@@ -81,6 +81,7 @@ const dict = {
   spot: ['1 vend', '1 place'],
   full: ['Plot', 'Full'],
   booked: ['E rezervuar', 'Booked'],
+  inProgress: ['Po zhvillohet', 'In progress'],
   waitlisted: ['Në pritje', 'Waitlisted'],
   noClasses: ['Asnjë klasë këtë ditë', 'No classes this day'],
   noClassesSub: ['Provo një ditë tjetër ose hiq filtrat.', 'Try another day or clear the filters.'],

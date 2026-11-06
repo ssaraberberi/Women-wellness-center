@@ -6,10 +6,13 @@ import { loc, type SessionDto } from '@/lib/types';
 import { colors, fonts, radius, shadow, space } from '@/theme';
 import { Badge } from './ui';
 
-/** One line of the timetable: time, class, instructor, places — as on the studio's board. */
-export function ClassRow({ s, onPress, showAvailability = true }: { s: SessionDto; onPress: () => void; showAvailability?: boolean }) {
+/** One line of the timetable: time, class, instructor, places — as on the studio's board. Pass `now` to mark a class that is running. */
+export function ClassRow({ s, onPress, showAvailability = true, now }: { s: SessionDto; onPress: () => void; showAvailability?: boolean; now?: number }) {
   const { t, lang } = useT();
-  const status = s.myBookingId ? (
+  const running = now !== undefined && s.status !== 'CANCELLED' && Date.parse(s.startsAt) <= now && now < Date.parse(s.endsAt);
+  const status = running ? (
+    <Badge label={t('inProgress')} tone="success" />
+  ) : s.myBookingId ? (
     <Badge label={t('booked')} tone="wine" />
   ) : s.myWaitlist ? (
     <Badge label={s.myWaitlist.status === 'OFFERED' ? t('OFFERED') : t('waitlisted')} tone="warning" />
