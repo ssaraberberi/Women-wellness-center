@@ -502,11 +502,8 @@
     'Open in Google Maps': 'Hape në Google Maps',
     'Map: DUA Pilates & SPA, Tirana': 'Harta: DUA Pilates & SPA, Tiranë',
     'What does the spa offer?': 'Çfarë ofron spa-ja?',
-    'Treatments in the same place as the studio, so recovery sits inside your week instead of beside it. The full list comes with the opening.':
-      'Trajtime në të njëjtin vend me studion, që rikuperimi të rrijë brenda javës sate dhe jo anash saj. Lista e plotë vjen me hapjen.',
-    'When do you open?': 'Kur hapeni?',
-    'Soon. Message us and you will be among the first to know — the timetable and the memberships go to you before they go up here.':
-      'Së shpejti. Na shkruaj dhe do të jesh nga të parat që e di — orari dhe abonimet të vijnë ty para se të ngjiten këtu.',
+    'Treatments in the same place as the studio, so recovery sits inside your week instead of beside it.':
+      'Trajtime në të njëjtin vend me studion, që rikuperimi të rrijë brenda javës sate dhe jo anash saj.',
 
     /* ---- alt text ---- */
     'The reformer room in afternoon light, the DUA wall above a long bed of cacti':
@@ -554,16 +551,16 @@
      under an English description otherwise, and so does anyone sharing the link. */
   var META = {
     en: {
-      description: 'Reformer Pilates in Tirana. DUA is a boutique Pilates studio and spa opening in Tirana, Albania — small classes, one instructor who knows you, and the spa in the same place.',
+      description: 'Reformer Pilates in Tirana. DUA is a boutique Pilates studio and spa in Tirana, Albania — small classes, one instructor who knows you, and the spa in the same place.',
       ogTitle: 'DUA — Reformer Pilates and Spa in Tirana',
-      ogDescription: 'A boutique reformer Pilates studio and spa in Tirana, Albania. Opening soon.',
+      ogDescription: 'A boutique reformer Pilates studio and spa in Tirana, Albania.',
       locale: 'en_GB',
       altLocale: 'sq_AL'
     },
     sq: {
-      description: 'Reformer Pilates në Tiranë. DUA është një studio boutique Pilates dhe spa që hapet në Tiranë, Shqipëri — klasa të vogla, një instruktore që të njeh, dhe spa në të njëjtin vend.',
+      description: 'Reformer Pilates në Tiranë. DUA është një studio boutique Pilates dhe spa në Tiranë, Shqipëri — klasa të vogla, një instruktore që të njeh, dhe spa në të njëjtin vend.',
       ogTitle: 'DUA — Reformer Pilates dhe Spa në Tiranë',
-      ogDescription: 'Një studio boutique e reformer Pilates dhe spa në Tiranë, Shqipëri. Hapemi së shpejti.',
+      ogDescription: 'Një studio boutique e reformer Pilates dhe spa në Tiranë, Shqipëri.',
       locale: 'sq_AL',
       altLocale: 'en_GB'
     }
