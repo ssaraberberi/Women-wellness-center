@@ -18,6 +18,12 @@ interface A {
   cancellations: { total: number; cancelled: number; late: number; byStudio: number; rate: number };
   clients: { new: number; active: number; returning: number; firstTimeInPeriod: number; retentionRate: number | null };
   creditUsage: Record<string, number>;
+  money: {
+    singleClassBookedValue: number;
+    singleClassBookings: number;
+    collected: { single: number; membership: number; other: number };
+    outstanding: { single: { amount: number; count: number }; membership: { amount: number; count: number } };
+  };
 }
 
 const DAYS = { sq: ['Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht', 'Die'], en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] };
@@ -70,6 +76,18 @@ export default function AdminAnalytics() {
             <Stat label={t('newClients')} value={a.clients.new} />
             <Stat label={t('activeMembers')} value={a.clients.active} sub={`${a.clients.firstTimeInPeriod} new in period`} />
           </View>
+          {/* Kept apart: money that came in, and money still owed (owed is never counted as revenue). */}
+          <Section title={t('money')}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
+              <Stat label={t('collected')} value={lek(a.money.collected.single + a.money.collected.membership + a.money.collected.other)} sub={`${t('packages')} ${lek(a.money.collected.membership)} · ${t('singleClasses')} ${lek(a.money.collected.single)}`} />
+              <Stat
+                label={t('outstanding')}
+                value={lek(a.money.outstanding.single.amount + a.money.outstanding.membership.amount)}
+                sub={`${t('packages')} ${lek(a.money.outstanding.membership.amount)} (${a.money.outstanding.membership.count}) · ${t('singleClasses')} ${lek(a.money.outstanding.single.amount)} (${a.money.outstanding.single.count})`}
+              />
+              <Stat label={t('bookedValue')} value={lek(a.money.singleClassBookedValue)} sub={t('classesN', { n: a.money.singleClassBookings })} />
+            </View>
+          </Section>
           <Section title={t('revenue')}>
             <Bars rows={a.revenue.byDay.map((d) => ({ label: d.day.slice(5), value: d.amount, display: lek(d.amount) }))} />
           </Section>

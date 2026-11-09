@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { useAuth } from './auth-store';
 
 /**
@@ -63,6 +64,8 @@ export async function api<T = any>(method: string, path: string, opts: Opts = {}
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
     if (opts.auth !== false && accessToken) headers.Authorization = `Bearer ${accessToken}`;
     if (opts.idempotencyKey) headers['Idempotency-Key'] = opts.idempotencyKey;
+    // The web build says so, so the desk sees which bookings came from the website.
+    if (Platform.OS === 'web') headers['X-DUA-Platform'] = 'web';
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? 20_000);
     try {

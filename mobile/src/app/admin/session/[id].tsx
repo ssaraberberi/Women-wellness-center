@@ -8,14 +8,26 @@ import { z } from 'zod';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, PhoneField, Row, Screen, Section, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { checkPhone } from '@/lib/phone';
-import { longDate, time } from '@/lib/format';
+import { lek, longDate, time } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { SessionDto } from '@/lib/types';
 import { space } from '@/theme';
 
 interface AdminSession extends SessionDto {
   cancelReason: string | null;
-  bookings: { id: string; userId: string; name: string; phone: string | null; status: string; source: string; creditsUsed: number; creditRefunded: boolean; attendance: string | null }[];
+  bookings: {
+    id: string;
+    userId: string;
+    name: string;
+    phone: string | null;
+    status: string;
+    source: string;
+    creditsUsed: number;
+    creditRefunded: boolean;
+    attendance: string | null;
+    // A single class: what she owes for it. Null when a package covered it.
+    payment: { orderId: string; reference: string; status: string; total: number; outstanding: number; method: string | null } | null;
+  }[];
   waitlist: { id: string; position: number; name: string; status: string; offerExpiresAt: string | null }[];
 }
 
@@ -23,7 +35,7 @@ interface AdminSession extends SessionDto {
 export default function AdminSessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const qc = useQueryClient();
-  const { t, lang } = useT();
+  const { t, lang, tEnum } = useT();
   const [adding, setAdding] = useState(false);
   // Someone not in the app yet: a name is enough, phone and email optional.
   const [addMode, setAddMode] = useState<'existing' | 'guest'>('existing');
@@ -54,8 +66,12 @@ export default function AdminSessionScreen() {
   });
 
   const bookingMenu = (b: AdminSession['bookings'][number]) =>
-    Alert.alert(b.name, b.phone ?? '', [
+    Alert.alert(b.name, [b.phone, b.payment ? `${b.payment.reference} · ${b.payment.status === 'PENDING' ? t('unpaidAmount', { amount: lek(b.payment.total) }) : tEnum(b.payment.status)}` : null].filter(Boolean).join('\n'), [
       { text: t('close'), style: 'cancel' },
+      // Owed for a single class (also after a late cancellation or a no-show): taken at the desk, in cash.
+      ...(b.payment?.status === 'PENDING'
+        ? [{ text: t('markPaidCash', { amount: lek(b.payment.total) }), onPress: () => run.mutate(() => api('POST', `/admin/orders/${b.payment!.orderId}/payments`, { body: { method: 'CASH' } })) }]
+        : []),
       ...(b.status === 'BOOKED'
         ? [
             { text: t('markPresent'), onPress: () => run.mutate(() => api('POST', `/admin/bookings/${b.id}/attendance`, { body: { status: 'PRESENT' } })) },
@@ -190,9 +206,15 @@ export default function AdminSessionScreen() {
                 <Row style={{ justifyContent: 'space-between' }}>
                   <View style={{ flex: 1 }}>
                     <Text variant="heading">{b.name}</Text>
-                    <Text variant="small">{b.phone ?? ''}{b.source !== 'CLIENT' ? ` · ${b.source.toLowerCase()}` : ''}</Text>
+                    <Text variant="small">{b.phone ?? ''}{b.source !== 'CLIENT' ? ` · ${tEnum(`SRC_${b.source}`)}` : ''}</Text>
                   </View>
                   <Row>
+                    {b.payment ? (
+                      <Badge
+                        label={b.payment.status === 'PENDING' ? t('unpaidAmount', { amount: lek(b.payment.total) }) : b.payment.status === 'PAID' ? t('paidShort') : tEnum(b.payment.status)}
+                        tone={b.payment.status === 'PENDING' ? 'warning' : b.payment.status === 'PAID' ? 'success' : 'neutral'}
+                      />
+                    ) : null}
                     {b.attendance ? <Badge label={t(b.attendance as 'PRESENT')} tone={b.attendance === 'PRESENT' ? 'success' : 'danger'} /> : null}
                     <Badge label={t(b.status as 'BOOKED')} tone={b.status === 'BOOKED' ? 'wine' : 'neutral'} />
                   </Row>

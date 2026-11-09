@@ -10,6 +10,7 @@ const LINKS: { icon: IconName; key: TKey; href: Href }[] = [
   { icon: 'credit-card', key: 'orders', href: '/admin/orders' },
   { icon: 'dollar-sign', key: 'payments', href: '/admin/payments' },
   { icon: 'package', key: 'products', href: '/admin/products' },
+  { icon: 'gift', key: 'offersAdmin', href: '/admin/offers' },
   { icon: 'trending-up', key: 'analytics', href: '/admin/analytics' },
   { icon: 'grid', key: 'timetable', href: '/admin/timetable' },
   { icon: 'check-circle', key: 'classHistory', href: '/admin/history' },

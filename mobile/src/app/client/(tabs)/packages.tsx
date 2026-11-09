@@ -10,7 +10,7 @@ import { SPA_ENABLED } from '@/lib/features';
 import { lek } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
-import { loc, type Product } from '@/lib/types';
+import { loc, offerPrice, type Catalogue, type Product } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
 type Tab = 'pilates' | 'spa' | 'combo';
@@ -22,6 +22,43 @@ export default function Packages() {
   const [tab, setTab] = useState<Tab>('pilates');
   const q = useQuery({ queryKey: ['products'], queryFn: () => api<Product[]>('GET', '/products') });
   const list = (q.data ?? []).filter((p) => tabOf(p) === tab);
+  // The offers live today (DUO, discounts, bonuses), the same ones the website shows.
+  const cat = useQuery({ queryKey: ['catalogue'], queryFn: () => api<Catalogue>('GET', '/public/catalogue') });
+  const offerCards = (cat.data?.offers ?? []).flatMap((o) =>
+    o.kind === 'BUNDLE'
+      ? o.product
+        ? [{ key: o.id, offer: o, product: o.product }]
+        : []
+      : (cat.data?.products ?? [])
+          .filter((p) => p.kind !== 'SINGLE' && p.persons === 1 && (!o.eligibleProductIds.length || o.eligibleProductIds.includes(p.id)))
+          .map((p) => ({ key: `${o.id}:${p.id}`, offer: o, product: p })),
+  );
+  const offersHeader = offerCards.length ? (
+    <View style={{ marginBottom: space.md }}>
+      <Text variant="heading" style={{ marginBottom: space.sm }}>{t('offers')}</Text>
+      {offerCards.map(({ key, offer: o, product: p }) => (
+        <Pressable
+          key={key}
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: '/client/package/[id]', params: { id: p.id, offerId: o.id } })}
+          style={({ pressed }) => [styles.offer, pressed && { opacity: 0.9 }]}
+        >
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="heading" style={{ flex: 1 }}>{loc(lang, o.title, o.titleEn)}{o.kind === 'BUNDLE' ? '' : ` · ${loc(lang, p.name, p.nameEn)}`}</Text>
+            {o.newClientsOnly ? <Badge label={t('newClientsOnly')} tone="wine" /> : null}
+          </Row>
+          <Text variant="small" style={{ color: colors.inkSoft }}>
+            {o.kind === 'DISCOUNT' ? t('offerPct', { pct: o.discountPct ?? 0 }) : o.kind === 'BONUS' ? t('offerBonus', { n: o.bonusClasses }) : p.persons === 2 ? t('forTwo') : ''}
+            {' · '}{t('classesN', { n: p.classCredits })}{o.left !== null ? ` · ${t('offerLeft', { n: o.left })}` : ''}
+          </Text>
+          <Row style={{ marginTop: space.xs }}>
+            {o.kind === 'DISCOUNT' || p.originalPrice ? <Text variant="small" style={{ textDecorationLine: 'line-through' }}>{lek(o.kind === 'DISCOUNT' ? p.price : p.originalPrice!)}</Text> : null}
+            <Text variant="heading">{lek(offerPrice(p.price, o))}</Text>
+          </Row>
+        </Pressable>
+      ))}
+    </View>
+  ) : null;
 
   return (
     <Screen scroll={false}>
@@ -46,7 +83,8 @@ export default function Packages() {
           data={list}
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ paddingBottom: 40 }}
-          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.wine} />}
+          refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => { void q.refetch(); void cat.refetch(); }} tintColor={colors.wine} />}
+          ListHeaderComponent={tab === 'pilates' && offersHeader ? offersHeader : undefined}
           ListEmptyComponent={<EmptyState icon="package" title={t('noBookings')} />}
           renderItem={({ item: p }) => (
             <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/client/package/[id]', params: { id: p.id } })} style={({ pressed }) => [styles.card, pressed && { opacity: 0.9 }]}>
@@ -73,6 +111,7 @@ export default function Packages() {
 }
 
 const styles = StyleSheet.create({
+  offer: { padding: space.lg, borderRadius: radius.xl, backgroundColor: colors.blush, marginBottom: space.md, gap: 4 },
   card: { flexDirection: 'row', alignItems: 'center', minHeight: 140, borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.surface, marginBottom: space.lg },
   img: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '48%' },
   shade: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '66%', backgroundColor: colors.surface, opacity: 0.92 },

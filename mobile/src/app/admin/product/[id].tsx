@@ -68,6 +68,8 @@ export default function ProductEdit() {
         firstTimeOnly: f.firstTimeOnly,
         active: f.active,
         imageKey: f.imageKey || null,
+        // A DUO is for two: one order, a package for each, the price for both.
+        persons: f.kind === 'DUO' ? 2 : 1,
         spaItems: items,
       };
       return isNew ? api('POST', '/admin/products', { body }) : api('PATCH', `/admin/products/${id}`, { body });
