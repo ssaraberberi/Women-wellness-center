@@ -20,6 +20,8 @@ export async function lockUsableWallets(tx: Tx, userId: string, at: Date): Promi
       and w.expires_at > ${at}
       and w.expires_at > now()
       and (p.starts_at is null or p.starts_at <= ${at})
+      -- A DUO booked together is spent only by booking both at once (bookDuo), never by one alone.
+      and not (p.pair_id is not null and p.together)
     order by w.expires_at asc, w.created_at asc
     for update of w`;
 }
@@ -30,17 +32,23 @@ export async function usableCredits(tx: Tx, userId: string, at: Date) {
     select coalesce(sum(w.remaining), 0)::int as remaining
     from credit_wallets w join membership_purchases p on p.id = w.purchase_id
     where w.user_id = ${userId}::uuid and p.status = 'ACTIVE' and w.expires_at > ${at} and w.expires_at > now()
-      and (p.starts_at is null or p.starts_at <= ${at})`;
+      and (p.starts_at is null or p.starts_at <= ${at}) and not (p.pair_id is not null and p.together)`;
   return rows[0]?.remaining ?? 0;
 }
 
 export async function spendCredits(
   tx: Tx,
-  opts: { userId: string; credits: number; at: Date; bookingId: string; actorId?: string },
+  // walletId: spend from this wallet only (a DUO's own package), already checked to be usable.
+  opts: { userId: string; credits: number; at: Date; bookingId: string; actorId?: string; walletId?: string },
 ): Promise<{ walletId: string | null }> {
   if (opts.credits <= 0) return { walletId: null };
-  const wallets = await lockUsableWallets(tx, opts.userId, opts.at);
+  const wallets = opts.walletId
+    ? await tx.$queryRaw<CreditWallet[]>`select id, remaining from credit_wallets where id = ${opts.walletId}::uuid for update`
+    : await lockUsableWallets(tx, opts.userId, opts.at);
   if (!wallets.length) {
+    if (await tx.creditWallet.count({ where: { userId: opts.userId, remaining: { gt: 0 }, purchase: { status: 'ACTIVE', together: true, pairId: { not: null } } } })) {
+      throw E.conflict('DUO_TOGETHER', 'Your DUO is booked together — book it as a DUO');
+    }
     const any = await tx.creditWallet.count({ where: { userId: opts.userId } });
     throw any
       ? E.conflict('MEMBERSHIP_EXPIRED', 'Your package does not cover this date')

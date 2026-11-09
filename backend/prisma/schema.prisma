@@ -38,35 +38,36 @@ enum Language {
 }
 
 model User {
-  id            String     @id @default(uuid()) @db.Uuid
+  id              String     @id @default(uuid()) @db.Uuid
   // Null only for a client the desk added with a name (and maybe a phone) and no email.
-  email         String?    @unique
-  role         Role       @default(CLIENT)
-  status        UserStatus @default(ACTIVE)
-  isOwner       Boolean    @default(false) @map("is_owner")
-  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  email           String?    @unique
+  role            Role       @default(CLIENT)
+  status          UserStatus @default(ACTIVE)
+  isOwner         Boolean    @default(false) @map("is_owner")
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz(3)
   // scrypt hash; null = signs in with an emailed code only (until a password is set).
-  passwordHash  String?    @map("password_hash")
+  passwordHash    String?    @map("password_hash")
   // Sign in with Apple: Apple's stable id for this person ("sub" of the identity token).
-  appleSub      String?    @unique @map("apple_sub")
-  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
-  lastLoginAt   DateTime?  @map("last_login_at") @db.Timestamptz(3)
+  appleSub        String?    @unique @map("apple_sub")
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lastLoginAt     DateTime?  @map("last_login_at") @db.Timestamptz(3)
 
-  profile          UserProfile?
-  staffProfile     StaffProfile?
-  notificationPrefs NotificationPreference?
-  sessions         AuthSession[]
-  pushTokens       PushToken[]
-  bookings         ClassBooking[]
-  waitlists        ClassWaitlist[]
-  spaAppointments  SpaAppointment[]       @relation("ClientAppointments")
-  purchases        MembershipPurchase[]
-  wallets          CreditWallet[]
-  creditTransactions CreditTransaction[]  @relation("WalletOwner")
-  orders           Order[]
-  notifications    Notification[]
-  clientNotes      ClientNote[]           @relation("NoteSubject")
+  profile            UserProfile?
+  staffProfile       StaffProfile?
+  notificationPrefs  NotificationPreference?
+  sessions           AuthSession[]
+  pushTokens         PushToken[]
+  bookings           ClassBooking[]
+  waitlists          ClassWaitlist[]
+  spaAppointments    SpaAppointment[]        @relation("ClientAppointments")
+  purchases          MembershipPurchase[]
+  wallets            CreditWallet[]
+  creditTransactions CreditTransaction[]     @relation("WalletOwner")
+  orders             Order[]
+  notifications      Notification[]
+  clientNotes        ClientNote[]            @relation("NoteSubject")
+  offerClaims        OfferClaim[]
 
   @@map("users")
 }
@@ -103,13 +104,13 @@ model StaffProfile {
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  qualifications     TherapistQualification[]
+  qualifications        TherapistQualification[]
   therapistAvailability TherapistAvailability[]
-  staffAvailability  StaffAvailability[]
-  timeOff            TimeOffRequest[]
-  sessions           ClassSession[]
-  templates          ClassScheduleTemplate[]
-  appointments       SpaAppointment[]  @relation("TherapistAppointments")
+  staffAvailability     StaffAvailability[]
+  timeOff               TimeOffRequest[]
+  sessions              ClassSession[]
+  templates             ClassScheduleTemplate[]
+  appointments          SpaAppointment[]         @relation("TherapistAppointments")
 
   @@map("staff_profiles")
 }
@@ -156,14 +157,14 @@ model AuthSession {
 }
 
 model NotificationPreference {
-  userId          String   @id @map("user_id") @db.Uuid
-  pushEnabled     Boolean  @default(true) @map("push_enabled")
-  emailEnabled    Boolean  @default(true) @map("email_enabled")
-  reminders       Boolean  @default(true)
-  waitlist        Boolean  @default(true)
-  marketing       Boolean  @default(false)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String   @id @map("user_id") @db.Uuid
+  pushEnabled  Boolean  @default(true) @map("push_enabled")
+  emailEnabled Boolean  @default(true) @map("email_enabled")
+  reminders    Boolean  @default(true)
+  waitlist     Boolean  @default(true)
+  marketing    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
 }
@@ -204,26 +205,26 @@ model ClassType {
   active          Boolean    @default(true)
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  templates       ClassScheduleTemplate[]
-  sessions        ClassSession[]
+  templates ClassScheduleTemplate[]
+  sessions  ClassSession[]
 
   @@map("class_types")
 }
 
 model ClassScheduleTemplate {
-  id           String       @id @default(uuid()) @db.Uuid
-  classTypeId  String       @map("class_type_id") @db.Uuid
-  instructorId String?      @map("instructor_id") @db.Uuid
-  weekday      Int          // 1 = Monday … 7 = Sunday (ISO)
-  startTime    String       @map("start_time") // "HH:mm" studio time
-  durationMin  Int          @map("duration_min")
+  id           String         @id @default(uuid()) @db.Uuid
+  classTypeId  String         @map("class_type_id") @db.Uuid
+  instructorId String?        @map("instructor_id") @db.Uuid
+  weekday      Int // 1 = Monday … 7 = Sunday (ISO)
+  startTime    String         @map("start_time") // "HH:mm" studio time
+  durationMin  Int            @map("duration_min")
   capacity     Int
-  validFrom    DateTime     @map("valid_from") @db.Date
-  validUntil   DateTime?    @map("valid_until") @db.Date
-  active       Boolean      @default(true)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  classType    ClassType    @relation(fields: [classTypeId], references: [id])
-  instructor   StaffProfile? @relation(fields: [instructorId], references: [userId])
+  validFrom    DateTime       @map("valid_from") @db.Date
+  validUntil   DateTime?      @map("valid_until") @db.Date
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  classType    ClassType      @relation(fields: [classTypeId], references: [id])
+  instructor   StaffProfile?  @relation(fields: [instructorId], references: [userId])
   sessions     ClassSession[]
 
   @@map("class_schedule_templates")
@@ -251,11 +252,11 @@ model ClassSession {
   createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  classType    ClassType     @relation(fields: [classTypeId], references: [id])
-  template     ClassScheduleTemplate? @relation(fields: [templateId], references: [id])
-  instructor   StaffProfile? @relation(fields: [instructorId], references: [userId])
-  bookings     ClassBooking[]
-  waitlist     ClassWaitlist[]
+  classType  ClassType              @relation(fields: [classTypeId], references: [id])
+  template   ClassScheduleTemplate? @relation(fields: [templateId], references: [id])
+  instructor StaffProfile?          @relation(fields: [instructorId], references: [userId])
+  bookings   ClassBooking[]
+  waitlist   ClassWaitlist[]
 
   @@unique([templateId, startsAt])
   @@index([startsAt])
@@ -271,34 +272,59 @@ enum BookingStatus {
 }
 
 enum BookingSource {
-  CLIENT
+  CLIENT // a signed-in client in the app
   ADMIN
   WAITLIST
+  MEMBER_WEB // a signed-in client on the website
+  GUEST_WEB // booked without an account on the website, email verified
+  GUEST_APP // booked without an account in the app, email verified
 }
 
 model ClassBooking {
-  id              String        @id @default(uuid()) @db.Uuid
-  sessionId       String        @map("session_id") @db.Uuid
-  userId          String        @map("user_id") @db.Uuid
-  walletId        String?       @map("wallet_id") @db.Uuid
-  creditsUsed     Int           @default(0) @map("credits_used")
-  status          BookingStatus @default(BOOKED)
-  source          BookingSource @default(CLIENT)
-  idempotencyKey  String?       @map("idempotency_key")
-  creditRefunded  Boolean       @default(false) @map("credit_refunded")
-  bookedAt        DateTime      @default(now()) @map("booked_at") @db.Timestamptz(3)
-  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
-  cancelledById   String?       @map("cancelled_by_id") @db.Uuid
+  id             String        @id @default(uuid()) @db.Uuid
+  sessionId      String        @map("session_id") @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  walletId       String?       @map("wallet_id") @db.Uuid
+  creditsUsed    Int           @default(0) @map("credits_used")
+  status         BookingStatus @default(BOOKED)
+  source         BookingSource @default(CLIENT)
+  idempotencyKey String?       @map("idempotency_key")
+  creditRefunded Boolean       @default(false) @map("credit_refunded")
+  bookedAt       DateTime      @default(now()) @map("booked_at") @db.Timestamptz(3)
+  cancelledAt    DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById  String?       @map("cancelled_by_id") @db.Uuid
 
-  session         ClassSession  @relation(fields: [sessionId], references: [id])
-  user            User          @relation(fields: [userId], references: [id])
-  wallet          CreditWallet? @relation(fields: [walletId], references: [id])
-  attendance      ClassAttendance?
+  session      ClassSession         @relation(fields: [sessionId], references: [id])
+  user         User                 @relation(fields: [userId], references: [id])
+  wallet       CreditWallet?        @relation(fields: [walletId], references: [id])
+  attendance   ClassAttendance?
+  // A single class paid at the studio: what she owes for this booking.
+  order        Order?
+  manageTokens BookingManageToken[]
+  // A DUO that comes together: both bookings share this id, and are cancelled together.
+  pairId       String?              @map("pair_id") @db.Uuid
 
   @@unique([userId, idempotencyKey])
   @@index([sessionId, status])
   @@index([userId, status])
+  @@index([pairId])
   @@map("class_bookings")
+}
+
+// A private link to one booking, for someone who booked without signing in:
+// only the digest is stored. It reads the booking until the class ends and
+// stops working once the booking is cancelled.
+model BookingManageToken {
+  id        String       @id @default(uuid()) @db.Uuid
+  bookingId String       @map("booking_id") @db.Uuid
+  tokenHash String       @unique @map("token_hash")
+  expiresAt DateTime     @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime?    @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  booking   ClassBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_manage_tokens")
 }
 
 enum AttendanceStatus {
@@ -345,21 +371,21 @@ model ClassWaitlist {
 // ───────────────────────────── SPA ─────────────────────────────
 
 model SpaTreatment {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String
-  nameEn        String?  @map("name_en")
-  category      String   // RELAX, DEEP_TISSUE, SPORTS, LYMPHATIC, MADERO, BACK_NECK
-  description   String   @default("")
-  descriptionEn String?  @map("description_en")
-  benefits      String   @default("")
-  benefitsEn    String?  @map("benefits_en")
-  durationMin   Int      @map("duration_min")
-  bufferMin     Int      @default(10) @map("buffer_min") // turnover after the treatment
-  price         Int
-  imageKey      String?  @map("image_key")
-  clientCanChooseTherapist Boolean @default(true) @map("client_can_choose_therapist")
-  active        Boolean  @default(true)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                       String   @id @default(uuid()) @db.Uuid
+  name                     String
+  nameEn                   String?  @map("name_en")
+  category                 String // RELAX, DEEP_TISSUE, SPORTS, LYMPHATIC, MADERO, BACK_NECK
+  description              String   @default("")
+  descriptionEn            String?  @map("description_en")
+  benefits                 String   @default("")
+  benefitsEn               String?  @map("benefits_en")
+  durationMin              Int      @map("duration_min")
+  bufferMin                Int      @default(10) @map("buffer_min") // turnover after the treatment
+  price                    Int
+  imageKey                 String?  @map("image_key")
+  clientCanChooseTherapist Boolean  @default(true) @map("client_can_choose_therapist")
+  active                   Boolean  @default(true)
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   qualifications TherapistQualification[]
   appointments   SpaAppointment[]
@@ -370,9 +396,9 @@ model SpaTreatment {
 }
 
 model SpaRoom {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String           @id @default(uuid()) @db.Uuid
   name         String
-  active       Boolean  @default(true)
+  active       Boolean          @default(true)
   appointments SpaAppointment[]
 
   @@map("spa_rooms")
@@ -392,7 +418,7 @@ model TherapistQualification {
 model TherapistAvailability {
   id          String       @id @default(uuid()) @db.Uuid
   therapistId String       @map("therapist_id") @db.Uuid
-  weekday     Int          // 1 = Monday … 7 = Sunday
+  weekday     Int // 1 = Monday … 7 = Sunday
   startTime   String       @map("start_time") // "HH:mm"
   endTime     String       @map("end_time")
   breakStart  String?      @map("break_start")
@@ -420,7 +446,7 @@ model SpaAppointment {
   endsAt         DateTime          @map("ends_at") @db.Timestamptz(3)
   blockedUntil   DateTime          @map("blocked_until") @db.Timestamptz(3) // ends_at + buffer
   status         AppointmentStatus @default(BOOKED)
-  price          Int               // snapshot at booking
+  price          Int // snapshot at booking
   entitlementId  String?           @map("entitlement_id") @db.Uuid
   paidWith       String            @default("PAY_AT_STUDIO") @map("paid_with") // ENTITLEMENT | PAY_AT_STUDIO
   serviceNotes   String?           @map("service_notes")
@@ -430,11 +456,11 @@ model SpaAppointment {
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  client         User              @relation("ClientAppointments", fields: [clientId], references: [id])
-  therapist      StaffProfile      @relation("TherapistAppointments", fields: [therapistId], references: [userId])
-  treatment      SpaTreatment      @relation(fields: [treatmentId], references: [id])
-  room           SpaRoom           @relation(fields: [roomId], references: [id])
-  entitlement    SpaEntitlement?   @relation(fields: [entitlementId], references: [id])
+  client      User            @relation("ClientAppointments", fields: [clientId], references: [id])
+  therapist   StaffProfile    @relation("TherapistAppointments", fields: [therapistId], references: [userId])
+  treatment   SpaTreatment    @relation(fields: [treatmentId], references: [id])
+  room        SpaRoom         @relation(fields: [roomId], references: [id])
+  entitlement SpaEntitlement? @relation(fields: [entitlementId], references: [id])
 
   @@unique([clientId, idempotencyKey])
   @@index([therapistId, startsAt])
@@ -470,32 +496,158 @@ enum ProductKind {
 }
 
 model MembershipProduct {
-  id             String      @id @default(uuid()) @db.Uuid
-  kind           ProductKind
-  name           String
-  nameEn         String?     @map("name_en")
-  description    String      @default("")
-  descriptionEn  String?     @map("description_en")
-  price          Int
-  originalPrice  Int?        @map("original_price")
-  classCredits   Int         @default(0) @map("class_credits")
-  validityDays   Int         @map("validity_days")
-  sessionsPerWeekHint Int?   @map("sessions_per_week_hint")
-  terms          String      @default("")
-  termsEn        String?     @map("terms_en")
-  firstTimeOnly  Boolean     @default(false) @map("first_time_only") // trials
-  maxPerClient   Int?        @map("max_per_client")
-  imageKey       String?     @map("image_key")
-  sortOrder      Int         @default(0) @map("sort_order")
-  active         Boolean     @default(true)
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                  String      @id @default(uuid()) @db.Uuid
+  kind                ProductKind
+  name                String
+  nameEn              String?     @map("name_en")
+  description         String      @default("")
+  descriptionEn       String?     @map("description_en")
+  price               Int
+  originalPrice       Int?        @map("original_price")
+  classCredits        Int         @default(0) @map("class_credits")
+  validityDays        Int         @map("validity_days")
+  sessionsPerWeekHint Int?        @map("sessions_per_week_hint")
+  terms               String      @default("")
+  termsEn             String?     @map("terms_en")
+  firstTimeOnly       Boolean     @default(false) @map("first_time_only") // trials
+  maxPerClient        Int?        @map("max_per_client")
+  imageKey            String?     @map("image_key")
+  sortOrder           Int         @default(0) @map("sort_order")
+  active              Boolean     @default(true)
+  // 2 for a DUO: one order, two people, a package each.
+  persons             Int         @default(1)
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  spaItems       MembershipProductSpaItem[]
-  purchases      MembershipPurchase[]
-  promotions     PromotionProduct[]
+  spaItems     MembershipProductSpaItem[]
+  purchases    MembershipPurchase[]
+  promotions   PromotionProduct[]
+  bundleOffers Offer[]
+  offers       OfferProduct[]
 
   @@map("membership_products")
+}
+
+// ───────────────────────────── Offers ─────────────────────────────
+// What the website called offers, with the same rules:
+//   BUNDLE   its own package and price (DUA DUO: two people, together)
+//   DISCOUNT a percentage off eligible packages (FOUNDING GIRLS)
+//   BONUS    bonus classes once a condition is met (BRING A BESTIE)
+// Promotion codes stay what they were: a code typed at the desk.
+
+enum OfferKind {
+  BUNDLE
+  DISCOUNT
+  BONUS
+}
+
+enum BonusTo {
+  REFERRER
+  FRIEND
+  BOTH
+}
+
+enum BonusWhen {
+  BOOKED // as soon as the order is made
+  PAID // when the buyer's order is paid
+  FRIEND_PAID // when the friend pays for a package of her own
+  VISIT // when the friend comes to a class
+}
+
+model Offer {
+  id             String    @id @default(uuid()) @db.Uuid
+  kind           OfferKind
+  title          String
+  titleEn        String?   @map("title_en")
+  description    String    @default("")
+  descriptionEn  String?   @map("description_en")
+  eligibility    String?
+  eligibilityEn  String?   @map("eligibility_en")
+  // BUNDLE: the package it sells (price, credits, validity, persons live there).
+  productId      String?   @map("product_id") @db.Uuid
+  // A DUO booked together: one booking places both.
+  together       Boolean   @default(true)
+  discountPct    Int?      @map("discount_pct")
+  startsOn       DateTime? @map("starts_on") @db.Date
+  endsOn         DateTime? @map("ends_on") @db.Date
+  maxRedemptions Int?      @map("max_redemptions")
+  newClientsOnly Boolean   @default(false) @map("new_clients_only")
+  friendRequired Boolean   @default(false) @map("friend_required")
+  friendNew      Boolean   @default(true) @map("friend_new")
+  bonusClasses   Int       @default(0) @map("bonus_classes")
+  bonusTo        BonusTo   @default(BOTH) @map("bonus_to")
+  bonusWhen      BonusWhen @default(FRIEND_PAID) @map("bonus_when")
+  active         Boolean   @default(false)
+  archived       Boolean   @default(false)
+  sortOrder      Int       @default(0) @map("sort_order")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product          MembershipProduct? @relation(fields: [productId], references: [id])
+  eligibleProducts OfferProduct[]
+  claims           OfferClaim[]
+  orders           Order[]
+
+  @@map("offers")
+}
+
+// The packages a DISCOUNT or BONUS offer applies to.
+model OfferProduct {
+  offerId   String            @map("offer_id") @db.Uuid
+  productId String            @map("product_id") @db.Uuid
+  offer     Offer             @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  product   MembershipProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([offerId, productId])
+  @@map("offer_products")
+}
+
+enum OfferClaimRole {
+  BUYER
+  FRIEND
+}
+
+enum OfferClaimStatus {
+  CLAIMED // used (discount, bundle)
+  PENDING // a bonus waiting for its condition
+  GRANTED // the bonus was given
+  VOID // the order was cancelled
+}
+
+// Who used an offer. Once per person per offer and role: a partial unique
+// index in the migration (status <> VOID) holds it, not the form.
+model OfferClaim {
+  id        String           @id @default(uuid()) @db.Uuid
+  offerId   String           @map("offer_id") @db.Uuid
+  clientId  String           @map("client_id") @db.Uuid
+  orderId   String?          @map("order_id") @db.Uuid
+  role      OfferClaimRole   @default(BUYER)
+  status    OfferClaimStatus @default(CLAIMED)
+  grantedAt DateTime?        @map("granted_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  offer     Offer            @relation(fields: [offerId], references: [id])
+  client    User             @relation(fields: [clientId], references: [id])
+  order     Order?           @relation(fields: [orderId], references: [id])
+
+  @@index([offerId])
+  @@index([clientId])
+  @@map("offer_claims")
+}
+
+// Every row brought over from the old website database, so a run can never
+// import the same thing twice and an import can be traced (and undone) by batch.
+model LegacyRef {
+  id        String   @id @default(uuid()) @db.Uuid
+  source    String // e.g. "website.users"
+  sourceId  String   @map("source_id")
+  target    String // e.g. "users"
+  targetId  String   @map("target_id") @db.Uuid
+  batch     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([source, sourceId, target])
+  @@index([batch])
+  @@map("legacy_refs")
 }
 
 // SPA entitlements a product grants: N × a treatment, or N × any treatment
@@ -535,29 +687,35 @@ model MembershipPurchase {
   expiresAt     DateTime?      @map("expires_at") @db.Timestamptz(3)
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   activatedAt   DateTime?      @map("activated_at") @db.Timestamptz(3)
+  // A DUO: both people's packages share this id. The partner's has no order of
+  // its own — it is paid with the buyer's, and activated with it.
+  pairId        String?        @map("pair_id") @db.Uuid
+  // Booked together: their classes are booked for both at once, never alone.
+  together      Boolean        @default(false)
 
-  user          User           @relation(fields: [userId], references: [id])
-  product       MembershipProduct @relation(fields: [productId], references: [id])
-  order         Order?         @relation(fields: [orderId], references: [id])
-  wallet        CreditWallet?
+  user            User              @relation(fields: [userId], references: [id])
+  product         MembershipProduct @relation(fields: [productId], references: [id])
+  order           Order?            @relation(fields: [orderId], references: [id])
+  wallet          CreditWallet?
   spaEntitlements SpaEntitlement[]
 
   @@index([userId, status])
+  @@index([pairId])
   @@map("membership_purchases")
 }
 
 model CreditWallet {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  purchaseId  String   @unique @map("purchase_id") @db.Uuid
-  total       Int
-  remaining   Int
-  expiresAt   DateTime @map("expires_at") @db.Timestamptz(3)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  purchaseId String   @unique @map("purchase_id") @db.Uuid
+  total      Int
+  remaining  Int
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user         User               @relation(fields: [userId], references: [id])
-  purchase     MembershipPurchase @relation(fields: [purchaseId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+  purchase     MembershipPurchase  @relation(fields: [purchaseId], references: [id])
   transactions CreditTransaction[]
   bookings     ClassBooking[]
 
@@ -574,6 +732,7 @@ enum CreditTxType {
   ADMIN_DEDUCT
   ADMIN_RESTORE
   EXPIRE
+  BONUS // a bonus class from an offer (BRING A BESTIE)
 }
 
 // Append-only ledger: wallet.remaining is always the sum of its deltas.
@@ -597,17 +756,17 @@ model CreditTransaction {
 }
 
 model SpaEntitlement {
-  id          String             @id @default(uuid()) @db.Uuid
-  userId      String             @map("user_id") @db.Uuid
-  purchaseId  String             @map("purchase_id") @db.Uuid
-  treatmentId String?            @map("treatment_id") @db.Uuid
-  category    String?
-  total       Int
-  remaining   Int
-  expiresAt   DateTime           @map("expires_at") @db.Timestamptz(3)
-  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  purchase    MembershipPurchase @relation(fields: [purchaseId], references: [id])
-  treatment   SpaTreatment?      @relation(fields: [treatmentId], references: [id])
+  id           String             @id @default(uuid()) @db.Uuid
+  userId       String             @map("user_id") @db.Uuid
+  purchaseId   String             @map("purchase_id") @db.Uuid
+  treatmentId  String?            @map("treatment_id") @db.Uuid
+  category     String?
+  total        Int
+  remaining    Int
+  expiresAt    DateTime           @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  purchase     MembershipPurchase @relation(fields: [purchaseId], references: [id])
+  treatment    SpaTreatment?      @relation(fields: [treatmentId], references: [id])
   appointments SpaAppointment[]
 
   @@index([userId, expiresAt])
@@ -620,20 +779,20 @@ enum DiscountType {
 }
 
 model PromotionCode {
-  id               String       @id @default(uuid()) @db.Uuid
-  code             String       @unique
-  description      String       @default("")
-  discountType     DiscountType @map("discount_type")
-  discountValue    Int          @map("discount_value") // percent 1–100, or ALL
-  firstTimeOnly    Boolean      @default(false) @map("first_time_only")
-  maxRedemptions   Int?         @map("max_redemptions")
-  redemptionCount  Int          @default(0) @map("redemption_count")
-  validFrom        DateTime?    @map("valid_from") @db.Timestamptz(3)
-  validUntil       DateTime?    @map("valid_until") @db.Timestamptz(3)
-  active           Boolean      @default(true)
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  products         PromotionProduct[] // empty = every product
-  orders           Order[]
+  id              String             @id @default(uuid()) @db.Uuid
+  code            String             @unique
+  description     String             @default("")
+  discountType    DiscountType       @map("discount_type")
+  discountValue   Int                @map("discount_value") // percent 1–100, or ALL
+  firstTimeOnly   Boolean            @default(false) @map("first_time_only")
+  maxRedemptions  Int?               @map("max_redemptions")
+  redemptionCount Int                @default(0) @map("redemption_count")
+  validFrom       DateTime?          @map("valid_from") @db.Timestamptz(3)
+  validUntil      DateTime?          @map("valid_until") @db.Timestamptz(3)
+  active          Boolean            @default(true)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  products        PromotionProduct[] // empty = every product
+  orders          Order[]
 
   @@map("promotion_codes")
 }
@@ -658,23 +817,31 @@ enum OrderStatus {
 }
 
 model Order {
-  id            String       @id @default(uuid()) @db.Uuid
-  reference     String       @unique // DUA-7KQ3P
-  userId        String       @map("user_id") @db.Uuid
-  status        OrderStatus  @default(PENDING)
-  subtotal      Int
-  discount      Int          @default(0)
-  total         Int
-  promotionId   String?      @map("promotion_id") @db.Uuid
-  createdById   String?      @map("created_by_id") @db.Uuid
+  id             String      @id @default(uuid()) @db.Uuid
+  reference      String      @unique // DUA-7KQ3P
+  userId         String      @map("user_id") @db.Uuid
+  status         OrderStatus @default(PENDING)
+  subtotal       Int
+  discount       Int         @default(0)
+  total          Int
+  promotionId    String?     @map("promotion_id") @db.Uuid
+  createdById    String?     @map("created_by_id") @db.Uuid
   idempotencyKey String?     @map("idempotency_key")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  // Set for a single class booked without a package: the order is what she owes
+  // for that booking (no purchase, no credits). Null for package orders.
+  bookingId      String?     @unique @map("booking_id") @db.Uuid
+  // The offer this order used (discount, bundle or bonus).
+  offerId        String?     @map("offer_id") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user          User         @relation(fields: [userId], references: [id])
-  promotion     PromotionCode? @relation(fields: [promotionId], references: [id])
-  purchase      MembershipPurchase?
-  payments      Payment[]
+  user        User                @relation(fields: [userId], references: [id])
+  promotion   PromotionCode?      @relation(fields: [promotionId], references: [id])
+  offer       Offer?              @relation(fields: [offerId], references: [id])
+  purchase    MembershipPurchase?
+  booking     ClassBooking?       @relation(fields: [bookingId], references: [id])
+  payments    Payment[]
+  offerClaims OfferClaim[]
 
   @@unique([userId, idempotencyKey])
   @@index([status, createdAt])
@@ -714,13 +881,13 @@ model Payment {
 }
 
 model Refund {
-  id         String   @id @default(uuid()) @db.Uuid
-  paymentId  String   @map("payment_id") @db.Uuid
-  amount     Int
-  reason     String?
-  actorId    String   @map("actor_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  payment    Payment  @relation(fields: [paymentId], references: [id])
+  id        String   @id @default(uuid()) @db.Uuid
+  paymentId String   @map("payment_id") @db.Uuid
+  amount    Int
+  reason    String?
+  actorId   String   @map("actor_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  payment   Payment  @relation(fields: [paymentId], references: [id])
 
   @@map("refunds")
 }
@@ -754,18 +921,18 @@ enum StaffRequestKind {
 }
 
 model TimeOffRequest {
-  id          String           @id @default(uuid()) @db.Uuid
-  staffId     String           @map("staff_id") @db.Uuid
-  kind        StaffRequestKind @default(TIME_OFF)
-  startsAt    DateTime         @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime         @map("ends_at") @db.Timestamptz(3)
-  reason      String?
-  status      RequestStatus    @default(PENDING)
-  reviewedById String?         @map("reviewed_by_id") @db.Uuid
-  reviewedAt  DateTime?        @map("reviewed_at") @db.Timestamptz(3)
-  reviewNote  String?          @map("review_note")
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  staff       StaffProfile     @relation(fields: [staffId], references: [userId], onDelete: Cascade)
+  id           String           @id @default(uuid()) @db.Uuid
+  staffId      String           @map("staff_id") @db.Uuid
+  kind         StaffRequestKind @default(TIME_OFF)
+  startsAt     DateTime         @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime         @map("ends_at") @db.Timestamptz(3)
+  reason       String?
+  status       RequestStatus    @default(PENDING)
+  reviewedById String?          @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote   String?          @map("review_note")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  staff        StaffProfile     @relation(fields: [staffId], references: [userId], onDelete: Cascade)
 
   @@index([status, createdAt])
   @@map("time_off_requests")
@@ -781,14 +948,14 @@ model StudioClosure {
 }
 
 model ClientNote {
-  id        String   @id @default(uuid()) @db.Uuid
-  clientId  String   @map("client_id") @db.Uuid
-  authorId  String   @map("author_id") @db.Uuid
-  body      String
+  id         String   @id @default(uuid()) @db.Uuid
+  clientId   String   @map("client_id") @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  body       String
   // INTERNAL: admins only. SERVICE: also therapists/instructors permitted to read notes.
-  visibility String  @default("INTERNAL")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  client    User     @relation("NoteSubject", fields: [clientId], references: [id], onDelete: Cascade)
+  visibility String   @default("INTERNAL")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  client     User     @relation("NoteSubject", fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@map("client_notes")
@@ -823,22 +990,22 @@ enum NotificationStatus {
 }
 
 model Notification {
-  id          String              @id @default(uuid()) @db.Uuid
-  userId      String              @map("user_id") @db.Uuid
-  type        String
-  channel     NotificationChannel
-  status      NotificationStatus  @default(PENDING)
-  title       String
-  body        String
-  data        Json?
-  dedupeKey   String              @map("dedupe_key")
-  attempts    Int                 @default(0)
-  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
-  lastError   String?             @map("last_error")
-  sentAt      DateTime?           @map("sent_at") @db.Timestamptz(3)
-  readAt      DateTime?           @map("read_at") @db.Timestamptz(3)
-  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String              @id @default(uuid()) @db.Uuid
+  userId        String              @map("user_id") @db.Uuid
+  type          String
+  channel       NotificationChannel
+  status        NotificationStatus  @default(PENDING)
+  title         String
+  body          String
+  data          Json?
+  dedupeKey     String              @map("dedupe_key")
+  attempts      Int                 @default(0)
+  nextAttemptAt DateTime            @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lastError     String?             @map("last_error")
+  sentAt        DateTime?           @map("sent_at") @db.Timestamptz(3)
+  readAt        DateTime?           @map("read_at") @db.Timestamptz(3)
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([dedupeKey, channel])
   @@index([status, nextAttemptAt])
@@ -863,29 +1030,29 @@ model AuditLog {
 
 // Single row (id = 1): everything the studio configures.
 model StudioSettings {
-  id                      Int      @id @default(1)
-  studioName              String   @default("DUA Pilates & SPA") @map("studio_name")
-  address                 String   @default("Rruga Anton Lufi, Komuna e Parisit, Tiranë")
-  phone                   String   @default("+355 69 710 4072")
-  instagram               String   @default("@dua_pilates_spa")
-  timezone                String   @default("Europe/Tirane")
-  currency                String   @default("ALL")
+  id                    Int      @id @default(1)
+  studioName            String   @default("DUA Pilates & SPA") @map("studio_name")
+  address               String   @default("Rruga Anton Lufi, Komuna e Parisit, Tiranë")
+  phone                 String   @default("+355 69 710 4072")
+  instagram             String   @default("@dua_pilates_spa")
+  timezone              String   @default("Europe/Tirane")
+  currency              String   @default("ALL")
   // { "1": {"open":"07:00","close":"21:00"}, …, "7": null }
-  openingHours            Json     @map("opening_hours")
-  freeCancelHours         Int      @default(1) @map("free_cancel_hours")
-  lateCancelKeepsCredit   Boolean  @default(true) @map("late_cancel_keeps_credit")
-  bookingWindowDays       Int      @default(21) @map("booking_window_days")
-  bookingCutoffMin        Int      @default(0) @map("booking_cutoff_min")
-  defaultClassCapacity    Int      @default(5) @map("default_class_capacity")
-  waitlistEnabled         Boolean  @default(true) @map("waitlist_enabled")
-  waitlistOfferMinutes    Int      @default(60) @map("waitlist_offer_minutes")
-  spaFreeCancelHours      Int      @default(24) @map("spa_free_cancel_hours")
-  spaSlotStepMin          Int      @default(15) @map("spa_slot_step_min")
-  activateBeforePayment   Boolean  @default(false) @map("activate_before_payment")
-  reminderHoursBefore     Int      @default(12) @map("reminder_hours_before")
-  expiryReminderDays      Int      @default(5) @map("expiry_reminder_days")
-  scheduleHorizonDays     Int      @default(60) @map("schedule_horizon_days")
-  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  openingHours          Json     @map("opening_hours")
+  freeCancelHours       Int      @default(1) @map("free_cancel_hours")
+  lateCancelKeepsCredit Boolean  @default(true) @map("late_cancel_keeps_credit")
+  bookingWindowDays     Int      @default(21) @map("booking_window_days")
+  bookingCutoffMin      Int      @default(0) @map("booking_cutoff_min")
+  defaultClassCapacity  Int      @default(5) @map("default_class_capacity")
+  waitlistEnabled       Boolean  @default(true) @map("waitlist_enabled")
+  waitlistOfferMinutes  Int      @default(60) @map("waitlist_offer_minutes")
+  spaFreeCancelHours    Int      @default(24) @map("spa_free_cancel_hours")
+  spaSlotStepMin        Int      @default(15) @map("spa_slot_step_min")
+  activateBeforePayment Boolean  @default(false) @map("activate_before_payment")
+  reminderHoursBefore   Int      @default(12) @map("reminder_hours_before")
+  expiryReminderDays    Int      @default(5) @map("expiry_reminder_days")
+  scheduleHorizonDays   Int      @default(60) @map("schedule_horizon_days")
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("studio_settings")
 }

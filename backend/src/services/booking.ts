@@ -1,4 +1,6 @@
-import type { ClassSession, StudioSettings } from '@prisma/client';
+import type { BookingSource, ClassSession, StudioSettings } from '@prisma/client';
+import { reference } from '../lib/crypto.js';
+import { randomUUID } from 'node:crypto';
 import { prisma, transaction, isUniqueViolation, type Tx } from '../lib/prisma.js';
 import { E } from '../lib/errors.js';
 import { getSettings, audit } from '../lib/settings.js';
@@ -54,10 +56,12 @@ async function assertBookable(tx: Tx, session: ClassSession, settings: StudioSet
 export async function bookClass(
   userId: string,
   sessionId: string,
-  // useCredit: false only for the desk adding someone who pays there (she has no package yet).
-  opts: { actor: Actor; idempotencyKey?: string | null; source?: 'CLIENT' | 'ADMIN' | 'WAITLIST'; useCredit?: boolean },
+  // pay: 'credits' spends sessions from her package (the default); 'single' books
+  // one class without a package and writes what she owes as a PENDING order at
+  // the price of the active SINGLE product. Chosen by the server, never by the request body.
+  opts: { actor: Actor; idempotencyKey?: string | null; source?: BookingSource; pay?: 'credits' | 'single'; skipEmail?: boolean },
 ) {
-  const useCredit = opts.useCredit !== false || opts.actor.role !== 'ADMIN';
+  const useCredit = opts.pay !== 'single';
   if (opts.idempotencyKey) {
     const existing = await prisma.classBooking.findUnique({ where: { userId_idempotencyKey: { userId, idempotencyKey: opts.idempotencyKey } } });
     if (existing) return existing;
@@ -105,6 +109,15 @@ export async function bookClass(
         }));
         await tx.classBooking.update({ where: { id: booking.id }, data: { walletId } });
       }
+      // A single class: confirmed now, paid at the studio. The order is the debt, not money received.
+      let order: { id: string; reference: string; total: number } | null = null;
+      if (!useCredit) {
+        const product = await singleClassProduct(tx);
+        order = await tx.order.create({
+          data: { reference: reference(), userId, subtotal: product.price, total: product.price, createdById: opts.actor.id, bookingId: booking.id },
+          select: { id: true, reference: true, total: true },
+        });
+      }
 
       // Booking directly while waiting (a place opened for everyone) settles the entry too.
       await tx.classWaitlist.updateMany({
@@ -116,14 +129,15 @@ export async function bookClass(
         userId,
         type: 'CLASS_BOOKED',
         dedupeKey: `booked:${booking.id}`,
-        params: { className: session.classType.name, when: whenText(session.startsAt), instructor: instructorName(session) },
+        params: { className: session.classType.name, when: whenText(session.startsAt), instructor: instructorName(session), price: order ? lek(order.total) : undefined },
         data: { kind: 'class', bookingId: booking.id, sessionId },
+        skipEmail: opts.skipEmail,
       });
       await tellStaff(tx, session, { type: 'STAFF_NEW_BOOKING', dedupeKey: `booked:${booking.id}`, clientId: userId, actorId: opts.actor.id });
       if (opts.actor.role === 'ADMIN') {
-        await audit(tx, opts.actor.id, 'booking.create_for_client', 'class_booking', booking.id, { userId, sessionId, useCredit });
+        await audit(tx, opts.actor.id, 'booking.create_for_client', 'class_booking', booking.id, { userId, sessionId, pay: opts.pay ?? 'credits' });
       }
-      return { ...booking, walletId };
+      return { ...booking, walletId, order };
     });
   } catch (e) {
     if (isUniqueViolation(e)) {
@@ -135,6 +149,100 @@ export async function bookClass(
     }
     throw e;
   }
+}
+
+/**
+ * A DUO's two packages that can pay for a class at `at`: hers and her
+ * partner's, both active, both with enough left. Null when there is none.
+ */
+export async function duoWallets(db: Tx | typeof prisma, userId: string, at: Date, credits = 1) {
+  const mine = await db.membershipPurchase.findMany({
+    where: { userId, status: 'ACTIVE', together: true, pairId: { not: null }, expiresAt: { gt: at }, wallet: { remaining: { gte: credits } } },
+    include: { wallet: true },
+    orderBy: { expiresAt: 'asc' },
+  });
+  for (const p of mine) {
+    const other = await db.membershipPurchase.findFirst({
+      where: { pairId: p.pairId, userId: { not: userId }, status: 'ACTIVE', expiresAt: { gt: at }, wallet: { remaining: { gte: credits } } },
+      include: { wallet: true, user: { include: { profile: true } } },
+    });
+    if (other?.wallet && p.wallet) return { pairId: p.pairId!, mine: p.wallet, partner: { userId: other.userId, wallet: other.wallet, name: other.user.profile ? `${other.user.profile.firstName} ${other.user.profile.lastName}`.trim() : '' } };
+  }
+  return null;
+}
+
+/**
+ * A DUO that comes together: one booking places both, in one transaction —
+ * two places or none, a session from each one's own DUO package. Cancelling
+ * either cancels both (see cancelBooking).
+ */
+export async function bookDuo(userId: string, sessionId: string, opts: { actor: Actor; idempotencyKey?: string | null; source?: BookingSource }) {
+  if (opts.idempotencyKey) {
+    const existing = await prisma.classBooking.findUnique({ where: { userId_idempotencyKey: { userId, idempotencyKey: opts.idempotencyKey } } });
+    if (existing) return prisma.classBooking.findMany({ where: { pairId: existing.pairId ?? existing.id } });
+  }
+  const settings = await getSettings();
+  try {
+    return await transaction(async (tx) => {
+      const session = await lockSession(tx, sessionId);
+      await assertBookable(tx, session, settings, opts.actor);
+      const duo = await duoWallets(tx, userId, session.startsAt, session.classType.creditsRequired);
+      if (!duo) throw E.conflict('NO_DUO', 'There is no DUO package with classes left for both of you');
+      const people = [userId, duo.partner.userId];
+      if (await tx.classBooking.count({ where: { sessionId, userId: { in: people }, status: 'BOOKED' } })) {
+        throw E.conflict('ALREADY_BOOKED', 'One of you already has a place in this class');
+      }
+      const { taken } = await takenPlaces(tx, sessionId);
+      if (taken + 2 > session.capacity) throw E.conflict('CLASS_FULL', 'There are not two places left in this class', { waitlist: false });
+
+      const pairId = randomUUID();
+      const made = [];
+      for (const [who, wallet] of [[userId, duo.mine], [duo.partner.userId, duo.partner.wallet]] as const) {
+        const b = await tx.classBooking.create({
+          data: {
+            sessionId,
+            userId: who,
+            status: 'BOOKED',
+            source: opts.source ?? 'CLIENT',
+            pairId,
+            // The key is the booker's; the partner's row carries none (her own key space).
+            idempotencyKey: who === userId ? (opts.idempotencyKey ?? undefined) : undefined,
+            creditsUsed: session.classType.creditsRequired,
+          },
+        });
+        await spendCredits(tx, { userId: who, credits: session.classType.creditsRequired, at: session.startsAt, bookingId: b.id, actorId: opts.actor.id, walletId: wallet.id });
+        await tx.classBooking.update({ where: { id: b.id }, data: { walletId: wallet.id } });
+        await notify(tx, {
+          userId: who,
+          type: 'CLASS_BOOKED',
+          dedupeKey: `booked:${b.id}`,
+          params: { className: session.classType.name, when: whenText(session.startsAt), instructor: instructorName(session) },
+          data: { kind: 'class', bookingId: b.id, sessionId },
+        });
+        await tellStaff(tx, session, { type: 'STAFF_NEW_BOOKING', dedupeKey: `booked:${b.id}`, clientId: who, actorId: opts.actor.id });
+        made.push({ ...b, walletId: wallet.id });
+      }
+      if (opts.actor.role === 'ADMIN') await audit(tx, opts.actor.id, 'booking.create_duo', 'class_session', sessionId, { pairId, people });
+      return made;
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) throw E.conflict('ALREADY_BOOKED', 'One of you already has a place in this class');
+    throw e;
+  }
+}
+
+export const lek = (n: number) => `${n.toLocaleString('en-US')} L`;
+
+/**
+ * The price of one class without a package: the one active SINGLE product.
+ * None, or more than one, is a setup problem the desk must fix — never a guess.
+ */
+export async function singleClassProduct(db: Tx | typeof prisma) {
+  const rows = await db.membershipProduct.findMany({ where: { kind: 'SINGLE', active: true }, select: { id: true, name: true, nameEn: true, price: true } });
+  if (rows.length !== 1 || rows[0].price <= 0) {
+    throw E.conflict('SINGLE_PRICE_MISSING', rows.length > 1 ? 'More than one single-class price is active' : 'No single-class price is set up', { active: rows.length });
+  }
+  return rows[0];
 }
 
 export const instructorName = (s: { instructor?: { user: { profile: { firstName: string; lastName: string } | null } } | null }) =>
@@ -200,41 +308,60 @@ export async function cancelBooking(bookingId: string, actor: Actor, opts: { res
     // Strictly before the deadline: with 1 hour, 15:59 is free and 16:00 is late.
     const inTime = now < freeCancelDeadline(session.startsAt, settings);
     const refund = inTime || (actor.role === 'ADMIN' && opts.restoreCredit === true);
-    await tx.classBooking.update({
-      where: { id: booking.id },
-      data: { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', cancelledAt: now, cancelledById: actor.id },
-    });
+    // A DUO that came together cancels together, under the same rule for both.
+    const targets = booking.pairId ? await tx.classBooking.findMany({ where: { pairId: booking.pairId, status: 'BOOKED' } }) : [booking];
     let refunded = false;
-    if (refund) {
-      refunded = await refundBookingCredits(tx, booking, actor.role === 'ADMIN' && !inTime ? 'ADMIN_RESTORE' : 'REFUND', inTime ? 'Cancelled in time' : 'Late cancellation, credit returned', actor.id);
-    } else if (booking.walletId) {
-      const w = await tx.creditWallet.findUniqueOrThrow({ where: { id: booking.walletId } });
-      await tx.creditTransaction.create({
-        data: { walletId: booking.walletId, userId: booking.userId, type: 'LATE_CANCEL_KEPT', delta: 0, balanceAfter: w.remaining, bookingId: booking.id, reason: 'Late cancellation', actorId: actor.id, idempotencyKey: `late:${booking.id}` },
+    let orderVoided = false;
+    for (const b of targets) {
+      await tx.classBooking.update({
+        where: { id: b.id },
+        data: { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', cancelledAt: now, cancelledById: actor.id },
       });
+      let back = false;
+      // A single class not yet paid: cancelled in time (or forgiven by the desk) she owes nothing;
+      // late, the order stays PENDING — the debt remains, just like a used session.
+      const voided = refund ? await voidUnpaidOrder(tx, b.id) : false;
+      if (refund) {
+        back = await refundBookingCredits(tx, b, actor.role === 'ADMIN' && !inTime ? 'ADMIN_RESTORE' : 'REFUND', inTime ? 'Cancelled in time' : 'Late cancellation, credit returned', actor.id);
+      } else if (b.walletId) {
+        const w = await tx.creditWallet.findUniqueOrThrow({ where: { id: b.walletId } });
+        await tx.creditTransaction.create({
+          data: { walletId: b.walletId, userId: b.userId, type: 'LATE_CANCEL_KEPT', delta: 0, balanceAfter: w.remaining, bookingId: b.id, reason: 'Late cancellation', actorId: actor.id, idempotencyKey: `late:${b.id}` },
+        });
+      }
+      if (b.id === booking.id) [refunded, orderVoided] = [back, voided];
+      await notify(tx, {
+        userId: b.userId,
+        type: 'CLASS_CANCELLED',
+        dedupeKey: `cancel:${b.id}`,
+        params: { className: session.classType.name, when: whenText(session.startsAt), refunded: back ? 1 : undefined },
+        data: { kind: 'class', bookingId: b.id, sessionId: session.id },
+      });
+      await tellStaff(tx, session, { type: 'STAFF_BOOKING_CANCELLED', dedupeKey: `cancel:${b.id}`, clientId: b.userId, actorId: actor.id, late: !inTime });
+      if (actor.role === 'ADMIN') await audit(tx, actor.id, 'booking.cancel', 'class_booking', b.id, { refunded: back, orderVoided: voided, pair: !!booking.pairId });
+      // Her private links stop working with the booking.
+      await tx.bookingManageToken.updateMany({ where: { bookingId: b.id, revokedAt: null }, data: { revokedAt: now } });
     }
-    await notify(tx, {
-      userId: booking.userId,
-      type: 'CLASS_CANCELLED',
-      dedupeKey: `cancel:${booking.id}`,
-      params: { className: session.classType.name, when: whenText(session.startsAt), refunded: refunded ? 1 : undefined },
-      data: { kind: 'class', bookingId: booking.id, sessionId: session.id },
-    });
-    await tellStaff(tx, session, { type: 'STAFF_BOOKING_CANCELLED', dedupeKey: `cancel:${booking.id}`, clientId: booking.userId, actorId: actor.id, late: !inTime });
-    if (actor.role === 'ADMIN') await audit(tx, actor.id, 'booking.cancel', 'class_booking', booking.id, { refunded });
     await offerFreedPlaces(tx, session.id, settings);
-    return { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', refunded };
+    return { status: inTime ? 'CANCELLED' : 'LATE_CANCELLED', refunded, orderVoided, cancelled: targets.length };
   });
 }
 
-/** Restore the credit of a late cancellation or a no-show, at the desk. */
+/** Cancel what is still owed for a single class. Paid orders are left alone: money back is a refund, at the desk. */
+async function voidUnpaidOrder(tx: Tx, bookingId: string) {
+  const r = await tx.order.updateMany({ where: { bookingId, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+  return r.count > 0;
+}
+
+/** Restore the credit of a late cancellation or a no-show, at the desk — or, for a single class not paid, forgive what she owes. */
 export async function restoreBookingCredit(bookingId: string, actorId: string, reason: string) {
   return transaction(async (tx) => {
     const booking = await tx.classBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw E.notFound('Booking');
-    const ok = await refundBookingCredits(tx, booking, 'ADMIN_RESTORE', reason, actorId);
-    if (!ok) throw E.conflict('NOTHING_TO_RESTORE', 'There is no credit to restore on this booking');
-    await audit(tx, actorId, 'credit.restore', 'class_booking', bookingId, { reason });
+    const credit = await refundBookingCredits(tx, booking, 'ADMIN_RESTORE', reason, actorId);
+    const forgiven = booking.status !== 'BOOKED' || (await tx.classAttendance.count({ where: { bookingId, status: 'ABSENT' } })) > 0 ? await voidUnpaidOrder(tx, bookingId) : false;
+    if (!credit && !forgiven) throw E.conflict('NOTHING_TO_RESTORE', 'There is no credit to restore on this booking');
+    await audit(tx, actorId, 'credit.restore', 'class_booking', bookingId, { reason, credit, forgiven });
     return { ok: true };
   });
 }
@@ -365,6 +492,8 @@ export async function cancelSession(sessionId: string, actorId: string, reason?:
     for (const b of bookings) {
       await tx.classBooking.update({ where: { id: b.id }, data: { status: 'SESSION_CANCELLED', cancelledAt: new Date(), cancelledById: actorId } });
       await refundBookingCredits(tx, b, 'REFUND', 'Class cancelled by the studio', actorId);
+      await voidUnpaidOrder(tx, b.id);
+      await tx.bookingManageToken.updateMany({ where: { bookingId: b.id, revokedAt: null }, data: { revokedAt: new Date() } });
       await notify(tx, {
         userId: b.userId,
         type: 'SESSION_CANCELLED',

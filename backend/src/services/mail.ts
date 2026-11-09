@@ -75,17 +75,24 @@ export function brandedEmail(opts: { heading: string; lines: string[]; code?: st
   return { html, text };
 }
 
-export function otpEmail(code: string, lang: 'sq' | 'en', purpose: 'LOGIN' | 'REGISTER' | 'RESET') {
+export function otpEmail(code: string, lang: 'sq' | 'en', purpose: 'LOGIN' | 'REGISTER' | 'RESET', context?: 'booking') {
   const sq = lang === 'sq';
   const subject = sq ? `${code} është kodi yt DUA` : `${code} is your DUA code`;
-  const heading = {
-    REGISTER: sq ? 'Mirë se vjen te DUA' : 'Welcome to DUA',
-    LOGIN: sq ? 'Kodi yt i hyrjes' : 'Your sign-in code',
-    RESET: sq ? 'Rivendos fjalëkalimin' : 'Reset your password',
-  }[purpose];
+  const heading =
+    context === 'booking'
+      ? sq ? 'Konfirmo rezervimin' : 'Confirm your booking'
+      : {
+          REGISTER: sq ? 'Mirë se vjen te DUA' : 'Welcome to DUA',
+          LOGIN: sq ? 'Kodi yt i hyrjes' : 'Your sign-in code',
+          RESET: sq ? 'Rivendos fjalëkalimin' : 'Reset your password',
+        }[purpose];
   const { html, text } = brandedEmail({
     heading,
-    lines: [sq ? 'Fut këtë kod në aplikacion për të vazhduar. Skadon pas 10 minutash.' : 'Enter this code in the app to continue. It expires in 10 minutes.'],
+    lines: [
+      context === 'booking'
+        ? sq ? 'Fut këtë kod për të konfirmuar rezervimin e klasës. Skadon pas 10 minutash.' : 'Enter this code to confirm your class booking. It expires in 10 minutes.'
+        : sq ? 'Fut këtë kod në aplikacion për të vazhduar. Skadon pas 10 minutash.' : 'Enter this code in the app to continue. It expires in 10 minutes.',
+    ],
     code,
     footer: sq
       ? 'Nëse nuk e kërkove ti, injoroje këtë email — askush nuk mund të hyjë pa kodin.'

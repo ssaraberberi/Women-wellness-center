@@ -71,6 +71,25 @@ export async function analytics(from: Date, to: Date) {
       select type::text, sum(delta)::int as credits from credit_transactions where created_at >= ${from} and created_at < ${to} group by 1`,
   ]);
 
+  // Money, kept apart: what was booked, what came in, what is still owed. Only payments are revenue;
+  // a class taken from a prepaid package adds nothing (the package was counted when it was paid).
+  const [singles, collectedBy, owed] = await Promise.all([
+    prisma.$queryRaw<{ booked_value: number; count: number }[]>`
+      select coalesce(sum(o.total),0)::int as booked_value, count(*)::int as count
+      from orders o join class_bookings b on b.id = o.booking_id join class_sessions s on s.id = b.session_id
+      where o.status in ('PENDING','PAID') and s.starts_at >= ${from} and s.starts_at < ${to}`,
+    prisma.$queryRaw<{ kind: string; amount: number }[]>`
+      select case when o.booking_id is not null then 'single' when mp.id is not null then 'membership' else 'other' end as kind, coalesce(sum(p.amount),0)::int as amount
+      from payments p join orders o on o.id = p.order_id left join membership_purchases mp on mp.order_id = o.id
+      where p.status in ('COMPLETED','REFUNDED') and p.completed_at >= ${from} and p.completed_at < ${to}
+      group by 1`,
+    prisma.$queryRaw<{ kind: string; amount: number; count: number }[]>`
+      select case when booking_id is not null then 'single' else 'membership' end as kind, coalesce(sum(total),0)::int as amount, count(*)::int as count
+      from orders where status = 'PENDING' group by 1`,
+  ]);
+  const collected = Object.fromEntries(collectedBy.map((r) => [r.kind, r.amount]));
+  const outstanding = Object.fromEntries(owed.map((r) => [r.kind, { amount: r.amount, count: r.count }]));
+
   const outcomes = Object.fromEntries(bookingOutcomes.map((r) => [r.status, r.count]));
   const totalBookings = bookingOutcomes.reduce((s, r) => s + r.count, 0);
   const cancelled = (outcomes.CANCELLED ?? 0) + (outcomes.LATE_CANCELLED ?? 0);
@@ -82,6 +101,14 @@ export async function analytics(from: Date, to: Date) {
     period: { from, to },
     revenue: { gross: revenueTotal[0].gross, refunds: revenueTotal[0].refunds, net: revenueTotal[0].gross - revenueTotal[0].refunds, byDay: revenueByDay },
     membershipSales: salesByProduct,
+    money: {
+      // Single classes held in the period (confirmed, paid or not), at the price agreed when booked.
+      singleClassBookedValue: singles[0]?.booked_value ?? 0,
+      singleClassBookings: singles[0]?.count ?? 0,
+      collected: { single: collected.single ?? 0, membership: collected.membership ?? 0, other: collected.other ?? 0 },
+      // Owed right now (not limited to the period): unpaid single classes and packages waiting for payment.
+      outstanding: { single: outstanding.single ?? { amount: 0, count: 0 }, membership: outstanding.membership ?? { amount: 0, count: 0 } },
+    },
     occupancy: { sessions: o.sessions, capacity: o.capacity, booked: o.booked, rate: o.capacity ? o.booked / o.capacity : 0 },
     popularTimes,
     popularInstructors,

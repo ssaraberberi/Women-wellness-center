@@ -15,6 +15,7 @@ import { calendarRoutes } from './routes/calendar.js';
 import { adminOpsRoutes } from './routes/admin-ops.js';
 import { adminPeopleRoutes } from './routes/admin-people.js';
 import { adminCommerceRoutes } from './routes/admin-commerce.js';
+import { publicRoutes } from './routes/public.js';
 
 export async function buildApp(opts: { logger?: boolean } = {}) {
   const app = Fastify({
@@ -23,7 +24,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
         ? false
         : // JSON logs on any deployed server (Railway sets NODE_ENV=production in both environments).
           isProd || process.env.NODE_ENV === 'production'
-          ? { level: 'info', redact: ['req.headers.authorization', 'body.refreshToken', 'body.code'] }
+          ? { level: 'info', redact: ['req.headers.authorization', 'body.refreshToken', 'body.code', 'body.token'] }
           : { level: 'info', transport: { target: 'pino-pretty', options: { singleLine: true, ignore: 'pid,hostname' } } },
     trustProxy: true, // Railway terminates TLS in front of us
     bodyLimit: 256 * 1024,
@@ -37,7 +38,7 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(cors, {
     origin: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(',').map((s) => s.trim()) : false,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-DUA-Platform'],
     maxAge: 600,
   });
   await app.register(rateLimit, { global: true, max: 300, timeWindow: '1 minute' });
@@ -75,5 +76,6 @@ export async function buildApp(opts: { logger?: boolean } = {}) {
   await app.register(adminOpsRoutes);
   await app.register(adminPeopleRoutes);
   await app.register(adminCommerceRoutes);
+  await app.register(publicRoutes);
   return app;
 }

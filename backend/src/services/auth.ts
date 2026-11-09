@@ -6,7 +6,7 @@ import { hmac, otpCode, safeEqual } from '../lib/crypto.js';
 import { otpEmail, sendEmail } from './mail.js';
 import { notifyAdmins } from './notify.js';
 import { issueSession, revokeAllSessions } from './tokens.js';
-import { hashPassword, verifyPassword } from '../lib/password.js';
+import { hashPassword, isLegacyHash, verifyPassword } from '../lib/password.js';
 
 const OTP_TTL_MS = 10 * 60_000;
 const MAX_ATTEMPTS = 5;
@@ -27,7 +27,7 @@ const devCodeAllowed = (email: string) =>
  * account: a new address gets a code too, and registers after proving it
  * reads that inbox. Nothing here tells a stranger who is a member.
  */
-export async function requestOtp(rawEmail: string, lang: 'sq' | 'en', ip?: string) {
+export async function requestOtp(rawEmail: string, lang: 'sq' | 'en', ip?: string, context?: 'booking') {
   const email = normalizeEmail(rawEmail);
   const since15 = new Date(Date.now() - 15 * 60_000);
   const since60 = new Date(Date.now() - 60 * 60_000);
@@ -55,7 +55,7 @@ export async function requestOtp(rawEmail: string, lang: 'sq' | 'en', ip?: strin
   if (devCodeAllowed(email)) {
     console.info(`[auth:dev] ${email} may use DEV_LOGIN_CODE (or ${code})`);
   } else {
-    const mail = otpEmail(code, user?.profile?.language ?? lang, purpose);
+    const mail = otpEmail(code, user?.profile?.language ?? lang, purpose, context);
     try {
       await sendEmail(email, mail.subject, mail.html, mail.text);
     } catch (e) {
@@ -96,6 +96,9 @@ async function consumeCode(email: string, code: string, purposes: ('LOGIN' | 'RE
   const consumed = await prisma.authOtpChallenge.updateMany({ where: { id: challenge.id, consumedAt: null }, data: { consumedAt: new Date() } });
   if (consumed.count !== 1) throw E.badRequest('OTP_EXPIRED', 'The code was already used');
 }
+
+/** Proof that whoever is asking reads this inbox (a sign-in code, used up). For booking without an account. */
+export const verifyEmailCode = (email: string, code: string) => consumeCode(normalizeEmail(email), code, ['LOGIN', 'REGISTER']);
 
 export async function verifyOtp(rawEmail: string, code: string, meta: { ip?: string; userAgent?: string }): Promise<VerifyResult> {
   const email = normalizeEmail(rawEmail);
@@ -227,7 +230,15 @@ export async function loginWithPassword(rawEmail: string, password: string, meta
   const user = await prisma.user.findUnique({ where: { email } });
   const ok = await verifyPassword(password, user?.passwordHash);
   if (!user || !ok || user.status === 'DISABLED' || user.status === 'DELETED') throw badLogin();
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date(), status: user.status === 'INVITED' ? 'ACTIVE' : user.status } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      lastLoginAt: new Date(),
+      status: user.status === 'INVITED' ? 'ACTIVE' : user.status,
+      // A password brought over from the old website is re-hashed the first time it is used.
+      passwordHash: isLegacyHash(user.passwordHash) ? await hashPassword(password) : undefined,
+    },
+  });
   return { status: 'signed_in' as const, ...(await issueSession(user.id, user.role, meta)) };
 }
 

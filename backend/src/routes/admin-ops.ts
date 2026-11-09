@@ -12,6 +12,7 @@ import { addClosure, generateSessions, regenerateTemplate } from '../services/sc
 import { analytics } from '../services/analytics.js';
 import { notify } from '../services/notify.js';
 import { usableCredits } from '../services/credits.js';
+import { grantPendingBonuses } from '../services/offers.js';
 import { normalizeEmail } from '../services/auth.js';
 import { zPhone } from '../lib/phone.js';
 
@@ -225,7 +226,7 @@ export async function adminOpsRoutes(app: FastifyInstance) {
     if (!row) throw E.notFound('Class');
     const [dto] = await sessionsForUser([row]);
     const [bookings, waitlist] = await Promise.all([
-      prisma.classBooking.findMany({ where: { sessionId: row.id }, include: { user: { include: { profile: true } }, attendance: true }, orderBy: { bookedAt: 'asc' } }),
+      prisma.classBooking.findMany({ where: { sessionId: row.id }, include: { user: { include: { profile: true } }, attendance: true, order: { include: { payments: { where: { status: 'COMPLETED' } } } } }, orderBy: { bookedAt: 'asc' } }),
       prisma.classWaitlist.findMany({ where: { sessionId: row.id, status: { in: ['WAITING', 'OFFERED'] } }, include: { user: { include: { profile: true } } }, orderBy: { createdAt: 'asc' } }),
     ]);
     return {
@@ -244,6 +245,11 @@ export async function adminOpsRoutes(app: FastifyInstance) {
         creditRefunded: b.creditRefunded,
         attendance: b.attendance?.status ?? null,
         bookedAt: b.bookedAt,
+        email: b.user.email,
+        // A single class: what she owes for it and whether it is paid. Null when a package covered it.
+        payment: b.order
+          ? { orderId: b.order.id, reference: b.order.reference, status: b.order.status, total: b.order.total, outstanding: b.order.status === 'PENDING' ? b.order.total : 0, method: b.order.payments[0]?.method ?? null }
+          : null,
       })),
       waitlist: waitlist.map((w, i) => ({ id: w.id, position: i + 1, userId: w.userId, name: personName(w.user.profile, w.user.email), status: w.status, offerExpiresAt: w.offerExpiresAt })),
     };
@@ -338,7 +344,7 @@ export async function adminOpsRoutes(app: FastifyInstance) {
       method: 'POST',
       url: '/admin/sessions/:id/guest-bookings',
       access: [...ADMIN],
-      summary: 'Add someone who has no account yet: a name is enough, phone and email optional. She pays at the desk; a matching client is reused.',
+      summary: 'Add someone who has no account yet: a name is enough, phone and email optional. Without a package she owes the single-class price (a pending order); a matching client is reused (desk only — the public flow matches on nothing unverified).',
       tags: ['admin'],
       params: zIdParams,
       body: z.object({
@@ -361,11 +367,11 @@ export async function adminOpsRoutes(app: FastifyInstance) {
           data: { email, role: 'CLIENT', profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone } }, notificationPrefs: { create: {} } },
         }));
       if (!existing) await audit(prisma, user.id, 'client.create', 'user', client.id, { email: email ?? null, phone: body.phone ?? null, via: 'class' });
-      // A client with sessions left uses one, like any booking; anyone else pays at the desk.
+      // A client with sessions left uses one, like any booking; anyone else owes a single class, paid at the desk.
       const s = await prisma.classSession.findUnique({ where: { id: params.id }, include: { classType: true } });
       if (!s) throw E.notFound('Class');
       const useCredit = !!existing && (await usableCredits(prisma, client.id, s.startsAt)) >= s.classType.creditsRequired;
-      const booking = await bookClass(client.id, params.id, { actor: { id: user.id, role: 'ADMIN' }, source: 'ADMIN', idempotencyKey, useCredit });
+      const booking = await bookClass(client.id, params.id, { actor: { id: user.id, role: 'ADMIN' }, source: 'ADMIN', idempotencyKey, pay: useCredit ? 'credits' : 'single' });
       return { booking, clientId: client.id, created: !existing, usedSession: useCredit };
     },
   );
@@ -388,7 +394,12 @@ export async function adminOpsRoutes(app: FastifyInstance) {
     async ({ params, body, user }) => {
       const b = await prisma.classBooking.findUnique({ where: { id: params.id } });
       if (!b || b.status !== 'BOOKED') throw E.notFound('Booking');
-      return prisma.classAttendance.upsert({ where: { bookingId: b.id }, update: { status: body.status, markedById: user.id, markedAt: new Date() }, create: { bookingId: b.id, status: body.status, markedById: user.id } });
+      return transaction(async (tx) => {
+        const row = await tx.classAttendance.upsert({ where: { bookingId: b.id }, update: { status: body.status, markedById: user.id, markedAt: new Date() }, create: { bookingId: b.id, status: body.status, markedById: user.id } });
+        // A friend's first visit may be what a BRING A BESTIE bonus was waiting for.
+        if (body.status === 'PRESENT') await grantPendingBonuses(tx);
+        return row;
+      });
     },
   );
 

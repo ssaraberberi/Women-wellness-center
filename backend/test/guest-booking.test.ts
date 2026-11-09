@@ -5,9 +5,10 @@ describe('desk adds a participant without an account', () => {
   beforeEach(() => resetDb());
   afterAll(() => prisma.$disconnect());
 
-  it('a name is enough: a client without email is created and booked without a session', async () => {
+  it('a name is enough: a client without email is created and booked without a session, owing a single class', async () => {
     const app = await getApp();
     const admin = await makeUser('ADMIN');
+    await prisma.membershipProduct.create({ data: { kind: 'SINGLE', name: 'Klasë e vetme', price: 1800, classCredits: 1, validityDays: 30 } });
     const s = await makeSession({ inHours: 24 });
     const r = await app.inject({ method: 'POST', url: `/admin/sessions/${s.id}/guest-bookings`, headers: admin.auth, payload: { firstName: 'Ana', lastName: 'Hoxha' } });
     expect(r.statusCode).toBe(200);
@@ -16,6 +17,7 @@ describe('desk adds a participant without an account', () => {
     expect(u).toMatchObject({ email: null, role: 'CLIENT', profile: { firstName: 'Ana', lastName: 'Hoxha', phone: null } });
     const b = await prisma.classBooking.findFirstOrThrow({ where: { sessionId: s.id } });
     expect(b).toMatchObject({ userId: u.id, status: 'BOOKED', creditsUsed: 0, walletId: null, source: 'ADMIN' });
+    expect(await prisma.order.findFirstOrThrow({ where: { bookingId: b.id } })).toMatchObject({ status: 'PENDING', total: 1800 });
 
     // She shows up in the class like anyone else.
     const detail = (await app.inject({ method: 'GET', url: `/admin/sessions/${s.id}`, headers: admin.auth })).json();
@@ -25,6 +27,7 @@ describe('desk adds a participant without an account', () => {
   it('the same phone again is the same client, and a client with sessions uses one', async () => {
     const app = await getApp();
     const admin = await makeUser('ADMIN');
+    await prisma.membershipProduct.create({ data: { kind: 'SINGLE', name: 'Klasë e vetme', price: 1800, classCredits: 1, validityDays: 30 } });
     const a = await makeSession({ inHours: 24 });
     const b = await makeSession({ inHours: 48 });
     const first = (await app.inject({ method: 'POST', url: `/admin/sessions/${a.id}/guest-bookings`, headers: admin.auth, payload: { firstName: 'Ana', lastName: 'Hoxha', phone: '069 123 4567' } })).json();

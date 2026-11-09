@@ -7,6 +7,7 @@ import { fromDbDate, studioDayRange, studioNow } from '../lib/time.js';
 import { personName } from '../lib/dto.js';
 import { setSpaOutcome } from '../services/spa.js';
 import { notify } from '../services/notify.js';
+import { grantPendingBonuses } from '../services/offers.js';
 import type { AuthUser } from '../services/tokens.js';
 
 /**
@@ -152,10 +153,15 @@ export async function staffRoutes(app: FastifyInstance) {
       if (!b || (user.role !== 'ADMIN' && b.session.instructorId !== user.id)) throw E.notFound('Booking');
       if (b.status !== 'BOOKED') throw E.conflict('NOT_ACTIVE', 'This booking is not active');
       if (b.session.startsAt.getTime() - Date.now() > 30 * 60_000) throw E.conflict('NOT_STARTED', 'Attendance opens 30 minutes before the class');
-      return prisma.classAttendance.upsert({
-        where: { bookingId: b.id },
-        update: { status: body.status, markedById: user.id, markedAt: new Date() },
-        create: { bookingId: b.id, status: body.status, markedById: user.id },
+      return transaction(async (tx) => {
+        const row = await tx.classAttendance.upsert({
+          where: { bookingId: b.id },
+          update: { status: body.status, markedById: user.id, markedAt: new Date() },
+          create: { bookingId: b.id, status: body.status, markedById: user.id },
+        });
+        // A friend's first visit may be what a BRING A BESTIE bonus was waiting for.
+        if (body.status === 'PRESENT') await grantPendingBonuses(tx);
+        return row;
       });
     },
   );

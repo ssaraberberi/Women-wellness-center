@@ -13,6 +13,7 @@ import { normalizeEmail } from '../services/auth.js';
 import { revokeAllSessions } from '../services/tokens.js';
 import { adjustWallet } from '../services/credits.js';
 import { createOrder, recordManualPayment } from '../services/orders.js';
+import { whenText } from '../services/booking.js';
 
 const ADMIN = ['ADMIN'] as const;
 
@@ -356,7 +357,7 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       prisma.membershipPurchase.findMany({ where: { userId: u.id }, include: { wallet: true, spaEntitlements: { include: { treatment: true } }, order: true }, orderBy: { createdAt: 'desc' } }),
       prisma.classBooking.findMany({ where: { userId: u.id }, include: { session: { include: { classType: true } }, attendance: true }, orderBy: { session: { startsAt: 'desc' } }, take: 50 }),
       prisma.spaAppointment.findMany({ where: { clientId: u.id }, include: { treatment: true, therapist: { include: { user: { include: { profile: true } } } } }, orderBy: { startsAt: 'desc' }, take: 50 }),
-      prisma.order.findMany({ where: { userId: u.id }, include: { payments: true, purchase: true }, orderBy: { createdAt: 'desc' }, take: 50 }),
+      prisma.order.findMany({ where: { userId: u.id }, include: { payments: true, purchase: true, booking: { include: { session: { include: { classType: true } } } } }, orderBy: { createdAt: 'desc' }, take: 50 }),
       prisma.clientNote.findMany({ where: { clientId: u.id }, orderBy: { createdAt: 'desc' } }),
       prisma.creditTransaction.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'desc' }, take: 50 }),
     ]);
@@ -368,6 +369,8 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       language: u.profile?.language,
       marketingConsent: u.profile?.marketingConsent ?? false,
       remainingCredits: active.reduce((s, p) => s + (p.wallet?.remaining ?? 0), 0),
+      // Everything she still owes: unpaid single classes and packages waiting for payment.
+      outstanding: orders.filter((o) => o.status === 'PENDING').reduce((s, o) => s + o.total, 0),
       purchases: purchases.map((p) => ({
         id: p.id,
         name: p.nameSnapshot,
@@ -382,7 +385,7 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       })),
       bookings: bookings.map((b) => ({ id: b.id, sessionId: b.sessionId, title: b.session.classType.name, startsAt: b.session.startsAt, status: b.status, attendance: b.attendance?.status ?? null, creditsUsed: b.creditsUsed, creditRefunded: b.creditRefunded })),
       spa: spa.map((a) => ({ id: a.id, title: a.treatment.name, startsAt: a.startsAt, status: a.status, therapist: personName(a.therapist.user.profile), paidWith: a.paidWith, price: a.price })),
-      orders: orders.map((o) => ({ id: o.id, reference: o.reference, status: o.status, total: o.total, discount: o.discount, createdAt: o.createdAt, product: o.purchase?.nameSnapshot ?? null, payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: p.amount, completedAt: p.completedAt })) })),
+      orders: orders.map((o) => ({ id: o.id, reference: o.reference, status: o.status, total: o.total, discount: o.discount, createdAt: o.createdAt, product: o.purchase?.nameSnapshot ?? (o.booking ? `${o.booking.session.classType.name} · ${whenText(o.booking.session.startsAt)}` : null), bookingStatus: o.booking?.status ?? null, payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: p.amount, completedAt: p.completedAt })) })),
       notes,
       transactions,
     };

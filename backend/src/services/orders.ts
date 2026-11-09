@@ -6,6 +6,8 @@ import { reference } from '../lib/crypto.js';
 import { formatStudio } from '../lib/time.js';
 import { notify, notifyAdmins } from './notify.js';
 import { env } from '../env.js';
+import { randomUUID } from 'node:crypto';
+import { createNamedPerson, grantPendingBonuses, hasHistory, liveOffer, lookalikes, type Person } from './offers.js';
 
 const lek = (n: number) => `${n.toLocaleString('en-US')} L`;
 
@@ -53,6 +55,11 @@ export async function createOrder(opts: {
   promoCode?: string;
   /** Only the desk sets this (admin selling a package); clients cannot. */
   manualDiscount?: ManualDiscount;
+  /** An offer: a DUO (its own package), a discount on this package, or a bonus with a friend. */
+  offerId?: string;
+  /** DUO: the second person. BRING A BESTIE: the friend. Each becomes a client of her own, never merged. */
+  partner?: Person;
+  friend?: Person;
   actorId: string;
   idempotencyKey?: string | null;
 }) {
@@ -67,8 +74,27 @@ export async function createOrder(opts: {
     return await transaction(async (tx) => {
       // Serialises one person's orders, so limits and first-time checks cannot race.
       await tx.$executeRaw`select pg_advisory_xact_lock(hashtext(${'orders:' + opts.userId}))`;
-      const product = await tx.membershipProduct.findUnique({ where: { id: opts.productId }, include: { spaItems: true } });
-      if (!product || !product.active) throw E.notFound('Package');
+      const isAdmin = opts.actorId !== opts.userId;
+      const offer = opts.offerId ? await liveOffer(tx, opts.offerId, { admin: isAdmin }) : null;
+      // A DUO sells its own package (it may be hidden from the normal list); any other offer applies to the one chosen.
+      const productId = offer?.kind === 'BUNDLE' ? offer.productId : opts.productId;
+      const product = productId ? await tx.membershipProduct.findUnique({ where: { id: productId }, include: { spaItems: true } }) : null;
+      if (!product || (!product.active && offer?.kind !== 'BUNDLE')) throw E.notFound('Package');
+      if (offer && offer.kind !== 'BUNDLE' && offer.eligibleProducts.length && !offer.eligibleProducts.some((e) => e.productId === product.id)) {
+        throw E.conflict('OFFER_NOT_APPLICABLE', 'This offer does not apply to that package');
+      }
+      if (offer?.newClientsOnly && (await hasHistory(tx, opts.userId))) throw E.conflict('OFFER_NEW_ONLY', 'This offer is for new clients');
+      if (offer && (await tx.offerClaim.count({ where: { offerId: offer.id, clientId: opts.userId, role: 'BUYER', status: { not: 'VOID' } } }))) {
+        throw E.conflict('OFFER_USED', 'You have already used this offer');
+      }
+      if (product.persons === 2 && !opts.partner) throw E.badRequest('PARTNER_REQUIRED', 'A DUO needs the second person');
+      if (offer?.kind === 'BONUS' && offer.friendRequired && !opts.friend) throw E.badRequest('FRIEND_REQUIRED', 'This offer needs your friend');
+      // The friend must be new to DUA: a look-alike with history refuses the offer (it is only a check — nobody is merged).
+      if (offer?.kind === 'BONUS' && opts.friend && offer.friendNew) {
+        for (const twin of await lookalikes(tx, opts.friend, opts.userId)) {
+          if (await hasHistory(tx, twin.id)) throw E.conflict('FRIEND_NOT_NEW', 'Your friend has already been to DUA, so this offer does not apply');
+        }
+      }
       if (product.firstTimeOnly) {
         const prior = await tx.membershipPurchase.count({ where: { userId: opts.userId, status: { in: ['ACTIVE', 'EXPIRED', 'PENDING_PAYMENT'] } } });
         if (prior) throw E.conflict('TRIAL_NOT_ELIGIBLE', 'This package is for first-time clients');
@@ -87,6 +113,9 @@ export async function createOrder(opts: {
         discount = p.discount;
         promotionId = p.promo.id;
         await tx.promotionCode.update({ where: { id: p.promo.id }, data: { redemptionCount: { increment: 1 } } });
+      } else if (offer?.kind === 'DISCOUNT' && offer.discountPct) {
+        // The website's rule, kept: the percentage off, rounded to the lek.
+        discount = product.price - Math.round((product.price * (100 - Math.min(offer.discountPct, 100))) / 100);
       } else if (opts.manualDiscount) {
         discount = manualDiscountAmount(product.price, opts.manualDiscount);
       }
@@ -98,22 +127,31 @@ export async function createOrder(opts: {
           discount,
           total: product.price - discount,
           promotionId,
+          offerId: offer?.id,
           createdById: opts.actorId,
           idempotencyKey: opts.idempotencyKey ?? undefined,
         },
       });
+      // A DUO: both packages share a pair id; the partner's is paid with this order.
+      const pairId = product.persons === 2 ? randomUUID() : null;
+      const together = product.persons === 2 && (offer?.together ?? true);
+      const snapshot = { productId: product.id, nameSnapshot: product.name, classCredits: product.classCredits, validityDays: product.validityDays, termsSnapshot: product.terms, pairId, together };
       const purchase = await tx.membershipPurchase.create({
-        data: {
-          userId: opts.userId,
-          productId: product.id,
-          orderId: order.id,
-          nameSnapshot: product.name,
-          priceSnapshot: order.total,
-          classCredits: product.classCredits,
-          validityDays: product.validityDays,
-          termsSnapshot: product.terms,
-        },
+        data: { ...snapshot, userId: opts.userId, orderId: order.id, priceSnapshot: order.total },
       });
+      if (pairId && opts.partner) {
+        const partner = await createNamedPerson(tx, opts.partner, { actorId: opts.actorId, why: `a DUO order (${order.reference})` });
+        await tx.membershipPurchase.create({ data: { ...snapshot, userId: partner.id, priceSnapshot: 0 } });
+        if (offer) await tx.offerClaim.create({ data: { offerId: offer.id, clientId: partner.id, orderId: order.id, role: 'FRIEND', status: 'CLAIMED' } });
+      }
+      if (offer) {
+        const bonus = offer.kind === 'BONUS';
+        await tx.offerClaim.create({ data: { offerId: offer.id, clientId: opts.userId, orderId: order.id, role: 'BUYER', status: bonus ? 'PENDING' : 'CLAIMED' } });
+        if (bonus && opts.friend) {
+          const friend = await createNamedPerson(tx, opts.friend, { actorId: opts.actorId, why: `${offer.title} (${order.reference}), named by the buyer` });
+          await tx.offerClaim.create({ data: { offerId: offer.id, clientId: friend.id, orderId: order.id, role: 'FRIEND', status: 'PENDING' } });
+        }
+      }
       const settings = await getSettings(tx);
       if (order.total === 0 || settings.activateBeforePayment) await activatePurchase(tx, purchase.id);
       else {
@@ -135,6 +173,7 @@ export async function createOrder(opts: {
           data: { kind: 'client', clientId: opts.userId, orderId: order.id },
         });
       }
+      if (offer?.kind === 'BONUS') await grantPendingBonuses(tx);
       return tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { purchase: true } });
     });
   } catch (e) {
@@ -182,6 +221,13 @@ export async function activatePurchase(tx: Tx, purchaseId: string) {
     params: { product: purchase.nameSnapshot, credits: purchase.classCredits, expires: formatStudio(expiresAt, 'd LLL yyyy') },
     data: { kind: 'purchase', purchaseId: purchase.id },
   });
+  // A DUO is paid once: the partner's package starts with the buyer's.
+  if (purchase.pairId) {
+    const others = await tx.membershipPurchase.findMany({ where: { pairId: purchase.pairId, status: 'PENDING_PAYMENT', id: { not: purchase.id } } });
+    for (const o of others) await activatePurchase(tx, o.id);
+  }
+  // A paid package may be what a waiting bonus was waiting for (hers, or a friend's).
+  await grantPendingBonuses(tx);
   return purchase;
 }
 
@@ -214,6 +260,9 @@ export async function cancelOrder(orderId: string, actor: { id: string; role: st
     if (order.status !== 'PENDING') throw E.conflict('ORDER_NOT_PENDING', 'Only unpaid orders can be cancelled');
     await tx.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
     if (order.purchase) await tx.membershipPurchase.update({ where: { id: order.purchase.id }, data: { status: 'CANCELLED' } });
+    // The DUO partner's package goes with it, and the offer is free to be used again.
+    if (order.purchase?.pairId) await tx.membershipPurchase.updateMany({ where: { pairId: order.purchase.pairId, status: 'PENDING_PAYMENT' }, data: { status: 'CANCELLED' } });
+    await tx.offerClaim.updateMany({ where: { orderId, status: { in: ['CLAIMED', 'PENDING'] } }, data: { status: 'VOID' } });
     if (order.promotionId) await tx.promotionCode.update({ where: { id: order.promotionId }, data: { redemptionCount: { decrement: 1 } } });
     await audit(tx, actor.id, 'order.cancel', 'order', orderId);
     return { ok: true };

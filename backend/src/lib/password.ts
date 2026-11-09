@@ -23,12 +23,23 @@ export async function hashPassword(password: string) {
 }
 
 export async function verifyPassword(password: string, stored: string | null | undefined) {
+  const parts = (stored ?? DUMMY).split('$');
+  // Brought over from the old website: "scrypt$N$salt$hex", the salt used as text, r=8 p=1.
+  if (parts.length === 4 && parts[0] === 'scrypt') {
+    const [, n, salt, hex] = parts;
+    const expected = Buffer.from(hex, 'hex');
+    const got = await scrypt(password, Buffer.from(salt, 'utf8'), expected.length, { N: Number(n), r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+    return got.length === expected.length && timingSafeEqual(got, expected);
+  }
   // With no stored hash, still spend the same time so a stranger cannot tell who has a password.
-  const [algo, n, r, p, salt, hash] = (stored ?? DUMMY).split('$');
+  const [algo, n, r, p, salt, hash] = parts;
   if (algo !== 'scrypt') return false;
   const expected = Buffer.from(hash, 'base64');
   const got = await scrypt(password, Buffer.from(salt, 'base64'), expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: 64 * 1024 * 1024 });
   return !!stored && got.length === expected.length && timingSafeEqual(got, expected);
 }
 
-const DUMMY = `scrypt$${N}$${R}$${P}$${Buffer.alloc(16).toString('base64')}$${Buffer.alloc(KEYLEN).toString('base64')}`;
+/** An old-website hash still works, but is replaced by the current format at the next good login. */
+export const isLegacyHash = (stored: string | null | undefined) => !!stored && stored.split('$').length === 4;
+
+const DUMMY =`scrypt$${N}$${R}$${P}$${Buffer.alloc(16).toString('base64')}$${Buffer.alloc(KEYLEN).toString('base64')}`;

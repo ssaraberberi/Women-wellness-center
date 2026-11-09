@@ -34,8 +34,10 @@ export const MESSAGES: Record<string, Def> = {
     email: true,
     render: (l, p) => ({
       title: L(l, 'Rezervimi u krye', 'Booking confirmed'),
-      body: L(l, `${p.className} · ${p.when}. Të presim!`, `${p.className} · ${p.when}. See you there!`),
-      details: classDetails(l, p),
+      body: p.price
+        ? L(l, `${p.className} · ${p.when}. Çmimi ${p.price}, paguan në studio me cash. Të presim!`, `${p.className} · ${p.when}. ${p.price}, paid at the studio in cash. See you there!`)
+        : L(l, `${p.className} · ${p.when}. Të presim!`, `${p.className} · ${p.when}. See you there!`),
+      details: [...classDetails(l, p), ...(p.price ? ([[L(l, 'Për të paguar', 'To pay'), String(p.price)]] as [string, string][]) : [])],
     }),
   },
   CLASS_CANCELLED: {
@@ -246,6 +248,14 @@ export const MESSAGES: Record<string, Def> = {
         [L(l, 'Totali', 'Total'), String(p.total)],
         [L(l, 'Referenca', 'Reference'), String(p.reference)],
       ],
+    }),
+  },
+  BONUS_GRANTED: {
+    category: 'essential',
+    email: true,
+    render: (l, p) => ({
+      title: L(l, 'Një klasë bonus për ty', 'A bonus class for you'),
+      body: L(l, `${p.offer}: ${p.n} klasë bonus u shtua në paketën tënde.`, `${p.offer}: ${p.n} bonus class(es) added to your package.`),
     }),
   },
   PURCHASE_ACTIVE: {

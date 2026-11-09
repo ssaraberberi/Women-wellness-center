@@ -30,6 +30,8 @@ const schema = z.object({
   PAYMENT_WEBHOOK_SECRET: z.string().optional().default(''),
   // Sign in with Apple: the iOS bundle id(s) an Apple identity token may be issued for, comma-separated.
   APPLE_AUDIENCES: z.string().default('com.duapilatesandspa.app'),
+  // Where a guest's private booking link points (the website's booking page).
+  PUBLIC_BOOK_URL: z.string().default('https://dua-pilates.com/book/klase'),
 });
 
 const parsed = schema.safeParse(process.env);

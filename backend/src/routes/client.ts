@@ -7,10 +7,22 @@ import { E } from '../lib/errors.js';
 import { getSettings } from '../lib/settings.js';
 import { studioDayRange, addMinutes } from '../lib/time.js';
 import { personName, sessionInclude, sessionsForUser } from '../lib/dto.js';
-import { acceptWaitlistOffer, bookClass, cancelBooking, joinWaitlist, lastFreeCancel, leaveWaitlist } from '../services/booking.js';
+import { acceptWaitlistOffer, bookClass, bookDuo, cancelBooking, duoWallets, joinWaitlist, lastFreeCancel, leaveWaitlist, singleClassProduct } from '../services/booking.js';
+import { zPhone } from '../lib/phone.js';
 import { usableCredits } from '../services/credits.js';
 import { bookSpa, cancelSpa, spaAvailability } from '../services/spa.js';
 import { cancelOrder, createOrder } from '../services/orders.js';
+
+/** Someone the buyer names (a DUO partner, a friend): a name and a phone are enough. */
+const zNamedPerson = z.object({
+  firstName: z.string().trim().min(1).max(60),
+  lastName: z.string().trim().min(1).max(60),
+  phone: zPhone,
+  email: z.email().max(200).optional(),
+});
+
+/** The web build of the app says so in a header; it only labels the booking for the CRM. */
+const sourceOf = (req: { headers: Record<string, unknown> }) => (String(req.headers['x-dua-platform'] ?? '').toLowerCase() === 'web' ? 'MEMBER_WEB' : 'CLIENT');
 
 export async function clientRoutes(app: FastifyInstance) {
   // ─────────────── catalogue ───────────────
@@ -73,6 +85,12 @@ export async function clientRoutes(app: FastifyInstance) {
       instructorBio: row.instructor?.bio ?? null,
       myCredits: credits,
       eligible: credits >= row.classType.creditsRequired,
+      // Booking one class without a package (paid at the studio); null when no price is set up.
+      singlePrice: await singleClassProduct(prisma).then((p) => p.price, () => null),
+      // A DUO that comes together: who she would book with, and what each has left.
+      duo: await duoWallets(prisma, user.id, row.startsAt, row.classType.creditsRequired).then((d) =>
+        d ? { partner: d.partner.name, mine: d.mine.remaining, theirs: d.partner.wallet.remaining } : null,
+      ),
       freeCancelUntil: lastFreeCancel(row.startsAt, settings),
       lateCancelKeepsCredit: settings.lateCancelKeepsCredit,
       waitlistEnabled: settings.waitlistEnabled,
@@ -85,7 +103,33 @@ export async function clientRoutes(app: FastifyInstance) {
   route(
     app,
     { method: 'POST', url: '/sessions/:id/book', access: ['CLIENT'], summary: 'Book a place (send an Idempotency-Key header)', tags: ['classes'], params: zIdParams },
-    async ({ user, params, idempotencyKey }) => bookClass(user.id, params.id, { actor: { id: user.id, role: 'CLIENT' }, idempotencyKey }),
+    async ({ user, params, idempotencyKey, req }) => bookClass(user.id, params.id, { actor: { id: user.id, role: 'CLIENT' }, idempotencyKey, source: sourceOf(req) }),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/sessions/:id/book-single',
+      access: ['CLIENT'],
+      summary: 'Book one class without using a package: confirmed now, paid at the studio (send an Idempotency-Key header)',
+      tags: ['classes'],
+      params: zIdParams,
+    },
+    async ({ user, params, idempotencyKey, req }) => bookClass(user.id, params.id, { actor: { id: user.id, role: 'CLIENT' }, idempotencyKey, source: sourceOf(req), pay: 'single' }),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/sessions/:id/book-duo',
+      access: ['CLIENT'],
+      summary: 'DUO together: one booking places both of you (two places, a session from each DUO package). Send an Idempotency-Key.',
+      tags: ['classes'],
+      params: zIdParams,
+    },
+    async ({ user, params, idempotencyKey, req }) => bookDuo(user.id, params.id, { actor: { id: user.id, role: 'CLIENT' }, idempotencyKey, source: sourceOf(req) }),
   );
 
   route(app, { method: 'POST', url: '/sessions/:id/waitlist', access: ['CLIENT'], summary: 'Join the waiting list of a full class', tags: ['classes'], params: zIdParams }, ({ user, params }) =>
@@ -234,11 +278,20 @@ export async function clientRoutes(app: FastifyInstance) {
       method: 'POST',
       url: '/orders',
       access: ['CLIENT'],
-      summary: 'Order a package. Paid at the studio unless an online provider is configured.',
+      summary: 'Order a package, optionally with an offer (DUO: send partner; BRING A BESTIE: send friend). Paid at the studio; credits start when it is paid.',
       tags: ['memberships'],
-      body: z.object({ productId: z.uuid(), promoCode: z.string().trim().max(40).optional() }),
+      body: z
+        .object({
+          productId: z.uuid().optional(),
+          promoCode: z.string().trim().max(40).optional(),
+          offerId: z.uuid().optional(),
+          partner: zNamedPerson.optional(),
+          friend: zNamedPerson.optional(),
+        })
+        .refine((b) => b.productId || b.offerId, 'Choose a package'),
     },
-    ({ user, body, idempotencyKey }) => createOrder({ userId: user.id, productId: body.productId, promoCode: body.promoCode || undefined, actorId: user.id, idempotencyKey }),
+    ({ user, body, idempotencyKey }) =>
+      createOrder({ userId: user.id, productId: body.productId ?? '', promoCode: body.promoCode || undefined, offerId: body.offerId, partner: body.partner, friend: body.friend, actorId: user.id, idempotencyKey }),
   );
 
   route(app, { method: 'POST', url: '/orders/:id/cancel', access: ['CLIENT'], summary: 'Cancel an unpaid order', tags: ['memberships'], params: zIdParams }, ({ user, params }) =>

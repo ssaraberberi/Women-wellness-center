@@ -4,14 +4,73 @@ import { route, zDate, zIdParams } from '../lib/http.js';
 import { prisma, transaction } from '../lib/prisma.js';
 import { E } from '../lib/errors.js';
 import { audit } from '../lib/settings.js';
-import { studioDayRange } from '../lib/time.js';
+import { dbDate, fromDbDate, studioDayRange } from '../lib/time.js';
+import type { Prisma } from '@prisma/client';
 import { personName } from '../lib/dto.js';
 import { cancelOrder, completeOnlinePayment, paymentProvider, recordManualPayment, refundPayment } from '../services/orders.js';
 import { bookSpa, cancelSpa, rescheduleSpa, setSpaOutcome } from '../services/spa.js';
+import { whenText } from '../services/booking.js';
 
 const ADMIN = ['ADMIN'] as const;
 
+const zOffer = z.object({
+  kind: z.enum(['BUNDLE', 'DISCOUNT', 'BONUS']),
+  title: z.string().trim().min(1).max(80),
+  titleEn: z.string().trim().max(80).nullish(),
+  description: z.string().max(1000).default(''),
+  descriptionEn: z.string().max(1000).nullish(),
+  eligibility: z.string().max(500).nullish(),
+  eligibilityEn: z.string().max(500).nullish(),
+  productId: z.uuid().nullish(),
+  eligibleProductIds: z.array(z.uuid()).max(50).default([]),
+  together: z.boolean().default(true),
+  discountPct: z.number().int().min(1).max(100).nullish(),
+  startsOn: zDate.nullish(),
+  endsOn: zDate.nullish(),
+  maxRedemptions: z.number().int().min(1).nullish(),
+  newClientsOnly: z.boolean().default(false),
+  friendRequired: z.boolean().default(false),
+  friendNew: z.boolean().default(true),
+  bonusClasses: z.number().int().min(0).max(20).default(0),
+  bonusTo: z.enum(['REFERRER', 'FRIEND', 'BOTH']).default('BOTH'),
+  bonusWhen: z.enum(['BOOKED', 'PAID', 'FRIEND_PAID', 'VISIT']).default('FRIEND_PAID'),
+  active: z.boolean().default(false),
+  sortOrder: z.number().int().default(0),
+});
+const offerData = (b: Partial<z.infer<typeof zOffer>>) => {
+  const { eligibleProductIds: _e, startsOn, endsOn, ...rest } = b;
+  return { ...rest, ...(startsOn !== undefined ? { startsOn: startsOn ? dbDate(startsOn) : null } : {}), ...(endsOn !== undefined ? { endsOn: endsOn ? dbDate(endsOn) : null } : {}) };
+};
+
 export async function adminCommerceRoutes(app: FastifyInstance) {
+  // ─────────────── offers (DUO, discounts, bonuses) ───────────────
+  route(app, { method: 'GET', url: '/admin/offers', access: [...ADMIN], summary: 'Every offer, with how often it was used', tags: ['admin-commerce'] }, async () => {
+    const rows = await prisma.offer.findMany({ include: { eligibleProducts: true, product: true }, orderBy: [{ archived: 'asc' }, { sortOrder: 'asc' }] });
+    const used = await prisma.offerClaim.groupBy({ by: ['offerId'], where: { role: 'BUYER', status: { not: 'VOID' } }, _count: true });
+    const byId = new Map(used.map((u) => [u.offerId, u._count]));
+    return rows.map((o) => ({ ...o, startsOn: o.startsOn ? fromDbDate(o.startsOn) : null, endsOn: o.endsOn ? fromDbDate(o.endsOn) : null, eligibleProductIds: o.eligibleProducts.map((e) => e.productId), claimed: byId.get(o.id) ?? 0 }));
+  });
+
+  route(app, { method: 'POST', url: '/admin/offers', access: [...ADMIN], summary: 'Create an offer', tags: ['admin-commerce'], body: zOffer }, async ({ body, user }) => {
+    if (body.kind === 'BUNDLE' && !body.productId) throw E.badRequest('VALIDATION', 'A bundle needs its package');
+    if (body.kind === 'DISCOUNT' && !body.discountPct) throw E.badRequest('VALIDATION', 'A discount needs a percentage');
+    const o = await prisma.offer.create({ data: { ...offerData(body), eligibleProducts: { create: body.eligibleProductIds.map((productId) => ({ productId })) } } as Prisma.OfferUncheckedCreateInput });
+    await audit(prisma, user.id, 'offer.create', 'offer', o.id, { title: o.title });
+    return o;
+  });
+
+  route(app, { method: 'PATCH', url: '/admin/offers/:id', access: [...ADMIN], summary: 'Edit, switch on/off or archive an offer', tags: ['admin-commerce'], params: zIdParams, body: zOffer.partial().extend({ archived: z.boolean().optional() }) }, async ({ params, body, user }) =>
+    transaction(async (tx) => {
+      const o = await tx.offer.update({ where: { id: params.id }, data: offerData(body) as Prisma.OfferUncheckedUpdateInput });
+      if (body.eligibleProductIds) {
+        await tx.offerProduct.deleteMany({ where: { offerId: o.id } });
+        await tx.offerProduct.createMany({ data: body.eligibleProductIds.map((productId) => ({ offerId: o.id, productId })) });
+      }
+      await audit(tx, user.id, 'offer.update', 'offer', o.id, body);
+      return o;
+    }),
+  );
+
   // ─────────────── products ───────────────
   const spaItem = z.object({ treatmentId: z.uuid().nullish(), category: z.string().max(30).nullish(), quantity: z.number().int().min(1).max(50) });
   const productBody = z.object({
@@ -32,6 +91,8 @@ export async function adminCommerceRoutes(app: FastifyInstance) {
     imageKey: z.string().max(60).nullish(),
     sortOrder: z.number().int().default(0),
     active: z.boolean().default(true),
+    // 2 for a DUO: one order, a package for each of the two.
+    persons: z.number().int().min(1).max(2).default(1),
     spaItems: z.array(spaItem).max(10).default([]),
   });
 
@@ -77,7 +138,7 @@ export async function adminCommerceRoutes(app: FastifyInstance) {
           status: query.status,
           ...(query.q ? { OR: [{ reference: { contains: query.q, mode: 'insensitive' } }, { user: { profile: { firstName: { contains: query.q, mode: 'insensitive' } } } }, { user: { email: { contains: query.q, mode: 'insensitive' } } }] } : {}),
         },
-        include: { user: { include: { profile: true } }, purchase: true, payments: true, promotion: true },
+        include: { user: { include: { profile: true } }, purchase: true, payments: true, promotion: true, booking: { include: { session: { include: { classType: true } } } } },
         orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
         take: 100,
       });
@@ -91,7 +152,9 @@ export async function adminCommerceRoutes(app: FastifyInstance) {
         promotion: o.promotion?.code ?? null,
         createdAt: o.createdAt,
         client: { id: o.userId, name: personName(o.user.profile, o.user.email), phone: o.user.profile?.phone ?? null },
-        product: o.purchase?.nameSnapshot ?? null,
+        product: o.purchase?.nameSnapshot ?? (o.booking ? `${o.booking.session.classType.name} · ${whenText(o.booking.session.startsAt)}` : null),
+        // A single class: the booking it pays for (its status says whether she came / cancelled late).
+        booking: o.booking ? { id: o.booking.id, sessionId: o.booking.sessionId, status: o.booking.status, source: o.booking.source, startsAt: o.booking.session.startsAt } : null,
         payments: o.payments,
       }));
     },

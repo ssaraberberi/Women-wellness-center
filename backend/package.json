@@ -18,6 +18,7 @@
     "seed": "tsx prisma/seed.ts",
     "schedule:week": "tsx scripts/weekly-schedule.ts",
     "reformer-only": "tsx scripts/reformer-only.ts",
+    "import:website": "tsx scripts/website-import.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

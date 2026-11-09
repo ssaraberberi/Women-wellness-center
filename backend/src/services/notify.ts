@@ -11,7 +11,7 @@ import { brandedEmail, sendEmail } from './mail.js';
  */
 export async function notify(
   db: Tx | typeof prisma,
-  opts: { userId: string; type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue },
+  opts: { userId: string; type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue; skipEmail?: boolean },
 ) {
   const def = MESSAGES[opts.type];
   if (!def) throw new Error(`Unknown notification type ${opts.type}`);
@@ -37,7 +37,8 @@ export async function notify(
   if (prefs.pushEnabled && user.pushTokens.length) {
     rows.push({ userId: opts.userId, type: opts.type, channel: 'PUSH', title: msg.title, body: msg.body, data: opts.data, dedupeKey: opts.dedupeKey });
   }
-  if (def.email && (prefs.emailEnabled || def.critical)) {
+  // skipEmail: the caller sends its own letter (one that carries a private link, which must not sit in this table).
+  if (def.email && !opts.skipEmail && (prefs.emailEnabled || def.critical)) {
     rows.push({
       userId: opts.userId,
       type: opts.type,
