@@ -1,0 +1,42 @@
+/* What the class booking adds to /book/book.css — same tokens, nothing new in colour or type. */
+
+.me{max-width:760px;margin:10px auto 0;padding:0 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13.5px;color:var(--ink-soft)}
+.me b{color:var(--plum)}
+
+.price{margin-top:18px;display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:14px 18px;border-radius:var(--r-sm);background:var(--petal)}
+.price b{font-family:var(--display);font-weight:400;font-size:1.25rem;color:var(--wine)}
+.price span{font-size:13.5px;color:var(--ink-soft)}
+
+.row2{display:grid;gap:14px}
+@media (min-width:560px){.row2{grid-template-columns:1fr 1fr}}
+
+/* The six-digit code: one wide, calm field, digits spaced like the email shows them. */
+.code input{font-family:var(--display);font-size:1.9rem;letter-spacing:.5em;text-align:center;padding-left:.5em;font-variant-numeric:tabular-nums}
+.resend{margin-top:6px;text-align:center}
+
+.choice{display:grid;gap:12px;margin-top:22px}
+.choice button{text-align:left;display:grid;gap:4px;padding:18px;border:1px solid var(--line);border-radius:var(--r);background:var(--lift);transition:border-color .2s var(--ease),background .2s var(--ease)}
+.choice button:hover{border-color:var(--wine)}
+.choice button b{font-family:var(--display);font-weight:400;font-size:1.15rem}
+.choice button span{font-size:14px;color:var(--ink-soft)}
+
+/* Classes · Packages & offers */
+.tabs{display:flex;gap:4px;padding:4px;margin-bottom:18px;border:1px solid var(--line);border-radius:99px;background:var(--lift)}
+.tabs button{flex:1;min-height:42px;border:0;border-radius:99px;background:none;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.tabs button.is-on{background:var(--wine);color:var(--blush)}
+
+.offers{display:grid;gap:12px;margin-top:12px}
+@media (min-width:600px){.offers{grid-template-columns:1fr 1fr}}
+.offer{position:relative;text-align:left;display:grid;gap:6px;padding:18px;border:1px solid var(--line);border-radius:var(--r);background:var(--lift);transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.offer:hover{border-color:var(--wine)}
+.offer:active{transform:scale(.99)}
+.offer__tag{justify-self:start;font-size:10px;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:var(--petal);color:var(--wine)}
+.offer__title{font-family:var(--display);font-weight:400;font-size:1.2rem;line-height:1.2}
+.offer__sub{font-size:13.5px;color:var(--ink-soft)}
+.offer__price{font-family:var(--display);font-size:1.15rem;color:var(--wine)}
+.offer__price s{font-family:var(--sans);font-size:13px;color:var(--ink-soft)}
+
+.mine{display:grid;gap:12px;margin-top:22px}
+.mine li{padding:16px 18px;border:1px solid var(--line);border-radius:var(--r);background:var(--lift);display:grid;gap:8px}
+.mine li .when{font-family:var(--display);font-size:1.1rem}
+.mine li .actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
