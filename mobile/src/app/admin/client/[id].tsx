@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, Row, Screen, Section, Segmented, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
@@ -33,10 +33,13 @@ type Panel = null | 'sell' | 'note';
 
 /** Everything about one client, and what the desk can do for her. */
 export default function AdminClient() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, code: createdCode } = useLocalSearchParams<{ id: string; code?: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const { t, lang, tEnum } = useT();
+  // Her sign-in code: only ever shown right after it is made (it is stored hashed).
+  const [loginCode, setLoginCode] = useState<string | null>(createdCode ?? null);
+  const [newEmail, setNewEmail] = useState('');
   const [tab, setTab] = useState<'overview' | 'history' | 'ledger'>('overview');
   const [panel, setPanel] = useState<Panel>(null);
   const q = useQuery({ queryKey: ['admin-client', id], queryFn: () => api<ClientDetail>('GET', `/admin/clients/${id}`) });
@@ -82,6 +85,44 @@ export default function AdminClient() {
         <Badge label={`${t('from')} ${dateShort(c.createdAt, lang)}`} />
       </Row>
       <Gap h={space.md} />
+      <Card style={{ marginBottom: space.md }}>
+        <Text variant="label">{t('loginCode')}</Text>
+        {!c.email ? (
+          <>
+            <Text variant="small" style={{ marginVertical: space.xs }}>{t('addEmailFirst')}</Text>
+            <Field label={t('email')} value={newEmail} onChangeText={setNewEmail} autoCapitalize="none" keyboardType="email-address" />
+            <Button small title={t('save')} disabled={!newEmail.includes('@')} loading={run.isPending} onPress={() => run.mutate(() => api('PATCH', `/admin/clients/${id}`, { body: { email: newEmail.trim() } }))} />
+          </>
+        ) : loginCode ? (
+          <>
+            <Text variant="small" style={{ marginVertical: space.xs }}>{t('loginCodeHint')}</Text>
+            <Text variant="bodyMedium" selectable>{c.email}</Text>
+            <Text variant="title" selectable style={{ letterSpacing: 1, marginVertical: space.xs }}>{loginCode}</Text>
+            <Button
+              small
+              icon="send"
+              title={t('sendLoginCode')}
+              onPress={() => void Share.share({ message: t('loginMessage', { name: c.name.split(' ')[0], email: c.email ?? '', code: loginCode, link: 'https://dua-pilates.com/book' }) })}
+            />
+          </>
+        ) : (
+          <>
+            <Text variant="small" style={{ marginVertical: space.xs }}>{t('loginCodeNone')}</Text>
+            <Button
+              small
+              variant="secondary"
+              icon="key"
+              title={t('newLoginCode')}
+              onPress={() =>
+                Alert.alert(t('newLoginCode'), t('newLoginCodeConfirm'), [
+                  { text: t('cancel'), style: 'cancel' },
+                  { text: t('confirm'), onPress: () => run.mutate(async () => setLoginCode((await api<{ password: string }>('POST', `/admin/clients/${id}/login-code`)).password)) },
+                ])
+              }
+            />
+          </>
+        )}
+      </Card>
       <Row style={{ flexWrap: 'wrap' }}>
         <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />        <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
       </Row>

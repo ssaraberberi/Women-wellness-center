@@ -45,9 +45,9 @@ const textStyles: Record<TextVariant, TextStyle> = {
   serifItalic: { fontFamily: fonts.displayItalic, fontSize: 17, lineHeight: 24, color: colors.wine },
 };
 
-export function Text({ variant = 'body', style, children, numberOfLines, center }: { variant?: TextVariant; style?: StyleProp<TextStyle>; children: ReactNode; numberOfLines?: number; center?: boolean }) {
+export function Text({ variant = 'body', style, children, numberOfLines, center, selectable }: { variant?: TextVariant; style?: StyleProp<TextStyle>; children: ReactNode; numberOfLines?: number; center?: boolean; selectable?: boolean }) {
   return (
-    <RNText maxFontSizeMultiplier={1.4} numberOfLines={numberOfLines} style={[textStyles[variant], center && { textAlign: 'center' }, style]}>
+    <RNText maxFontSizeMultiplier={1.4} numberOfLines={numberOfLines} selectable={selectable} style={[textStyles[variant], center && { textAlign: 'center' }, style]}>
       {children}
     </RNText>
   );

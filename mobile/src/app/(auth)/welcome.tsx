@@ -30,7 +30,6 @@ export default function Welcome() {
         </View>
         <View style={{ gap: space.md }}>
           <Button title={t('begin')} onPress={() => router.push('/sign-in')} textColor={colors.wine} style={{ backgroundColor: colors.white }} />
-          <Button variant="ghost" title={t('bookWithoutAccount')} onPress={() => router.push('/guest/index')} textColor={colors.white} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} />
           <Pressable accessibilityRole="link" onPress={() => void openLegal('privacy', lang)} hitSlop={8}>
             <Text variant="small" center style={{ color: 'rgba(255,255,255,0.85)', textDecorationLine: 'underline' }}>
               {t('privacyPolicy')}

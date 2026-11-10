@@ -39,6 +39,16 @@ export async function verifyPassword(password: string, stored: string | null | u
   return !!stored && got.length === expected.length && timingSafeEqual(got, expected);
 }
 
+/**
+ * The sign-in code the desk hands a client: "DUA-" and 8 characters, with no
+ * look-alikes (0/O, 1/I/L) so it can be read out or copied by hand.
+ */
+export function loginCode() {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(8);
+  return 'DUA-' + Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+}
+
 /** An old-website hash still works, but is replaced by the current format at the next good login. */
 export const isLegacyHash = (stored: string | null | undefined) => !!stored && stored.split('$').length === 4;
 

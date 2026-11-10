@@ -6,6 +6,7 @@ import { prisma, transaction } from '../lib/prisma.js';
 import { E } from '../lib/errors.js';
 import { audit } from '../lib/settings.js';
 import { normalizePhone, zPhone } from '../lib/phone.js';
+import { hashPassword, loginCode } from '../lib/password.js';
 import { studioDayRange } from '../lib/time.js';
 import { personName, userSummary } from '../lib/dto.js';
 import { notify } from '../services/notify.js';
@@ -334,18 +335,48 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       method: 'POST',
       url: '/admin/clients',
       access: [...ADMIN],
-      summary: 'Add a client at the desk (she signs in later with her email)',
+      summary: 'Add a client at the desk. Returns her sign-in code (DUA-…), shown once: she signs in with her email and it.',
       tags: ['admin-clients'],
       body: z.object({ email: z.email(), firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).default(''), phone: zPhone, language: z.enum(['sq', 'en']).default('sq') }),
     },
     async ({ body, user }) => {
       const email = normalizeEmail(body.email);
       if (await prisma.user.findUnique({ where: { email } })) throw E.conflict('EMAIL_TAKEN', 'There is already an account with this email');
+      const password = loginCode();
       const u = await prisma.user.create({
-        data: { email, role: 'CLIENT', profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone, language: body.language } }, notificationPrefs: { create: {} } },
+        data: {
+          email,
+          role: 'CLIENT',
+          status: 'ACTIVE',
+          passwordHash: await hashPassword(password),
+          profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone, language: body.language } },
+          notificationPrefs: { create: {} },
+        },
       });
       await audit(prisma, user.id, 'client.create', 'user', u.id, { email });
-      return { id: u.id };
+      return { id: u.id, password };
+    },
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/admin/clients/:id/login-code',
+      access: [...ADMIN],
+      summary: 'A new sign-in code (DUA-…) for a client, shown once. The old one stops working and she is signed out everywhere.',
+      tags: ['admin-clients'],
+      params: zIdParams,
+    },
+    async ({ params, user }) => {
+      const u = await prisma.user.findUnique({ where: { id: params.id } });
+      if (!u || u.role !== 'CLIENT' || u.status === 'DELETED') throw E.notFound('Client');
+      if (!u.email) throw E.conflict('NO_EMAIL', 'Add her email first: she signs in with it');
+      const password = loginCode();
+      await prisma.user.update({ where: { id: u.id }, data: { passwordHash: await hashPassword(password), status: u.status === 'INVITED' ? 'ACTIVE' : u.status } });
+      await revokeAllSessions(u.id);
+      await audit(prisma, user.id, 'client.login_code', 'user', u.id, {});
+      return { password, email: u.email };
     },
   );
 
@@ -404,14 +435,21 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
         firstName: z.string().trim().min(1).max(60).optional(),
         lastName: z.string().trim().max(60).optional(),
         phone: zPhone.optional(),
+        email: z.email().max(200).optional(),
         status: z.enum(['ACTIVE', 'DISABLED', 'DELETED']).optional(),
       }),
     },
     async ({ params, body, user, req }) => {
       const u = await prisma.user.findUnique({ where: { id: params.id } });
       if (!u || u.role !== 'CLIENT') throw E.notFound('Client');
-      const { status, ...profile } = body;
+      const { status, email: rawEmail, ...profile } = body;
+      const email = rawEmail ? normalizeEmail(rawEmail) : undefined;
+      if (email && email !== u.email) {
+        const other = await prisma.user.findUnique({ where: { email } });
+        if (other) throw E.conflict('EMAIL_TAKEN', 'There is already an account with this email');
+      }
       await transaction(async (tx) => {
+        if (email && email !== u.email) await tx.user.update({ where: { id: u.id }, data: { email, emailVerifiedAt: null } });
         if (Object.keys(profile).length) await tx.userProfile.update({ where: { userId: u.id }, data: profile });
         if (status === 'DELETED') {
           // Anonymise: payments and bookings stay as records, the person does not.

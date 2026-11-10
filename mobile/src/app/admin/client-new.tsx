@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { errorText, useT } from '@/lib/i18n';
 import { checkPhone } from '@/lib/phone';
 
-/** A client added at the desk signs in later with her own email: a code, then a password she sets herself. */
+/** A client added at the desk: she signs in with her email and the DUA-… code shown on her profile next. */
 export default function NewClient() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -16,10 +16,10 @@ export default function NewClient() {
   const set = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
   const phone = checkPhone(form.phone);
   const save = useMutation({
-    mutationFn: () => api<{ id: string }>('POST', '/admin/clients', { body: { ...form, email: form.email.trim(), phone: phone!.e164, language: lang } }),
+    mutationFn: () => api<{ id: string; password: string }>('POST', '/admin/clients', { body: { ...form, email: form.email.trim(), phone: phone!.e164, language: lang } }),
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['admin-clients'] });
-      router.replace({ pathname: '/admin/client/[id]', params: { id: r.id } });
+      router.replace({ pathname: '/admin/client/[id]', params: { id: r.id, code: r.password } });
     },
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
