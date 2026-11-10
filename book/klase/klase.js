@@ -35,6 +35,7 @@ const SQ = {
   'No classes are open for booking yet.': 'Ende nuk ka klasa të hapura për rezervim.',
   'Continue': 'Vazhdo', 'Back': 'Kthehu', 'One moment…': 'Një moment…',
   'Sign in': 'Hyr', 'Email': 'Email', 'Your code': 'Kodi yt',
+  'Trial class': 'Klasë prove', 'Single class': 'Klasë e vetme',
   'I have an account': 'Kam llogari', 'Book as a visitor': 'Rezervo si vizitore',
   'No account needed: your name and phone. You pay for the class at the studio, in cash.': 'Pa llogari: vetëm emri dhe telefoni. Klasën e paguan në studio, me cash.',
   'First name': 'Emri', 'Last name': 'Mbiemri', 'Phone number': 'Numri i telefonit', 'Email (optional)': 'Email (opsionale)',
@@ -105,7 +106,6 @@ const tirana = iso => {
 const day = d => new Date(d + 'T12:00:00');
 const plusDays = (d, n) => { const x = day(d); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
 const longDate = d => { const x = day(d); return lang === 'sq' ? DAYS.sq[x.getDay()] + ', ' + x.getDate() + ' ' + MONTHS.sq[x.getMonth()] : DAYS.en[x.getDay()] + ', ' + MONTHS.en[x.getMonth()] + ' ' + x.getDate(); };
-const money = n => Number(n).toLocaleString('en-US') + ' L';
 const whenShort = iso => { const z = tirana(iso); return longDate(z.date) + ' · ' + z.time; };
 
 /* ---------- a small DOM helper ---------- */
@@ -177,7 +177,7 @@ const S = {
   view: 'pick',              // pick · login · choice · done · mine
   from: null, to: null, sessions: null, cancelHours: 1,
   day: null, month: null, picked: null,
-  login: { email: '', password: '' }, key: null, price: null,
+  login: { email: '', password: '' }, key: null,
   // Signing in is chosen by default; a visitor switches to the short form.
   asVisitor: false, visitor: { firstName: '', lastName: '', phone: '', email: '' },
   me: null, detail: null, done: null, mine: null,
@@ -230,6 +230,8 @@ function barWith(kids) {
 const errorBox = () => (S.error ? h('p.notice', { role: 'alert', text: t(S.error) }) : null);
 const infoBox = () => (S.info ? h('p.notice.notice--soft', { role: 'status', text: S.info }) : null);
 const policy = () => h('div.policy', null, [h('b', { text: t('Cancellation Policy') }), h('span', { text: t('Free cancellation until %s hour before the class. Cancelling later, or not coming, the session is used.', S.cancelHours) })]);
+/* What a visitor pays at the studio, said in passing. */
+const prices = () => h('p.muted.small', { text: '(' + t('Trial class') + ' 1,400 L · ' + t('Single class') + ' 2,400 L)' });
 const studioLink = () => h('a.btn.btn--ghost', { href: 'https://wa.me/' + STUDIO_WA, target: '_blank', rel: 'noopener', text: t('Message the studio') });
 
 /* ---------- 1. a day and a time ---------- */
@@ -358,7 +360,8 @@ function drawLogin() {
       h('button', { type: 'submit', hidden: true })
     ]));
     add(errorBox());
-    if (s) add(classSummary(s, S.price ? [[t('To pay'), money(S.price) + ' · ' + t('At the studio, in cash'), 'total']] : []));
+    if (s) add(classSummary(s));
+    add(prices());
     add(policy());
     barWith([
       h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => go('pick') }),
@@ -396,7 +399,7 @@ async function bookAsVisitor() {
   try {
     const r = await call('POST', '/public/visitor-bookings', { key: S.key, body: { sessionId: S.picked, ...v, email: v.email || null, lang, platform: 'WEB' } });
     S.busy = false; S.key = null;
-    S.done = { session: s, visitor: v.firstName, owes: r.booking.payment };
+    S.done = { session: s, visitor: v.firstName };
     loadSessions();
     go('done');
   } catch (e) {
@@ -480,7 +483,8 @@ function drawDone() {
     h('p.lede', { style: 'margin:0 auto', text: d.duo ? t('See you both there, %s and %s!', name, d.duo) : t('See you there, %s!', name) }),
     h('p.lede', { style: 'margin:8px auto 0', text: d.visitor ? t('Your place is confirmed. You pay at the studio, in cash. To change or cancel it, message the studio.') : t('Your place is confirmed.') })
   ]));
-  add(classSummary(d.session, [d.owes ? [t('To pay'), money(d.owes.total) + ' · ' + t('At the studio, in cash'), 'total'] : [t('Payment'), t('From your package')]]));
+  add(classSummary(d.session, d.visitor ? [] : [[t('Payment'), t('From your package')]]));
+  if (d.visitor) add(prices());
   add(policy());
   barWith([
     d.visitor ? studioLink() : h('button.btn.btn--ghost', { type: 'button', text: t('My bookings'), onclick: openMine }),
@@ -547,7 +551,7 @@ async function loadSessions() {
   S.to = plusDays(S.from, 30);
   try {
     const r = await call('GET', '/public/sessions?from=' + S.from + '&to=' + S.to);
-    S.sessions = r.sessions; S.price = r.singlePrice;
+    S.sessions = r.sessions;
     if (S.picked && !S.sessions.some(s => s.id === S.picked)) S.picked = null;
   } catch (e) { S.sessions = S.sessions || []; S.error = e.code; }
   if (['pick', 'mine'].includes(S.view)) draw();
