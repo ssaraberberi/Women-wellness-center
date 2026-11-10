@@ -35,6 +35,13 @@ const SQ = {
   'No classes are open for booking yet.': 'Ende nuk ka klasa të hapura për rezervim.',
   'Continue': 'Vazhdo', 'Back': 'Kthehu', 'One moment…': 'Një moment…',
   'Sign in': 'Hyr', 'Email': 'Email', 'Your code': 'Kodi yt',
+  'I have an account': 'Kam llogari', 'Book as a visitor': 'Rezervo si vizitore',
+  'No account needed: your name and phone. You pay for the class at the studio, in cash.': 'Pa llogari: vetëm emri dhe telefoni. Klasën e paguan në studio, me cash.',
+  'First name': 'Emri', 'Last name': 'Mbiemri', 'Phone number': 'Numri i telefonit', 'Email (optional)': 'Email (opsionale)',
+  'Book the class': 'Rezervo klasën', 'To pay': 'Për të paguar', 'At the studio, in cash': 'Në studio, me cash',
+  'Your place is confirmed. You pay at the studio, in cash. To change or cancel it, message the studio.': 'Vendi yt është i konfirmuar. Paguan në studio, me cash. Për ta ndryshuar ose anuluar, shkruaji studios.',
+  'Write your first name': 'Shkruaj emrin', 'Write your last name': 'Shkruaj mbiemrin', 'Write a phone number we can call': 'Shkruaj një numër telefoni ku të marrim',
+  'VALIDATION': 'Kontrollo të dhënat: numri i telefonit duhet të jetë i plotë.', 'SINGLE_PRICE_MISSING': 'Rezervimi si vizitore nuk është i hapur tani. Na shkruaj në WhatsApp.',
   'Use the email you gave the studio and the DUA-… code they gave you.': 'Përdor email-in që i dhe studios dhe kodin DUA-… që të dhanë.',
   'No code yet, or lost it? Ask the studio.': 'S\'ke kod, ose e humbe? Pyet studion.',
   'Class': 'Klasa', 'Date': 'Data', 'Time': 'Ora', 'Instructor': 'Instruktorja', 'Payment': 'Pagesa', 'From your package': 'Nga paketa jote',
@@ -98,6 +105,7 @@ const tirana = iso => {
 const day = d => new Date(d + 'T12:00:00');
 const plusDays = (d, n) => { const x = day(d); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
 const longDate = d => { const x = day(d); return lang === 'sq' ? DAYS.sq[x.getDay()] + ', ' + x.getDate() + ' ' + MONTHS.sq[x.getMonth()] : DAYS.en[x.getDay()] + ', ' + MONTHS.en[x.getMonth()] + ' ' + x.getDate(); };
+const money = n => Number(n).toLocaleString('en-US') + ' L';
 const whenShort = iso => { const z = tirana(iso); return longDate(z.date) + ' · ' + z.time; };
 
 /* ---------- a small DOM helper ---------- */
@@ -169,7 +177,9 @@ const S = {
   view: 'pick',              // pick · login · choice · done · mine
   from: null, to: null, sessions: null, cancelHours: 1,
   day: null, month: null, picked: null,
-  login: { email: '', password: '' }, key: null,
+  login: { email: '', password: '' }, key: null, price: null,
+  // Signing in is chosen by default; a visitor switches to the short form.
+  asVisitor: false, visitor: { firstName: '', lastName: '', phone: '', email: '' },
   me: null, detail: null, done: null, mine: null,
   busy: false, error: null, info: null, armed: null
 };
@@ -323,13 +333,40 @@ function invalid(key, msg) {
   if (el) { el.closest('.field').classList.add('is-bad'); el.focus(); }
 }
 
-/* ---------- 2. signing in: her email and the code the studio gave her ---------- */
+/* ---------- 2. who she is: a client signs in, a visitor just leaves her name ---------- */
 function drawLogin() {
   const s = picked();
-  title(t('Sign in') + '.', t('Use the email you gave the studio and the DUA-… code they gave you.'));
-  const g = S.login;
+  const visitor = S.asVisitor;
+  add(h('div.tabs', { role: 'tablist', style: 'margin-top:8px' }, [
+    h('button', { type: 'button', role: 'tab', 'aria-selected': String(!visitor), class: !visitor ? 'is-on' : null, text: t('I have an account'), onclick: () => { S.asVisitor = false; go('login'); } }),
+    h('button', { type: 'button', role: 'tab', 'aria-selected': String(visitor), class: visitor ? 'is-on' : null, text: t('Book as a visitor'), onclick: () => { S.asVisitor = true; go('login'); } })
+  ]));
+  const g = visitor ? S.visitor : S.login;
   const field = (key, label, attrs) => h('label.field', null, [h('span', { text: label }),
     h('input', { name: key, value: g[key], ...attrs, oninput: e => { g[key] = e.target.value; e.target.closest('.field').classList.remove('is-bad'); } })]);
+  if (visitor) {
+    title(t('Book as a visitor') + '.', t('No account needed: your name and phone. You pay for the class at the studio, in cash.'));
+    add(h('form.form', { novalidate: true, onsubmit: e => { e.preventDefault(); bookAsVisitor(); } }, [
+      h('div.who', null, [
+        h('div.row2', null, [
+          field('firstName', t('First name'), { autocomplete: 'given-name', autocapitalize: 'words', maxlength: 60 }),
+          field('lastName', t('Last name'), { autocomplete: 'family-name', autocapitalize: 'words', maxlength: 60 })
+        ]),
+        field('phone', t('Phone number'), { type: 'tel', inputmode: 'tel', autocomplete: 'tel', placeholder: '069 123 4567', maxlength: 30 }),
+        field('email', t('Email (optional)'), { type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'off', spellcheck: 'false', maxlength: 200 })
+      ]),
+      h('button', { type: 'submit', hidden: true })
+    ]));
+    add(errorBox());
+    if (s) add(classSummary(s, S.price ? [[t('To pay'), money(S.price) + ' · ' + t('At the studio, in cash'), 'total']] : []));
+    add(policy());
+    barWith([
+      h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => go('pick') }),
+      h('button.btn.btn--wine', { type: 'button', disabled: S.busy, text: S.busy ? t('One moment…') : t('Book the class'), onclick: bookAsVisitor })
+    ]);
+    return;
+  }
+  title(t('Sign in') + '.', t('Use the email you gave the studio and the DUA-… code they gave you.'));
   add(h('form.form', { novalidate: true, onsubmit: e => { e.preventDefault(); signIn(); } }, [
     h('div.who', null, [
       field('email', t('Email'), { type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'off', spellcheck: 'false', maxlength: 200 }),
@@ -344,6 +381,28 @@ function drawLogin() {
     h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => go('pick') }),
     h('button.btn.btn--wine', { type: 'button', disabled: S.busy, text: S.busy ? t('One moment…') : t('Sign in'), onclick: signIn })
   ]);
+}
+
+async function bookAsVisitor() {
+  if (S.busy) return;
+  const v = S.visitor;
+  v.firstName = v.firstName.trim(); v.lastName = v.lastName.trim(); v.phone = v.phone.trim(); v.email = v.email.trim();
+  if (!v.firstName) return invalid('firstName', 'Write your first name');
+  if (!v.lastName) return invalid('lastName', 'Write your last name');
+  if (v.phone.replace(/\D+/g, '').length < 8) return invalid('phone', 'Write a phone number we can call');
+  if (v.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)) return invalid('email', 'That email does not look right');
+  const s = picked();
+  S.busy = true; S.error = null; S.key = S.key || newKey(); draw();
+  try {
+    const r = await call('POST', '/public/visitor-bookings', { key: S.key, body: { sessionId: S.picked, ...v, email: v.email || null, lang, platform: 'WEB' } });
+    S.busy = false; S.key = null;
+    S.done = { session: s, visitor: v.firstName, owes: r.booking.payment };
+    loadSessions();
+    go('done');
+  } catch (e) {
+    if (['CLASS_FULL', 'CLASS_STARTED', 'CLASS_CANCELLED', 'ALREADY_BOOKED'].includes(e.code)) { S.key = null; await loadSessions(); S.picked = null; S.view = 'pick'; }
+    fail(e);
+  }
 }
 
 async function signIn() {
@@ -415,16 +474,16 @@ function drawChoice() {
 function drawDone() {
   const d = S.done;
   if (!d) return go('pick');
-  const name = (S.me && S.me.profile && S.me.profile.firstName) || '';
+  const name = d.visitor || (S.me && S.me.profile && S.me.profile.firstName) || '';
   title(t('Booked') + '.');
   add(h('div.done', null, [
     h('p.lede', { style: 'margin:0 auto', text: d.duo ? t('See you both there, %s and %s!', name, d.duo) : t('See you there, %s!', name) }),
-    h('p.lede', { style: 'margin:8px auto 0', text: t('Your place is confirmed.') })
+    h('p.lede', { style: 'margin:8px auto 0', text: d.visitor ? t('Your place is confirmed. You pay at the studio, in cash. To change or cancel it, message the studio.') : t('Your place is confirmed.') })
   ]));
-  add(classSummary(d.session, [[t('Payment'), t('From your package')]]));
+  add(classSummary(d.session, [d.owes ? [t('To pay'), money(d.owes.total) + ' · ' + t('At the studio, in cash'), 'total'] : [t('Payment'), t('From your package')]]));
   add(policy());
   barWith([
-    h('button.btn.btn--ghost', { type: 'button', text: t('My bookings'), onclick: openMine }),
+    d.visitor ? studioLink() : h('button.btn.btn--ghost', { type: 'button', text: t('My bookings'), onclick: openMine }),
     h('button.btn.btn--wine', { type: 'button', text: t('Book another class'), onclick: () => { S.picked = null; S.done = null; go('pick'); } })
   ]);
 }
@@ -488,7 +547,7 @@ async function loadSessions() {
   S.to = plusDays(S.from, 30);
   try {
     const r = await call('GET', '/public/sessions?from=' + S.from + '&to=' + S.to);
-    S.sessions = r.sessions;
+    S.sessions = r.sessions; S.price = r.singlePrice;
     if (S.picked && !S.sessions.some(s => s.id === S.picked)) S.picked = null;
   } catch (e) { S.sessions = S.sessions || []; S.error = e.code; }
   if (['pick', 'mine'].includes(S.view)) draw();
