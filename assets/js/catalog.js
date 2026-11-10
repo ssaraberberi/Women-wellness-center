@@ -107,9 +107,18 @@
     return p.name;
   }
 
+  /* Packages are sold by the studio, not on /book (which books classes
+     from a package she already has), so choosing one is a message to the
+     studio that already names it. */
+  var ask = function (what) {
+    var text = lang() === 'en' ? 'Hello! I would like: ' + what + '.' : 'Përshëndetje! Më intereson: ' + what + '.';
+    return 'https://wa.me/355697104072?text=' + encodeURIComponent(text);
+  };
   var book = function (p, kind) {
     var a = el('a', 'go ' + kind + '__go', 'Choose');
-    a.href = '/book?plan=' + encodeURIComponent(p.id);
+    a.href = ask(title(p));
+    a.target = '_blank';
+    a.rel = 'noopener';
     return a;
   };
 
@@ -285,8 +294,10 @@
       var d = o.endsOn && o.endsOn.match(/^\d{4}-(\d{2})-(\d{2})$/);
       if (d) card.appendChild(el('p', 'offer__note', 'Until ' + Number(d[2]) + ' ' + MONTHS[Number(d[1]) - 1]));
       if (o.remaining != null) card.appendChild(el('p', 'offer__note', o.remaining + (o.remaining === 1 ? ' place left' : ' places left')));
-      var a = el('a', 'link offer__book', 'Book this offer');
-      a.href = '/book?offer=' + encodeURIComponent(o.id);
+      var a = el('a', 'link offer__book', 'Ask about this offer');
+      a.href = ask(o.title);
+      a.target = '_blank';
+      a.rel = 'noopener';
       card.appendChild(a);
       box.appendChild(card);
     });

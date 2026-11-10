@@ -88,8 +88,14 @@
     var soon = el('span', 'svc__price', 'Price coming soon');
     soon.setAttribute('data-noprice', '');
     row.appendChild(soon);
+    /* A treatment is arranged with the studio; the message names it. */
+    var what = (p.name.indexOf('•') > 0 && lang() === 'en' && (p.en || {}).tagline)
+      ? p.name.split('•')[0].trim() + ' • ' + p.en.tagline : p.name;
+    var text = lang() === 'en' ? 'Hello! I would like to book: ' + what + '.' : 'Përshëndetje! Dua të rezervoj: ' + what + '.';
     var go = el('a', 'go', 'Book');
-    go.href = '/book?plan=' + encodeURIComponent(p.id);
+    go.href = 'https://wa.me/355697104072?text=' + encodeURIComponent(text);
+    go.target = '_blank';
+    go.rel = 'noopener';
     row.appendChild(go);
     return row;
   }

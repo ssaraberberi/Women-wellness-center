@@ -643,8 +643,11 @@
     'No. The groups are small, and the instructor sets your springs, shows you the reformer and corrects your position throughout.':
       'Jo. Grupet janë të vogla, dhe instruktorja të rregullon sustat, të tregon reformerin dhe të korrigjon pozicionin gjatë gjithë klasës.',
     'How do I book?': 'Si rezervoj?',
-    'Online, in a couple of minutes: choose a package, then your time. Your confirmation includes a link to change or cancel, and shows until when cancelling is free.':
-      'Online, në pak minuta: zgjidh paketën, pastaj orarin. Konfirmimi ka një link për ta ndryshuar ose anuluar, dhe tregon deri kur anulimi është falas.',
+    'Get your package at the studio or on WhatsApp and you receive a DUA code. With your email and that code, book your classes online or in the app; each booking shows until when cancelling is free.':
+      'Merr paketën në studio ose në WhatsApp dhe merr një kod DUA. Me email-in dhe atë kod, rezervo klasat online ose në aplikacion; çdo rezervim tregon deri kur anulimi është falas.',
+    'Ask about this offer': 'Pyet për ofertën',
+    'Prices in Albanian lek. Message us to book, or book online from a package you already have.':
+      'Çmimet në lekë. Na shkruaj për të rezervuar, ose rezervo online nga paketa që ke.',
     'Relaxing and deep-tissue massage, lymphatic drainage, body sculpting and neck-and-shoulder treatments, from 30 to 90 minutes. The full menu is on the':
       'Masazh relaksues dhe i thellë, drenazh limfatik, sculpt trupi dhe trajtime për qafën e shpatullat, nga 30 deri në 90 minuta. Menuja e plotë është te',
     'The map is just below; tap it and Google Maps takes you to the door. We are open Monday to Saturday, 07:00 to 21:00.':
