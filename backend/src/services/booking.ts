@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma, transaction, isUniqueViolation, type Tx } from '../lib/prisma.js';
 import { E } from '../lib/errors.js';
 import { getSettings, audit } from '../lib/settings.js';
-import { addMinutes, formatStudio, studioDate, dbDate } from '../lib/time.js';
+import { addMinutes, formatStudio, studioDate, studioDayRange, dbDate } from '../lib/time.js';
 import { refundBookingCredits, spendCredits, usableCredits } from './credits.js';
 import { notify, notifyAdmins } from './notify.js';
 
@@ -272,9 +272,34 @@ async function tellStaff(
   };
   const data = { kind: 'class', sessionId: session.id };
   if (session.instructorId && session.instructorId !== opts.actorId) {
-    await notify(tx, { userId: session.instructorId, type: opts.type, dedupeKey: `${opts.dedupeKey}:instructor`, params, data });
+    if (opts.type === 'STAFF_NEW_BOOKING') {
+      await notify(tx, { userId: session.instructorId, type: 'INSTRUCTOR_NEW_BOOKING', dedupeKey: `${opts.dedupeKey}:instructor`, params: { client: params.client, ...(await instructorDay(tx, session.instructorId, session)) }, data });
+    } else {
+      await notify(tx, { userId: session.instructorId, type: opts.type, dedupeKey: `${opts.dedupeKey}:instructor`, params, data });
+    }
   }
   await notifyAdmins(tx, { type: opts.type, dedupeKey: opts.dedupeKey, params, data, exceptUserId: opts.actorId });
+}
+
+/**
+ * The class's hours ("20:00-21:00"), its day, and every class she teaches that
+ * day with how full it is: one row per class, time and what, tab-separated.
+ */
+async function instructorDay(tx: Tx, instructorId: string, session: { startsAt: Date }) {
+  const day = studioDate(session.startsAt);
+  const { from, to } = studioDayRange(day);
+  const classes = await tx.classSession.findMany({
+    where: { instructorId, status: 'SCHEDULED', startsAt: { gte: from, lt: to } },
+    include: { classType: true, _count: { select: { bookings: { where: { status: 'BOOKED' } } } } },
+    orderBy: { startsAt: 'asc' },
+  });
+  const range = (s: { startsAt: Date; endsAt: Date }) => `${formatStudio(s.startsAt, 'HH:mm')}-${formatStudio(s.endsAt, 'HH:mm')}`;
+  const mine = classes.find((c) => +c.startsAt === +session.startsAt);
+  return {
+    range: mine ? range(mine) : formatStudio(session.startsAt, 'HH:mm'),
+    day: formatStudio(session.startsAt, 'cccc, d LLLL'),
+    summary: classes.map((c) => `${range(c)}\t${c.classType.name} · ${c._count.bookings}/${c.capacity}`).join('\n'),
+  };
 }
 
 /** When free cancellation ends for a class. */

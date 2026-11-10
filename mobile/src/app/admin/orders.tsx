@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Alert } from '@/lib/alert';
+import { PayDialog, type PayTarget } from '@/components/PayDialog';
 import { Badge, Button, Card, EmptyState, ErrorState, Field, Header, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api } from '@/lib/api';
 import { dateShort, lek } from '@/lib/format';
@@ -38,14 +39,16 @@ export default function AdminOrders() {
     },
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
-  const pay = (o: Order) =>
-    Alert.alert(`${t('recordPayment')} · ${lek(o.total)}`, `${o.client.name} · ${o.product ?? ''} · ${o.reference}`, [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('paidInCash'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${o.id}/payments`, { body: { method: 'CASH' } })) },
-    ]);
+  const [paying, setPaying] = useState<PayTarget | null>(null);
+  const pay = (o: Order) => setPaying({ orderId: o.id, total: o.total, title: `${o.client.name} · ${o.product ?? ''} · ${o.reference}` });
+  const paid = () => {
+    void qc.invalidateQueries({ queryKey: ['admin-orders'] });
+    void qc.invalidateQueries({ queryKey: ['admin-dash'] });
+  };
 
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
+      <PayDialog target={paying} onClose={() => setPaying(null)} onPaid={paid} />
       <Header title={t('orders')} back />
       <Segmented options={(['PENDING', 'PAID', 'CANCELLED', 'REFUNDED'] as const).map((s) => ({ value: s, label: tEnum(s) }))} value={status} onChange={setStatus} />
       <Field placeholder={`${t('search')} (DUA-…)`} value={search} onChangeText={setSearch} autoCapitalize="characters" style={{ marginTop: space.md }} />

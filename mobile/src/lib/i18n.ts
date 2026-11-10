@@ -414,6 +414,8 @@ const dict = {
   newLoginCodeConfirm: ['Kodi i vjetër nuk do të punojë më. Vazhdo?', 'The old code will stop working. Continue?'],
   sendLoginCode: ['Dërgoja', 'Send it'],
   loginMessage: ['Përshëndetje {name}! Rezervo klasat te DUA: {link}\nEmail: {email}\nKodi: {code}', 'Hi {name}! Book your DUA classes: {link}\nEmail: {email}\nCode: {code}'],
+  amountPaid: ['Sa pagoi (L)', 'Amount paid (L)'],
+  priceWas: ['Çmimi ishte {price}. Ky bëhet çmimi i ri.', 'The price was {price}. This becomes the new price.'],
   addVisit: ['Ditë që ka ardhur', 'Day she came'],
   addVisitHint: ['Zgjidh ditën, pastaj klasën ku ishte. Përdoret 1 seancë nga paketa.', 'Pick the day, then the class she was in. 1 session comes off her package.'],
   visitNoClass: ['Erdhi këtë ditë (pa klasë në sistem)', 'She came this day (no class in the system)'],

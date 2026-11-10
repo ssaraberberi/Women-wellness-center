@@ -89,11 +89,11 @@ describe('packages and payments', () => {
 
     // A client cannot mark her own order paid.
     expect((await app.inject({ method: 'POST', url: `/admin/orders/${order.id}/payments`, headers: c.auth, payload: { method: 'CASH' } })).statusCode).toBe(403);
-    const wrong = await app.inject({ method: 'POST', url: `/admin/orders/${order.id}/payments`, headers: admin.auth, payload: { method: 'CASH', amount: 100 } });
-    expect(wrong.json().error.code).toBe('AMOUNT_MISMATCH');
-    const paid = await app.inject({ method: 'POST', url: `/admin/orders/${order.id}/payments`, headers: admin.auth, payload: { method: 'CASH' } });
+    // The desk writes what she actually paid; that becomes the price, and nothing stays owed.
+    const paid = await app.inject({ method: 'POST', url: `/admin/orders/${order.id}/payments`, headers: admin.auth, payload: { method: 'CASH', amount: 13000 } });
     expect(paid.statusCode).toBe(200);
     expect(await creditsOf(c.id)).toBe(8);
+    expect(await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).toMatchObject({ status: 'PAID', total: 13000, discount: 1500 });
     const twice = await app.inject({ method: 'POST', url: `/admin/orders/${order.id}/payments`, headers: admin.auth, payload: { method: 'CASH' } });
     expect(twice.statusCode).toBe(409);
     expect(await prisma.auditLog.count({ where: { action: 'payment.record' } })).toBe(1);

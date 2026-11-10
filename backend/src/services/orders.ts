@@ -241,14 +241,18 @@ export async function recordManualPayment(opts: { orderId: string; method: Exclu
     if (!row) throw E.notFound('Order');
     const order = await tx.order.findUniqueOrThrow({ where: { id: opts.orderId }, include: { purchase: true } });
     if (order.status !== 'PENDING') throw E.conflict('ORDER_NOT_PENDING', `This order is ${order.status.toLowerCase()}`);
+    // The desk writes what she actually paid (a trial at a lower price, a rounded sum):
+    // that becomes the order's price, so the order is settled in full and nothing stays owed.
     const amount = opts.amount ?? order.total;
-    if (amount !== order.total) throw E.badRequest('AMOUNT_MISMATCH', `The order total is ${order.total} ALL`);
     const payment = await tx.payment.create({
       data: { orderId: order.id, method: opts.method, status: 'COMPLETED', amount, confirmedById: opts.actorId, note: opts.note, completedAt: new Date(), provider: 'manual' },
     });
-    await tx.order.update({ where: { id: order.id }, data: { status: 'PAID' } });
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: 'PAID', ...(amount !== order.total ? { total: amount, discount: Math.max(0, order.discount + order.total - amount) } : {}) },
+    });
     if (order.purchase) await activatePurchase(tx, order.purchase.id);
-    await audit(tx, opts.actorId, 'payment.record', 'order', order.id, { method: opts.method, amount });
+    await audit(tx, opts.actorId, 'payment.record', 'order', order.id, { method: opts.method, amount, ...(amount !== order.total ? { priceWas: order.total } : {}) });
     return payment;
   });
 }

@@ -118,6 +118,20 @@ export const MESSAGES: Record<string, Def> = {
       body: L(l, `${p.client} rezervoi ${p.className} · ${p.when} (${p.booked}/${p.capacity}).`, `${p.client} booked ${p.className} · ${p.when} (${p.booked}/${p.capacity}).`),
     }),
   },
+  // To the instructor, by email too: who was added, and her whole day as it stands now.
+  INSTRUCTOR_NEW_BOOKING: {
+    category: 'essential',
+    email: true,
+    critical: true,
+    render: (l, p) => ({
+      title: L(l, `${p.client} u shtua në ${p.range}`, `${p.client} was added to ${p.range}`),
+      body: L(l, `${p.client} u shtua në ${p.range}.\n\nJa ku është përmbledhja jote e ditës (${p.day}):`, `${p.client} was added to ${p.range}.\n\nHere is your day (${p.day}):`),
+      details: String(p.summary ?? '')
+        .split('\n')
+        .filter(Boolean)
+        .map((row) => row.split('\t') as [string, string]),
+    }),
+  },
   STAFF_BOOKING_CANCELLED: {
     category: 'essential',
     email: false,

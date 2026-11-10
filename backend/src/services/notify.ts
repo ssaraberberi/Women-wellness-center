@@ -96,7 +96,7 @@ export async function deliverPending(limit = 50) {
         const d = (n.data ?? {}) as { details?: [string, string][]; lang?: 'sq' | 'en' };
         const { html, text } = brandedEmail({
           heading: n.title,
-          lines: [n.body],
+          lines: n.body.split('\n\n'),
           details: d.details,
           footer: d.lang === 'en' ? 'You can change which emails you receive in the app, under Profile.' : 'Mund të zgjedhësh cilat email-e merr te Profili në aplikacion.',
         });

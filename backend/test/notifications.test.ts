@@ -40,18 +40,29 @@ describe('who hears about what', () => {
     const client = await makeClientWithCredits(3);
     const s = await makeSession({ inHours: 48, instructorId: instructor.id });
 
+    const later = await makeSession({ inHours: 49, instructorId: instructor.id });
     const b = (await app.inject({ method: 'POST', url: `/sessions/${s.id}/book`, headers: client.auth })).json();
-    for (const u of [instructor, admin1, admin2]) {
+    for (const u of [admin1, admin2]) {
       const rows = await inApp(u.id);
       expect(rows.map((r) => r.type)).toEqual(['STAFF_NEW_BOOKING']);
       expect(rows[0].body).toContain('(1/5)');
     }
+    // The instructor gets it by email too: who was added, at what hours, and her whole day.
+    const mail = await prisma.notification.findFirstOrThrow({ where: { userId: instructor.id, channel: 'EMAIL' } });
+    const name = (await prisma.userProfile.findUniqueOrThrow({ where: { userId: client.id } })).firstName;
+    expect(mail.type).toBe('INSTRUCTOR_NEW_BOOKING');
+    expect(mail.title).toMatch(new RegExp(`^${name}.* u shtua në \\d\\d:\\d\\d-\\d\\d:\\d\\d$`));
+    expect(mail.body).toContain('Ja ku është përmbledhja jote e ditës');
+    const details = (mail.data as { details: [string, string][] }).details;
+    expect(details.map((d) => d[1].split(' · ')[1])).toEqual(
+      new Date(s.startsAt).toDateString() === new Date(later.startsAt).toDateString() ? ['1/5', '0/5'] : ['1/5'],
+    );
 
     // Admin 1 cancels at the desk: admin 2 and the instructor hear about it, admin 1 does not.
     await app.inject({ method: 'POST', url: `/admin/bookings/${b.id}/cancel`, headers: admin1.auth, payload: {} });
     expect((await inApp(admin1.id)).map((r) => r.type)).toEqual(['STAFF_NEW_BOOKING']);
     expect((await inApp(admin2.id)).map((r) => r.type)).toEqual(['STAFF_NEW_BOOKING', 'STAFF_BOOKING_CANCELLED']);
-    expect((await inApp(instructor.id)).map((r) => r.type)).toEqual(['STAFF_NEW_BOOKING', 'STAFF_BOOKING_CANCELLED']);
+    expect((await inApp(instructor.id)).map((r) => r.type)).toEqual(['INSTRUCTOR_NEW_BOOKING', 'STAFF_BOOKING_CANCELLED']);
   });
 
   it('sends the client and the instructor their reminders once each', async () => {

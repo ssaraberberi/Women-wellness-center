@@ -7,6 +7,7 @@ import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, Ro
 import { api, newIdempotencyKey } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';
 import { DateStrip } from '@/components/DateStrip';
+import { PayDialog, type PayTarget } from '@/components/PayDialog';
 import { addDays, dateShort, lek, longDate, manualDiscountAmount, time, todayISO, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { Product, SessionDto } from '@/lib/types';
@@ -83,17 +84,20 @@ export default function AdminClient() {
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
 
-  const payOrder = (orderId: string, total: number) =>
-    Alert.alert(t('recordPayment'), lek(total), [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('paidInCash'), onPress: () => run.mutate(() => api('POST', `/admin/orders/${orderId}/payments`, { body: { method: 'CASH' } })) },
-    ]);
+  const [paying, setPaying] = useState<PayTarget | null>(null);
+  const payOrder = (orderId: string, total: number, title?: string) => setPaying({ orderId, total, title });
+  const paid = () => {
+    void qc.invalidateQueries({ queryKey: ['admin-client', id] });
+    void qc.invalidateQueries({ queryKey: ['admin-clients'] });
+    void qc.invalidateQueries({ queryKey: ['admin-dash'] });
+  };
 
   if (q.isPending) return <Screen><Header title="" back /><SkeletonList count={6} /></Screen>;
   if (!c) return <Screen><Header title="" back /><ErrorState error={q.error} onRetry={() => void q.refetch()} /></Screen>;
 
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
+      <PayDialog target={paying} onClose={() => setPaying(null)} onPaid={paid} />
       <Header title={c.name} back subtitle={[c.email, c.phone].filter(Boolean).join(' · ')} />
       <Row style={{ flexWrap: 'wrap' }}>
         <Badge label={t('creditsLeft', { n: c.remainingCredits })} tone="wine" />
@@ -260,7 +264,7 @@ export default function AdminClient() {
                     <Text variant="small">{o.reference} · {lek(o.total)}{o.discount ? ` (−${lek(o.discount)})` : ''} · {dateShort(o.createdAt, lang)}</Text>
                     {o.payments.map((p) => <Text key={p.id} variant="caption">{tEnum(p.method)} · {tEnum(p.status)} · {lek(p.amount)}</Text>)}
                   </View>
-                  {o.status === 'PENDING' ? <Button small title={t('recordPayment')} onPress={() => payOrder(o.id, o.total)} /> : <Badge label={tEnum(o.status)} tone={o.status === 'PAID' ? 'success' : 'neutral'} />}
+                  {o.status === 'PENDING' ? <Button small title={t('recordPayment')} onPress={() => payOrder(o.id, o.total, o.product ?? o.reference)} /> : <Badge label={tEnum(o.status)} tone={o.status === 'PAID' ? 'success' : 'neutral'} />}
                 </Row>
               </Card>
             ))}

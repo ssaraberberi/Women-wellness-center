@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { ClientPicker } from '@/components/ClientPicker';
+import { PayDialog, type PayTarget } from '@/components/PayDialog';
 import { z } from 'zod';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, PhoneField, Row, Screen, Section, Segmented, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
@@ -65,12 +66,13 @@ export default function AdminSessionScreen() {
     },
   });
 
+  const [paying, setPaying] = useState<PayTarget | null>(null);
   const bookingMenu = (b: AdminSession['bookings'][number]) =>
     Alert.alert(b.name, [b.phone, b.payment ? `${b.payment.reference} · ${b.payment.status === 'PENDING' ? t('unpaidAmount', { amount: lek(b.payment.total) }) : tEnum(b.payment.status)}` : null].filter(Boolean).join('\n'), [
       { text: t('close'), style: 'cancel' },
       // Owed for a single class (also after a late cancellation or a no-show): taken at the desk, in cash.
       ...(b.payment?.status === 'PENDING'
-        ? [{ text: t('markPaidCash', { amount: lek(b.payment.total) }), onPress: () => run.mutate(() => api('POST', `/admin/orders/${b.payment!.orderId}/payments`, { body: { method: 'CASH' } })) }]
+        ? [{ text: t('recordPayment'), onPress: () => setPaying({ orderId: b.payment!.orderId, total: b.payment!.total, title: b.name }) }]
         : []),
       ...(b.status === 'BOOKED'
         ? [
@@ -115,6 +117,7 @@ export default function AdminSessionScreen() {
 
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
+      <PayDialog target={paying} onClose={() => setPaying(null)} onPaid={refresh} />
       <Header title={s?.classType.name ?? ''} back />
       {q.isPending ? (
         <SkeletonList count={5} />
