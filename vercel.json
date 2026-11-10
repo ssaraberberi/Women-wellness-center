@@ -13,6 +13,11 @@
       ],
       "destination": "https://dua-pilates.com/$1",
       "permanent": true
+    },
+    {
+      "source": "/book/klase",
+      "destination": "/book",
+      "permanent": false
     }
   ],
   "rewrites": [
