@@ -7,12 +7,15 @@ import { E } from '../lib/errors.js';
 import { audit } from '../lib/settings.js';
 import { normalizePhone, zPhone } from '../lib/phone.js';
 import { hashPassword, loginCode } from '../lib/password.js';
-import { studioDayRange } from '../lib/time.js';
+import { studioDate, studioDayRange } from '../lib/time.js';
 import { personName, userSummary } from '../lib/dto.js';
 import { notify } from '../services/notify.js';
 import { normalizeEmail } from '../services/auth.js';
 import { revokeAllSessions } from '../services/tokens.js';
-import { adjustWallet } from '../services/credits.js';
+import { adjustWallet, spendCredits } from '../services/credits.js';
+
+/** A visit with no class in the system is a session taken off with this reason, then the date. */
+const VISIT_PREFIX = 'Visit ';
 import { createOrder, recordManualPayment } from '../services/orders.js';
 import { whenText } from '../services/booking.js';
 
@@ -419,6 +422,11 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       orders: orders.map((o) => ({ id: o.id, reference: o.reference, status: o.status, total: o.total, discount: o.discount, createdAt: o.createdAt, product: o.purchase?.nameSnapshot ?? (o.booking ? `${o.booking.session.classType.name} · ${whenText(o.booking.session.startsAt)}` : null), bookingStatus: o.booking?.status ?? null, payments: o.payments.map((p) => ({ id: p.id, method: p.method, status: p.status, amount: p.amount, completedAt: p.completedAt })) })),
       notes,
       transactions,
+      // The days she came: classes she was marked present at, and days written in without a class.
+      visits: [
+        ...bookings.filter((b) => b.attendance?.status === 'PRESENT').map((b) => ({ date: studioDate(b.session.startsAt), title: b.session.classType.name as string | null, sessionId: b.sessionId as string | null })),
+        ...transactions.filter((x) => x.type === 'ADMIN_DEDUCT' && x.reason?.startsWith(VISIT_PREFIX)).map((x) => ({ date: x.reason!.slice(VISIT_PREFIX.length), title: null, sessionId: null })),
+      ].sort((a, b) => b.date.localeCompare(a.date)),
     };
   });
 
@@ -535,6 +543,79 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
         return { ok: true, expiresAt };
       });
     },
+  );
+
+  route(
+    app,
+    {
+      method: 'PATCH',
+      url: '/admin/purchases/:id',
+      access: [...ADMIN],
+      summary: 'Set the day a package ends (its sessions end with it, at the end of that day)',
+      tags: ['admin-clients'],
+      params: zIdParams,
+      body: z.object({ expiresOn: zDate }),
+    },
+    async ({ params, body, user }) =>
+      transaction(async (tx) => {
+        const p = await tx.membershipPurchase.findUnique({ where: { id: params.id } });
+        if (!p || !p.expiresAt) throw E.conflict('NOT_ACTIVE', 'Only an activated package has an end date');
+        const expiresAt = studioDayRange(body.expiresOn).to;
+        if (p.startsAt && expiresAt <= p.startsAt) throw E.badRequest('VALIDATION', 'The end date must be after the package starts');
+        await tx.membershipPurchase.update({ where: { id: p.id }, data: { expiresAt, status: p.status === 'EXPIRED' && expiresAt > new Date() ? 'ACTIVE' : p.status } });
+        await tx.creditWallet.updateMany({ where: { purchaseId: p.id }, data: { expiresAt } });
+        await tx.spaEntitlement.updateMany({ where: { purchaseId: p.id }, data: { expiresAt } });
+        await audit(tx, user.id, 'purchase.set_end', 'membership_purchase', p.id, { from: p.expiresAt, to: expiresAt });
+        return { ok: true, expiresAt };
+      }),
+  );
+
+  /**
+   * A day she came, written in afterwards: a session comes off her package.
+   * With a class from the timetable she is added to it as present; for a day
+   * with no class in the system, only the session and the date are recorded.
+   */
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/admin/clients/:id/visits',
+      access: [...ADMIN],
+      summary: 'Record a day she was at the studio (a past class, or just a date); uses a session from her package',
+      tags: ['admin-clients'],
+      params: zIdParams,
+      body: z.object({ sessionId: z.uuid().optional(), date: zDate.optional() }).refine((b) => !!b.sessionId !== !!b.date, 'Give a class or a date'),
+    },
+    async ({ params, body, user }) =>
+      transaction(async (tx) => {
+        const client = await tx.user.findUnique({ where: { id: params.id } });
+        if (!client || client.role !== 'CLIENT') throw E.notFound('Client');
+        const at = body.sessionId ? (await tx.classSession.findUnique({ where: { id: body.sessionId } }))?.startsAt : studioDayRange(body.date!).from;
+        if (!at) throw E.notFound('Class');
+        if (at > new Date()) throw E.badRequest('VALIDATION', 'Only a day that has already happened');
+        // Her package now, whatever day it was: it may have been paid after she started coming.
+        const [wallet] = await tx.$queryRaw<{ id: string; remaining: number }[]>`
+          select w.id, w.remaining from credit_wallets w join membership_purchases p on p.id = w.purchase_id
+          where w.user_id = ${client.id}::uuid and p.status = 'ACTIVE' and w.expires_at > now() and w.remaining > 0
+            and not (p.pair_id is not null and p.together)
+          order by w.expires_at limit 1 for update of w`;
+        if (!wallet) throw E.conflict('INSUFFICIENT_CREDITS', 'She has no sessions left in an active package');
+
+        if (body.date) {
+          const tx2 = await adjustWallet(tx, { walletId: wallet.id, delta: -1, reason: `${VISIT_PREFIX}${body.date}`, actorId: user.id });
+          await audit(tx, user.id, 'client.visit', 'user', client.id, body);
+          return { ok: true, transactionId: tx2.id };
+        }
+        const s = await tx.classSession.findUniqueOrThrow({ where: { id: body.sessionId }, include: { classType: true } });
+        const existing = await tx.classBooking.findFirst({ where: { userId: client.id, sessionId: s.id, status: 'BOOKED' } });
+        if (existing) throw E.conflict('ALREADY_BOOKED', 'She is already in this class: mark her present there');
+        const booking = await tx.classBooking.create({ data: { sessionId: s.id, userId: client.id, source: 'ADMIN', creditsUsed: s.classType.creditsRequired } });
+        const { walletId } = await spendCredits(tx, { userId: client.id, credits: s.classType.creditsRequired, at: s.startsAt, bookingId: booking.id, actorId: user.id, walletId: wallet.id });
+        await tx.classBooking.update({ where: { id: booking.id }, data: { walletId } });
+        await tx.classAttendance.create({ data: { bookingId: booking.id, status: 'PRESENT', markedById: user.id } });
+        await audit(tx, user.id, 'client.visit', 'user', client.id, body);
+        return { ok: true, bookingId: booking.id };
+      }),
   );
 
   route(

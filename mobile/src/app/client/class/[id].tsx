@@ -8,7 +8,7 @@ import { Alert } from '@/lib/alert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, Button, ErrorState, Gap, KeyValue, Notice, OfflineBanner, Row, SkeletonList, Text } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
-import { lek, longDate, time, whenShort } from '@/lib/format';
+import { longDate, time, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
 import { loc, type SessionDetail } from '@/lib/types';
@@ -52,15 +52,7 @@ export default function ClassDetail() {
     },
     onError: fail,
   });
-  // One class without a package (owed at the studio), or a DUO booked for both at once.
-  const single = useMutation({
-    mutationFn: () => api('POST', `/sessions/${id}/book-single`, { idempotencyKey: bookKey.current }),
-    onSuccess: () => {
-      refreshAll();
-      router.replace({ pathname: '/client/booked', params: { kind: 'class', sessionId: id } });
-    },
-    onError: fail,
-  });
+  // A DUO booked for both at once.
   const duo = useMutation({
     mutationFn: () => api('POST', `/sessions/${id}/book-duo`, { idempotencyKey: bookKey.current }),
     onSuccess: () => {
@@ -118,9 +110,7 @@ export default function ClassDetail() {
       action = <Button variant="secondary" title={t('leaveWaitlist')} onPress={() => leave.mutate(s.myWaitlist!.id)} loading={leave.isPending} />;
     } else if (!s.bookable) {
       action = <Button title={t('bookClass')} onPress={() => {}} disabled />;
-    } else if (s.available > 0 && (s.eligible || s.duo || s.singlePrice)) {
-      const until = whenShort(s.freeCancelUntil, lang);
-      const price = s.singlePrice ? lek(s.singlePrice) : '';
+    } else if (s.available > 0 && (s.eligible || s.duo)) {
       action = (
         <View style={{ gap: space.sm }}>
           {s.duo && s.available >= 2 ? (
@@ -131,14 +121,6 @@ export default function ClassDetail() {
             />
           ) : null}
           {s.eligible ? <Button variant={s.duo ? 'secondary' : 'primary'} title={t('bookClass')} onPress={() => confirmBook(() => book.mutate())} loading={book.isPending} /> : null}
-          {s.singlePrice ? (
-            <Button
-              variant={s.eligible || s.duo ? 'ghost' : 'primary'}
-              title={t('bookSingle', { price })}
-              loading={single.isPending}
-              onPress={() => Alert.alert(t('bookConfirmTitle'), t('singleConfirm', { price, until }), [{ text: t('notNow'), style: 'cancel' }, { text: t('yesBook'), onPress: () => single.mutate() }])}
-            />
-          ) : null}
           {!s.eligible ? <Button variant="ghost" title={t('seePackages')} onPress={() => router.push('/client/packages')} /> : null}
         </View>
       );

@@ -6,9 +6,10 @@ import { Alert } from '@/lib/alert';
 import { Badge, Button, Card, Chip, ErrorState, Field, Gap, Header, KeyValue, Row, Screen, Section, Segmented, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api, newIdempotencyKey } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';
-import { dateShort, lek, manualDiscountAmount, whenShort } from '@/lib/format';
+import { DateStrip } from '@/components/DateStrip';
+import { addDays, dateShort, lek, longDate, manualDiscountAmount, time, todayISO, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
-import type { Product } from '@/lib/types';
+import type { Product, SessionDto } from '@/lib/types';
 import { colors, space } from '@/theme';
 
 interface ClientDetail {
@@ -26,10 +27,11 @@ interface ClientDetail {
   orders: { id: string; reference: string; status: string; total: number; discount: number; createdAt: string; product: string | null; payments: { id: string; method: string; status: string; amount: number }[] }[];
   notes: { id: string; body: string; visibility: string; createdAt: string }[];
   transactions: { id: string; type: string; delta: number; balanceAfter: number; reason: string | null; createdAt: string }[];
+  visits: { date: string; title: string | null; sessionId: string | null }[];
 }
 
 // Sessions come only from selling a package; there is no manual add / deduct.
-type Panel = null | 'sell' | 'note';
+type Panel = null | 'sell' | 'note' | 'visit';
 
 /** Everything about one client, and what the desk can do for her. */
 export default function AdminClient() {
@@ -55,6 +57,20 @@ export default function AdminClient() {
   const [paidMethod, setPaidMethod] = useState<'CASH' | null>('CASH'); // the studio takes cash only
   const [note, setNote] = useState('');
   const [noteService, setNoteService] = useState(false);
+  // A day she came, written in afterwards: one of that day's classes, or just the day.
+  const [visitDay, setVisitDay] = useState(addDays(todayISO(), -1));
+  const dayClasses = useQuery({ queryKey: ['admin-sessions', visitDay], queryFn: () => api<SessionDto[]>('GET', `/admin/sessions?from=${visitDay}&to=${visitDay}`), enabled: panel === 'visit' });
+  // Stays open after each one: several days are often written in together.
+  const visit = useMutation({
+    mutationFn: (body: { sessionId: string } | { date: string }) => api('POST', `/admin/clients/${id}/visits`, { body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin-client', id] });
+      Alert.alert('DUA', t('visitAdded'));
+    },
+    onError: (e) => Alert.alert('DUA', errorText(e, lang)),
+  });
+  const addVisit = (body: { sessionId: string } | { date: string }) => visit.mutate(body);
+  const [editEnd, setEditEnd] = useState<{ id: string; date: string } | null>(null);
 
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
@@ -124,7 +140,8 @@ export default function AdminClient() {
         )}
       </Card>
       <Row style={{ flexWrap: 'wrap' }}>
-        <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />        <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
+        <Button small icon="shopping-bag" title={t('assignPackage')} onPress={() => setPanel(panel === 'sell' ? null : 'sell')} />        <Button small variant="secondary" icon="check-circle" title={t('addVisit')} onPress={() => setPanel(panel === 'visit' ? null : 'visit')} />
+        <Button small variant="secondary" icon="edit-3" title={t('addNote')} onPress={() => setPanel(panel === 'note' ? null : 'note')} />
       </Row>
 
       {panel === 'sell' ? (
@@ -178,6 +195,22 @@ export default function AdminClient() {
         </Card>
       ) : null}
 
+      {panel === 'visit' ? (
+        <Card style={{ marginTop: space.md }}>
+          <Text variant="small" style={{ marginBottom: space.sm }}>{t('addVisitHint')}</Text>
+          <DateStrip value={visitDay} onChange={setVisitDay} allowPast maxDate={todayISO()} marks />
+          <Text variant="label" style={{ marginTop: space.md }}>{longDate(visitDay, lang)}</Text>
+          <Row style={{ flexWrap: 'wrap', marginVertical: space.sm }}>
+            {(dayClasses.data ?? [])
+              .filter((s) => s.status !== 'CANCELLED' && new Date(s.startsAt) <= new Date())
+              .map((s) => (
+                <Chip key={s.id} label={`${time(s.startsAt)} · ${s.classType.name}`} onPress={() => addVisit({ sessionId: s.id })} />
+              ))}
+          </Row>
+          <Button small variant="ghost" title={t('visitNoClass')} loading={visit.isPending} onPress={() => addVisit({ date: visitDay })} />
+        </Card>
+      ) : null}
+
       {panel === 'note' ? (
         <Card style={{ marginTop: space.md }}>
           <Field label={t('notes')} value={note} onChangeText={setNote} multiline style={{ minHeight: 80, textAlignVertical: 'top', paddingTop: 12 }} />
@@ -202,6 +235,18 @@ export default function AdminClient() {
                 </Row>
                 <Text variant="small">{lek(p.price)}{p.expiresAt ? ` · ${t('expires', { date: dateShort(p.expiresAt, lang) })}` : ''}</Text>
                 {p.wallet ? <Text variant="bodyMedium">{t('ofCredits', { n: p.wallet.remaining, total: p.wallet.total })}</Text> : null}
+                {p.expiresAt && editEnd?.id !== p.id ? (
+                  <Button small variant="ghost" icon="calendar" title={t('changeEnd')} onPress={() => setEditEnd({ id: p.id, date: p.expiresAt!.slice(0, 10) })} style={{ alignSelf: 'flex-start' }} />
+                ) : null}
+                {editEnd?.id === p.id ? (
+                  <View style={{ marginTop: space.sm }}>
+                    <DateStrip value={editEnd.date} onChange={(d) => setEditEnd({ id: p.id, date: d })} allowPast />
+                    <Row style={{ marginTop: space.sm }}>
+                      <Button small title={t('endsOnDay', { date: dateShort(editEnd.date, lang) })} loading={run.isPending} onPress={() => run.mutate(() => api('PATCH', `/admin/purchases/${p.id}`, { body: { expiresOn: editEnd.date } }).then(() => setEditEnd(null)))} />
+                      <Button small variant="ghost" title={t('cancel')} onPress={() => setEditEnd(null)} />
+                    </Row>
+                  </View>
+                ) : null}
                 {(SPA_ENABLED ? p.spa : []).map((s) => <Text key={s.id} variant="small">{s.name} · {s.remaining}/{s.total}</Text>)}
               </Card>
             ))}
@@ -255,6 +300,16 @@ export default function AdminClient() {
         </>
       ) : tab === 'history' ? (
         <Section title={t('bookingHistory')}>
+          {c.visits.length ? (
+            <Card style={{ marginBottom: space.md }}>
+              <Text variant="label">{t('daysCame', { n: c.visits.length })}</Text>
+              {c.visits.map((v, i) => (
+                <Text key={`${v.date}-${i}`} variant="small">
+                  {longDate(v.date, lang)}{v.title ? ` · ${v.title}` : ''}
+                </Text>
+              ))}
+            </Card>
+          ) : null}
           {c.bookings.map((b) => (
             <Card key={b.id} onPress={() => router.push({ pathname: '/admin/session/[id]', params: { id: b.sessionId } })} style={{ marginBottom: space.sm }}>
               <Row style={{ justifyContent: 'space-between' }}>
