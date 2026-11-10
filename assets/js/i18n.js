@@ -539,6 +539,159 @@
     'Candle and ceramic cup in the studio lounge': 'Qiri dhe filxhan qeramike në sallonin e studios',
     'Hands and white linen in the treatment room': 'Duar dhe liri e bardhë në dhomën e trajtimit',
 
+    /* ---- the November 2026 redesign: homepage ---- */
+    'Reformer': 'Reformer',
+    'Private': 'Private',
+    'Visit': 'Na vizito',
+    'Book your class': 'Rezervo klasën',
+    'Language': 'Gjuha',
+    'Private sessions': 'Seanca private',
+    'Reformer Pilates & Spa · Tirana': 'Reformer Pilates & Spa · Tiranë',
+    'Movement, recovery and a little time just for you.': 'Lëvizje, rikuperim dhe pak kohë vetëm për ty.',
+    'Explore the studio': 'Zbulo studion',
+    'The reformer studio in daylight: oak reformers, a lit shelf and the DUA wall':
+      'Studio e reformerit në dritë dite: reformerë lisi, një raft i ndriçuar dhe muri DUA',
+    'The studio': 'Studio',
+    'A space to move.': 'Një hapësirë për të lëvizur.',
+    'A moment to pause.': 'Një çast për të ndalur.',
+    'DUA brings together mindful movement and considered recovery in a space designed around you.':
+      'DUA bashkon lëvizjen e vetëdijshme dhe rikuperimin e kujdesshëm, në një hapësirë të menduar për ty.',
+    'An oak shelf lit from within, holding balls, rings and blocks, beside the DUA wall':
+      'Një raft lisi i ndriçuar nga brenda, me topa, unaza dhe blloqe, pranë murit DUA',
+    'A reformer under the DUA wall, cacti and lavender along the window':
+      'Një reformer nën murin DUA, kaktuse dhe livando përgjatë dritares',
+    'Strength in': 'Forcë në',
+    'every movement.': 'çdo lëvizje.',
+    'Fifty minutes on the reformer in a small group. Your instructor sets your springs, corrects your form and keeps the pace calm, whether it is your first class or your hundredth.':
+      'Pesëdhjetë minuta në reformer, në një grup të vogël. Instruktorja të rregullon sustat, të korrigjon formën dhe e mban ritmin të qetë, qoftë klasa jote e parë apo e qindta.',
+    'Small groups': 'Grupe të vogla',
+    'Time for every one of you.': 'Kohë për secilën prej jush.',
+    'Hands-on': 'Kujdes personal',
+    'Corrections in every class.': 'Korrigjime në çdo klasë.',
+    'First time': 'Herën e parë',
+    'We show you the reformer before you start.': 'Të tregojmë reformerin para se të fillosh.',
+    'Explore Pilates': 'Zbulo Pilates',
+    'A treatment room by candlelight, a therapist at work beneath a woven fan':
+      'Një dhomë trajtimi në dritë qiriu, një terapiste në punë nën një freskore të thurur',
+    'Your moment': 'Momenti yt',
+    'to reset.': 'për t’u çlodhur.',
+    'Relaxing and deep-tissue massage, lymphatic drainage and body sculpting, in rooms kept warm, dim and quiet.':
+      'Masazh relaksues dhe i thellë, drenazh limfatik dhe sculpt trupi, në dhoma të ngrohta, me dritë të butë dhe të qeta.',
+    'Explore Spa': 'Zbulo Spa',
+    'The DUA experience': 'Përvoja DUA',
+    'Small on purpose.': 'E vogël me qëllim.',
+    'Personal by design.': 'Personale që në krijim.',
+    'Small group classes': 'Klasa në grupe të vogla',
+    'A few reformers in the room, so nobody is just a number.': 'Pak reformerë në sallë, që askush të mos jetë thjesht një numër.',
+    'Personal guidance': 'Udhëzim personal',
+    'Springs set, form corrected, every class.': 'Sustat të rregulluara, forma e korrigjuar, në çdo klasë.',
+    'Private and semi-private': 'Private dhe gjysmë-private',
+    'One to one, or with one or two people you choose.': 'Një me një, ose me një a dy persona që zgjedh ti.',
+    'A considered space': 'Një hapësirë e menduar',
+    'Daylight, warm oak and quiet rooms.': 'Dritë dite, dru lisi i ngrohtë dhe dhoma të qeta.',
+    'Pilates and spa together': 'Pilates dhe spa bashkë',
+    'Move, then recover, in the same place.': 'Lëviz, pastaj rikuperohu, në të njëjtin vend.',
+    'The whole hour,': 'E gjithë ora,',
+    'shaped around you.': 'e ndërtuar rreth teje.',
+    'A session built for your body and your goals, at a time agreed with your instructor.':
+      'Një seancë e ndërtuar për trupin dhe qëllimet e tua, në një orar të rënë dakord me instruktoren.',
+    'You and your instructor, with every minute given to you.': 'Ti dhe instruktorja, çdo minutë vetëm për ty.',
+    'Semi-private': 'Gjysmë-private',
+    'Train alongside a friend or partner, at your shared pace.': 'Stërvitu krah një shoqeje ose partneri, me ritmin tuaj të përbashkët.',
+    'Small private group': 'Grup i vogël privat',
+    'Three of you, one instructor, a class of your own.': 'Tre veta, një instruktore, një klasë vetëm e juaja.',
+    'Ask about private sessions': 'Pyet për seancat private',
+    'By arrangement. Message us for times and prices.': 'Me marrëveshje. Na shkruaj për oraret dhe çmimet.',
+    'Monthly packages on the reformer, spa treatments, and the two together.':
+      'Paketa mujore në reformer, trajtime spa, dhe të dyja bashkë.',
+    'Kinds of package': 'Llojet e paketave',
+    'Pilates + Spa': 'Pilates + Spa',
+    'Single treatments and series. Descriptions and the full menu are on the':
+      'Trajtime të vetme dhe seri. Përshkrimet dhe menuja e plotë janë te',
+    'spa page': 'faqja e spa-s',
+    'Reformer classes and spa treatments in one package.': 'Klasa reformeri dhe trajtime spa në një paketë.',
+    'Packages are loading. If they do not appear, message us and we will send them to you.':
+      'Paketat po ngarkohen. Nëse nuk shfaqen, na shkruaj dhe t’i dërgojmë.',
+    'Packages will be here shortly. Message us and we will send them to you.':
+      'Paketat do të jenë këtu së shpejti. Na shkruaj dhe t’i dërgojmë.',
+    'Current offers': 'Ofertat aktuale',
+    'For a limited time, on top of the packages above.': 'Për një kohë të kufizuar, përveç paketave më sipër.',
+    'Choose': 'Zgjidh',
+    'Single classes': 'Klasa të vetme',
+    'Book this offer': 'Rezervo ofertën',
+    'Not sure?': 'Nuk je e sigurt?',
+    'Which one': 'Cila',
+    'is yours?': 'është e jotja?',
+    'Three or four questions. Nothing is saved and nothing is sent — the answer is one of the packages above.':
+      'Tre ose katër pyetje. Asgjë nuk ruhet dhe asgjë nuk dërgohet — përgjigjja është një nga paketat më sipër.',
+    'Reformers in a row in the evening, a warm light along the curtains':
+      'Reformerë në rresht në mbrëmje, një dritë e ngrohtë përgjatë perdeve',
+    'The DUA ritual': 'Rituali DUA',
+    'Move. Restore.': 'Lëviz. Rikuperohu.',
+    'Repeat.': 'Përsërit.',
+    'A class on the reformer, then a treatment down the hall. Strength and recovery in one visit, without crossing the city in between.':
+      'Një klasë në reformer, pastaj një trajtim pak hapa më tej. Forcë dhe rikuperim në një vizitë, pa e kapërcyer qytetin mes tyre.',
+    'Move': 'Lëviz',
+    'Fifty minutes on the reformer.': 'Pesëdhjetë minuta në reformer.',
+    'Restore': 'Rikuperohu',
+    'A massage while the work settles.': 'Një masazh, ndërsa trupi qetësohet pas punës.',
+    'Repeat': 'Përsërit',
+    'A week with room for both.': 'Një javë me vend për të dyja.',
+    'See Pilates + Spa packages': 'Shiko paketat Pilates + Spa',
+    'The spa menu': 'Menuja e spa-s',
+    'to Saturday.': 'deri të shtunën.',
+    'Every class is fifty minutes and starts on the hour.': 'Çdo klasë zgjat pesëdhjetë minuta dhe fillon në orë të plotë.',
+    'A Pilates class on a sprung carriage. The springs carry part of your weight and give you something to work against, so the movement stays controlled and low impact.':
+      'Një klasë Pilates mbi një karrocë me susta. Sustat mbajnë një pjesë të peshës sate dhe të japin rezistencë, kështu lëvizja mbetet e kontrolluar dhe pa ndikim të fortë në nyje.',
+    'No. The groups are small, and the instructor sets your springs, shows you the reformer and corrects your position throughout.':
+      'Jo. Grupet janë të vogla, dhe instruktorja të rregullon sustat, të tregon reformerin dhe të korrigjon pozicionin gjatë gjithë klasës.',
+    'How do I book?': 'Si rezervoj?',
+    'Online, in a couple of minutes: choose a package, then your time. Your confirmation includes a link to change or cancel, and shows until when cancelling is free.':
+      'Online, në pak minuta: zgjidh paketën, pastaj orarin. Konfirmimi ka një link për ta ndryshuar ose anuluar, dhe tregon deri kur anulimi është falas.',
+    'Relaxing and deep-tissue massage, lymphatic drainage, body sculpting and neck-and-shoulder treatments, from 30 to 90 minutes. The full menu is on the':
+      'Masazh relaksues dhe i thellë, drenazh limfatik, sculpt trupi dhe trajtime për qafën e shpatullat, nga 30 deri në 90 minuta. Menuja e plotë është te',
+    'The map is just below; tap it and Google Maps takes you to the door. We are open Monday to Saturday, 07:00 to 21:00.':
+      'Harta është pak më poshtë; prek atë dhe Google Maps të çon te dera. Jemi hapur nga e hëna në të shtunë, 07:00 deri 21:00.',
+    'Instagram': 'Instagram',
+    'Because I want to.': 'Sepse dua.',
+    'Book': 'Rezervo',
+    'Most popular': 'Më e zgjedhura',
+    'Price coming soon': 'Çmimi së shpejti',
+
+    /* ---- the spa page ---- */
+    'Book a treatment': 'Rezervo një trajtim',
+    'DUA Spa · Tirana': 'DUA Spa · Tiranë',
+    'Massage and body treatments in warm, quiet rooms, a few steps from the reformer studio.':
+      'Masazhe dhe trajtime trupi në dhoma të ngrohta e të qeta, pak hapa nga studio e reformerit.',
+    'See the menu': 'Shiko menunë',
+    'The menu': 'Menuja',
+    'Treatments,': 'Trajtime,',
+    'unhurried.': 'pa nxitim.',
+    'Prices in Albanian lek. Book online, or message us if you are not sure which to choose.':
+      'Çmimet në lekë. Rezervo online, ose na shkruaj nëse nuk je e sigurt cilin të zgjedhësh.',
+    'The menu is loading.': 'Menuja po ngarkohet.',
+    'The menu will be here shortly. Message us and we will send it to you.': 'Menuja do të jetë këtu së shpejti. Na shkruaj dhe ta dërgojmë.',
+    'The same abdomen photographed before and after a treatment at DUA, in the same light':
+      'I njëjti bark, i fotografuar para dhe pas një trajtimi në DUA, në të njëjtën dritë',
+    'Before and after, at DUA, in the same light. Every body responds differently; this is one client, not a promise.':
+      'Para dhe pas, në DUA, në të njëjtën dritë. Çdo trup reagon ndryshe; kjo është një kliente, jo një premtim.',
+    'Packages that pair reformer classes with spa treatments are with the memberships.':
+      'Paketat që bashkojnë klasat e reformerit me trajtimet spa janë te abonimet.',
+    'From a short reset to the full ninety minutes.': 'Nga një pushim i shkurtër deri te nëntëdhjetë minutat e plota.',
+    'Lymphatic drainage': 'Drenazh limfatik',
+    'A gentle, rhythmic manual technique with light, even pressure.': 'Një teknikë manuale e butë dhe ritmike, me presion të lehtë e të njëtrajtshëm.',
+    'Body sculpting': 'Sculpt trupi',
+    'Firm, focused massage for the body’s contours.': 'Masazh i fortë dhe i fokusuar për konturet e trupit.',
+    'Series': 'Seri',
+    'The same treatment, booked as a set.': 'I njëjti trajtim, i rezervuar si set.',
+    'Our longest treatment: a full relaxing massage with unhurried time for recovery.':
+      'Trajtimi ynë më i gjatë: një masazh i plotë relaksues, me kohë pa nxitim për rikuperim.',
+    'Slow, flowing strokes and an unhurried pace.': 'Lëvizje të ngadalta e të rrjedhshme, pa asnjë nxitim.',
+    'Firmer, focused pressure where muscles hold tension.': 'Presion më i fortë e i fokusuar aty ku muskujt mbajnë tension.',
+    'Neck, shoulders, upper back and scalp, where long desk days collect.': 'Qafa, shpatullat, shpina e sipërme dhe skalpi, aty ku mblidhen ditët e gjata në tavolinë.',
+    'Light, rhythmic movements, slow and precise throughout.': 'Lëvizje të lehta e ritmike, të ngadalta dhe të sakta gjatë gjithë kohës.',
+    'Firm, energetic strokes focused on the body’s contours.': 'Lëvizje të forta e energjike, të fokusuara në konturet e trupit.',
+
   };
 
   /* The title is set per language rather than translated as a string, so the
@@ -554,16 +707,16 @@
      under an English description otherwise, and so does anyone sharing the link. */
   var META = {
     en: {
-      description: 'Reformer Pilates in Tirana. DUA is a boutique Pilates studio and spa opening in Tirana, Albania — small classes, one instructor who knows you, and the spa in the same place.',
+      description: 'Reformer Pilates and spa in Tirana. Small classes on the reformer, private sessions, and massage and body treatments in the same studio.',
       ogTitle: 'DUA — Reformer Pilates and Spa in Tirana',
-      ogDescription: 'A boutique reformer Pilates studio and spa in Tirana, Albania. Opening soon.',
+      ogDescription: 'Movement, recovery and a little time just for you. A boutique reformer Pilates studio and spa in Tirana.',
       locale: 'en_GB',
       altLocale: 'sq_AL'
     },
     sq: {
-      description: 'Reformer Pilates në Tiranë. DUA është një studio boutique Pilates dhe spa që hapet në Tiranë, Shqipëri — klasa të vogla, një instruktore që të njeh, dhe spa në të njëjtin vend.',
+      description: 'Reformer Pilates dhe spa në Tiranë. Klasa të vogla në reformer, seanca private, dhe masazhe e trajtime trupi në të njëjtin studio.',
       ogTitle: 'DUA — Reformer Pilates dhe Spa në Tiranë',
-      ogDescription: 'Një studio boutique e reformer Pilates dhe spa në Tiranë, Shqipëri. Hapemi së shpejti.',
+      ogDescription: 'Lëvizje, rikuperim dhe pak kohë vetëm për ty. Një studio boutique e reformer Pilates dhe spa në Tiranë.',
       locale: 'sq_AL',
       altLocale: 'en_GB'
     }
@@ -599,6 +752,13 @@
        have listed: how many treatments, and what a combination holds. */
     m = s.match(/^· (\d+) treatments?$/);
     if (m) return '· ' + m[1] + (m[1] === '1' ? ' trajtim' : ' trajtime');
+    m = s.match(/^Until (\d{1,2}) (January|February|March|April|May|June|July|August|September|October|November|December)$/);
+    if (m) return 'Deri më ' + m[1] + ' ' + { January: 'janar', February: 'shkurt', March: 'mars', April: 'prill', May: 'maj', June: 'qershor',
+      July: 'korrik', August: 'gusht', September: 'shtator', October: 'tetor', November: 'nëntor', December: 'dhjetor' }[m[2]];
+    m = s.match(/^(\d+) places? left$/);
+    if (m) return m[1] === '1' ? 'Edhe 1 vend' : 'Edhe ' + m[1] + ' vende';
+    m = s.match(/^(\d+) treatments$/);
+    if (m) return m[1] + ' trajtime';
     m = s.match(/^(\d+) times$/);
     if (m) return m[1] + ' orare';
     m = s.match(/^(\d+) Pilates \+ (\d+) Spa$/);
@@ -674,8 +834,14 @@
     busy = true;
     walk(document.body, next === 'sq');
     document.documentElement.lang = next === 'sq' ? 'sq' : 'en';
-    document.title = TITLES[next] || TITLES.en;
+    /* A page other than the homepage carries its own title and description
+       on <html data-title-en … data-desc-sq>. */
+    var root = document.documentElement;
+    var own = root.getAttribute('data-title-' + next);
+    document.title = own || TITLES[next] || TITLES.en;
     var m = META[next] || META.en;
+    if (own) m = { description: root.getAttribute('data-desc-' + next) || '', ogTitle: own,
+      ogDescription: root.getAttribute('data-desc-' + next) || '', locale: m.locale, altLocale: m.altLocale };
     meta('meta[name="description"]', m.description);
     meta('meta[property="og:title"]', m.ogTitle);
     meta('meta[property="og:description"]', m.ogDescription);

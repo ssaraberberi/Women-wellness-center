@@ -5,16 +5,18 @@
    Made for a phone first; on a desk it sits in a calm column.
    ============================================================ */
 
+/* The website's 2026 palette and type, mapped onto the names this page
+   already uses — only values change here, never a rule or a layout. */
 :root{
-  --blush:#FFFBEA; --lift:#FFFDF6; --petal:#F5E9DC; --petal-deep:#E9D3D0;
-  --wine:#7D2F49; --plum:#3B1522; --plum-deep:#2A0E18; --ink-soft:#6E4351;
-  --rose:#C9899C; --rose-soft:#EFD6DD; --rose-mid:#B0788C;
+  --blush:#F3F0E9; --lift:#FAF8F4; --petal:#EAE5DB; --petal-deep:#DDD5C8;
+  --wine:#481F30; --plum:#292725; --plum-deep:#1F1915; --ink-soft:#766B62;
+  --rose:#B5A597; --rose-soft:#E6DED3; --rose-mid:#A39383;
   --leaf:#4E6B47; --leaf-soft:#E3EBDD; --leaf-mid:#8FA886;
   --good:#2F6B4F; --good-bg:#E4F0E8; --warn:#8A5A16; --warn-bg:#FAEEDC; --bad:#8E2C2C; --bad-bg:#F7E3E3;
-  --line:rgba(59,21,34,.14); --line-soft:rgba(59,21,34,.08);
-  --display:"Fraunces","Iowan Old Style",Georgia,serif;
+  --line:rgba(41,39,37,.14); --line-soft:rgba(41,39,37,.08);
+  --display:"Cormorant Garamond","Iowan Old Style",Garamond,Georgia,serif;
   --sans:"DM Sans","Helvetica Neue",Helvetica,Arial,sans-serif;
-  --r:18px; --r-sm:12px;
+  --r:4px; --r-sm:3px;
   --ease:cubic-bezier(.22,.61,.36,1);
   --top:env(safe-area-inset-top,0px); --bottom:env(safe-area-inset-bottom,0px);
   color-scheme:light;
@@ -25,6 +27,7 @@ html,body{margin:0;padding:0}
 body{
   background:var(--blush);color:var(--plum);font-family:var(--sans);font-weight:300;font-size:15.5px;line-height:1.6;
   -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  font-variant-numeric:lining-nums;
 }
 h1,h2,h3,p,ul,ol{margin:0;padding:0}
 ul,ol{list-style:none}
@@ -35,7 +38,7 @@ b,strong{font-weight:500}
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--wine);outline-offset:2px;border-radius:6px}
 
-.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em;line-height:1.1}
+.display{font-family:var(--display);font-weight:400;letter-spacing:-.01em;line-height:1.1;font-variant-numeric:lining-nums}
 .eyebrow{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--wine)}
 .muted{color:var(--ink-soft)}
 .small{font-size:13.5px}
@@ -43,7 +46,7 @@ b,strong{font-weight:500}
 
 /* ---------- frame ---------- */
 .top{
-  position:sticky;top:0;z-index:20;background:rgba(255,251,234,.94);
+  position:sticky;top:0;z-index:20;background:rgba(243,240,233,.94);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft);
   padding:calc(10px + var(--top)) 18px 10px;
 }
@@ -79,7 +82,7 @@ b,strong{font-weight:500}
 .seg{
   display:flex;gap:4px;margin-top:24px;padding:4px;border-radius:99px;background:var(--petal);
   overflow-x:auto;scrollbar-width:none;position:sticky;top:calc(64px + var(--top));z-index:10;
-  box-shadow:0 10px 24px -20px rgba(59,21,34,.45);
+  box-shadow:none;
 }
 .seg::-webkit-scrollbar{display:none}
 .seg button{
@@ -98,7 +101,7 @@ b,strong{font-weight:500}
   transition:border-color .25s var(--ease),box-shadow .25s var(--ease),transform .12s;
 }
 .card:active{transform:scale(.995)}
-.card.is-on{border-color:var(--wine);box-shadow:0 0 0 1px var(--wine),0 18px 40px -30px rgba(59,21,34,.5)}
+.card.is-on{border-color:var(--wine);box-shadow:0 0 0 1px var(--wine)}
 .card__row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
 .card__name{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--wine)}
 .card__big{font-family:var(--display);font-size:2.1rem;line-height:1;margin-top:10px}
@@ -117,7 +120,7 @@ b,strong{font-weight:500}
 .card.is-on .card__price,.card.is-on .card__soon{margin-right:30px}
 /* Spa wears the green; a combo carries a thread of both. */
 .card--spa .card__name{color:var(--leaf)}
-.card--spa.is-on{border-color:var(--leaf);box-shadow:0 0 0 1px var(--leaf),0 18px 40px -30px rgba(46,70,40,.5)}
+.card--spa.is-on{border-color:var(--leaf);box-shadow:0 0 0 1px var(--leaf)}
 .card--spa .card__tick{background:var(--leaf)}
 .card--combo{background:linear-gradient(180deg,var(--lift) 0,var(--lift) 70%,var(--leaf-soft) 100%)}
 
@@ -127,7 +130,7 @@ b,strong{font-weight:500}
 .offer .card__text,.offer .card__meta,.offer .card__price s,.offer .card__price small{color:rgba(255,251,234,.78)}
 .offer .card__soon{color:var(--rose-soft)}
 .offer .card__big small{color:rgba(255,251,234,.72)}
-.offer.is-on{box-shadow:0 0 0 2px var(--plum),0 22px 50px -30px rgba(59,21,34,.7)}
+.offer.is-on{box-shadow:0 0 0 2px var(--plum)}
 .offer .card__tick{background:var(--blush);color:var(--wine)}
 .badge{display:inline-flex;align-items:center;border-radius:99px;padding:4px 10px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,251,234,.16);color:var(--blush)}
 .badge--soft{background:var(--petal);color:var(--wine)}
@@ -166,7 +169,7 @@ b,strong{font-weight:500}
 .cal__day i{position:absolute;left:50%;bottom:14%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:transparent}
 .cal__day.has-room{font-weight:500;color:var(--plum)}
 .cal__day.has-room i{background:var(--leaf)}
-.cal__day.is-full{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:rgba(59,21,34,.35)}
+.cal__day.is-full{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:rgba(41,39,37,.35)}
 .cal__day.is-full i{background:var(--rose)}
 .cal__day.is-today span{box-shadow:inset 0 -1.5px 0 currentColor}
 .cal__day.is-picked{background:var(--rose-soft)}
@@ -211,7 +214,7 @@ b,strong{font-weight:500}
   border:1px solid var(--line);background:var(--blush);-webkit-appearance:none;appearance:none;
 }
 .field textarea{min-height:90px;resize:vertical;line-height:1.5}
-.field input:focus,.field textarea:focus{outline:none;border-color:var(--wine);box-shadow:0 0 0 3px rgba(125,47,73,.12)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--wine);box-shadow:0 0 0 3px rgba(72,31,48,.12)}
 .field.is-bad input{border-color:var(--bad)}
 
 .policy{margin-top:22px;padding:16px 18px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--lift);font-size:14px}
@@ -279,7 +282,7 @@ b,strong{font-weight:500}
 
 /* The action, kept under the thumb. */
 .bar{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,251,234,.96);
+  position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(243,240,233,.96);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);
   padding:12px 18px calc(12px + var(--bottom));
 }

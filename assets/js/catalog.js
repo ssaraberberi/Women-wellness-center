@@ -28,10 +28,19 @@
   var PANELS = { pilates: 'panel-pilates', spa: 'panel-spa', combo: 'panel-combo' };
   var data = null;
 
+  var offers = null;
+
+  /* What the section says when there is nothing to show: no packages, no
+     network, a broken answer. Never a shelf that keeps saying "loading". */
+  function unavailable() {
+    var soon = document.getElementById('plans-soon');
+    if (soon) soon.textContent = 'Packages will be here shortly. Message us and we will send them to you.';
+  }
+
   fetch('/api/public/packages', { headers: { accept: 'application/json' } })
     .then(function (r) { return r.ok ? r.json() : null; })
     .then(function (d) {
-      if (!d || !d.packages || !d.packages.length) return;   // the section stays as it is: coming soon
+      if (!d || !d.packages || !d.packages.length) { unavailable(); return; }
       data = d;
       /* The stylesheet keeps every price hidden until this class is on the
          page; only a clear yes from the server puts it there. */
@@ -41,8 +50,22 @@
       /* The tabs and the quiz are wired before this answer arrives, so
          they are told when there is finally something to work with. */
       document.dispatchEvent(new CustomEvent('dua:packages'));
+      loadOffers();
     })
-    .catch(function () {});
+    .catch(unavailable);
+
+  /* The offers live with the booking catalogue, which is where they are
+     actually applied, so what is described here is what the booking does. */
+  function loadOffers() {
+    fetch('/api/public/book', { headers: { accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.offers) return;
+        offers = d.offers.filter(function (o) { return o.remaining == null || o.remaining > 0; });
+        drawOffers();
+      })
+      .catch(function () {});
+  }
 
   /* ---------- reading a package ---------- */
 
@@ -72,6 +95,23 @@
     });
     return r && s ? 'combo' : s ? 'spa' : 'pilates';
   }
+
+  /* The studio names packages in Albanian only ("4 klasa / muaj",
+     "60 min • masazh relaksues"). Read in English, the two shapes she uses
+     are rebuilt from the English she did give; anything else is hers as is. */
+  function title(p) {
+    if (lang() !== 'en') return p.name;
+    var m = p.name.match(/^(\d+) klas[ëa](\s*\/\s*muaj)?$/i);
+    if (m) return m[1] + (m[1] === '1' ? ' class' : ' classes') + (m[2] ? ' / month' : '');
+    if (p.name.indexOf('•') > 0 && p.en && p.en.tagline) return p.name.split('•')[0].trim() + ' • ' + p.en.tagline;
+    return p.name;
+  }
+
+  var book = function (p, kind) {
+    var a = el('a', 'go ' + kind + '__go', 'Choose');
+    a.href = '/book?plan=' + encodeURIComponent(p.id);
+    return a;
+  };
 
   var money = function (n) {
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' L';
@@ -120,7 +160,8 @@
     tag(card, p);
     card.style.setProperty('--step', String(step));
     if (p.featured) card.appendChild(el('span', 'pack__flag', 'Most popular'));
-    card.appendChild(el('h3', 'pack__name', p.name));
+    card.appendChild(el('h3', 'pack__name', title(p)));
+    card.appendChild(book(p, 'pack'));
 
     var n = countOf(p, 'reformer');
     var count = el('p', 'pack__count');
@@ -148,8 +189,11 @@
     card.setAttribute('data-reveal', '');
     card.classList.add('is-in');
     tag(card, p);
-    card.appendChild(el('h3', 'treat__name', p.name));
-    if (say(p, 'tagline')) card.appendChild(el('p', 'treat__sub', say(p, 'tagline')));
+    var name = title(p);
+    card.appendChild(el('h3', 'treat__name', name));
+    card.appendChild(book(p, 'treat'));
+    var sub = say(p, 'tagline');
+    if (sub && name.toLowerCase().indexOf(sub.toLowerCase()) < 0) card.appendChild(el('p', 'treat__sub', sub));
 
     var n = countOf(p, 'spa');
     var side = say(p, 'rhythm') || (n > 1 ? n + ' treatments' : '');
@@ -179,7 +223,8 @@
     card.classList.add('is-in');
     tag(card, p);
     if (p.featured) card.appendChild(el('span', 'combo__flag', 'Our main package'));
-    card.appendChild(el('h3', 'combo__name', p.name));
+    card.appendChild(el('h3', 'combo__name', title(p)));
+    card.appendChild(book(p, 'combo'));
 
     /* The factual line, built from what it allows: nothing to keep in
        step by hand, and nothing that can disagree with the booking. */
@@ -203,6 +248,51 @@
     return card;
   }
 
+  /* One class at a time sits under the monthly packages rather than at the
+     top of the ladder: it is a way in, not a routine. */
+  function singleRow(p) {
+    var row = el('article', 'single');
+    row.setAttribute('data-pack', p.id);
+    tag(row, p);
+    var name = el('h3', 'single__name', title(p));
+    if (say(p, 'tagline')) name.appendChild(el('span', null, say(p, 'tagline')));
+    row.appendChild(name);
+    if (p.price != null) {
+      var price = el('p', 'single__price', money(p.price));
+      price.setAttribute('data-price', '');
+      row.appendChild(price);
+    }
+    var soon = el('p', 'pack__soon', 'Price coming soon');
+    soon.setAttribute('data-noprice', '');
+    row.appendChild(soon);
+    row.appendChild(book(p, 'single'));
+    return row;
+  }
+
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'August', 'September', 'October', 'November', 'December'];
+
+  function drawOffers() {
+    var box = document.getElementById('offers');
+    var wrap = box && box.closest('.offers');
+    if (!box || !wrap) return;
+    box.innerHTML = '';
+    (offers || []).forEach(function (o) {
+      var card = el('article', 'offer');
+      card.appendChild(el('h3', 'offer__name', o.title));
+      if (say(o, 'description')) card.appendChild(el('p', 'offer__body', say(o, 'description')));
+      if (say(o, 'eligibility')) card.appendChild(el('p', 'offer__note', say(o, 'eligibility')));
+      var d = o.endsOn && o.endsOn.match(/^\d{4}-(\d{2})-(\d{2})$/);
+      if (d) card.appendChild(el('p', 'offer__note', 'Until ' + Number(d[2]) + ' ' + MONTHS[Number(d[1]) - 1]));
+      if (o.remaining != null) card.appendChild(el('p', 'offer__note', o.remaining + (o.remaining === 1 ? ' place left' : ' places left')));
+      var a = el('a', 'link offer__book', 'Book this offer');
+      a.href = '/book?offer=' + encodeURIComponent(o.id);
+      card.appendChild(a);
+      box.appendChild(card);
+    });
+    wrap.hidden = !box.children.length;
+  }
+
   /* ---------- putting them on the page ---------- */
 
   var show = function (node, on) { if (node) node.hidden = !on; };
@@ -215,7 +305,6 @@
        not: the tabs come back, the line goes, and the offers — which are
        conditions on a package — come with them. */
     show(document.querySelector('.tabs[role="tablist"]'), true);
-    show(document.querySelector('.offers'), true);
     show(document.getElementById('which'), true);
     var soon = document.getElementById('plans-soon');
     if (soon) soon.remove();
@@ -243,13 +332,19 @@
 
       var grid = el('div', kind === 'pilates' ? 'packs' : kind === 'spa' ? 'treats' : 'combos');
       if (kind === 'pilates') {
-        /* The ladder: the rule under each number grows with the package,
-           so the progression is visible before a word is read. */
+        var monthly = list.filter(function (p) { return countOf(p, 'reformer') !== 1; });
+        var singles = list.filter(function (p) { return countOf(p, 'reformer') === 1; });
         var most = 1;
-        list.forEach(function (p) { most = Math.max(most, countOf(p, 'reformer') || 1); });
-        list.forEach(function (p) {
+        monthly.forEach(function (p) { most = Math.max(most, countOf(p, 'reformer') || 1); });
+        monthly.forEach(function (p) {
           grid.appendChild(packCard(p, Math.max(0.2, Math.min(1, (countOf(p, 'reformer') || 1) / most)).toFixed(3)));
         });
+        if (singles.length) {
+          panel.appendChild(grid);
+          panel.appendChild(el('h3', 'panel__sub', 'Single classes'));
+          grid = el('div', 'singles');
+          singles.forEach(function (p) { grid.appendChild(singleRow(p)); });
+        }
       } else {
         list.forEach(function (p) { grid.appendChild((kind === 'spa' ? treatCard : comboCard)(p)); });
       }
@@ -272,6 +367,7 @@
       if (lang() === was) return;
       was = lang();
       build();
+      if (offers) drawOffers();
     }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
   }
 })();

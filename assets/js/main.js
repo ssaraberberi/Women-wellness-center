@@ -525,7 +525,10 @@
     var target = document.querySelector(id);
     if (!target) return;
     e.preventDefault();
-    var top = target.getBoundingClientRect().top + window.scrollY - (window.innerWidth > 980 ? 70 : 56);
+    /* A link into the memberships can say which kind of package to open. */
+    var tab = a.getAttribute('data-open-tab') && document.getElementById(a.getAttribute('data-open-tab'));
+    if (tab && !tab.hidden) tab.click();
+    var top = target.getBoundingClientRect().top + window.scrollY - (window.innerWidth >= 760 ? 72 : 64);
     window.scrollTo({ top: top, behavior: motionOK() ? 'smooth' : 'auto' });
   });
 
