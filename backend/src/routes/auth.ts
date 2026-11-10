@@ -71,10 +71,11 @@ export async function authRoutes(app: FastifyInstance) {
       method: 'POST',
       url: '/auth/login',
       access: 'public',
-      summary: 'Sign in with email and password',
+      summary: 'Sign in with email (or the username the desk gave her) and password or DUA code',
       tags: ['auth'],
       rateLimit: tight,
-      body: z.object({ email: z.email().max(200), password: z.string().min(1).max(128) }),
+      // "email" also takes a username, so every app and page already in use keeps working.
+      body: z.object({ email: z.string().trim().min(1).max(200), password: z.string().min(1).max(128) }),
     },
     ({ body, req }) => loginWithPassword(body.email, body.password, meta(req)),
   );

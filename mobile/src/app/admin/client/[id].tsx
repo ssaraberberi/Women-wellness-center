@@ -17,6 +17,7 @@ interface ClientDetail {
   id: string;
   name: string;
   email: string | null;
+  username: string | null;
   phone: string | null;
   status: string;
   createdAt: string;
@@ -42,7 +43,6 @@ export default function AdminClient() {
   const { t, lang, tEnum } = useT();
   // Her sign-in code: only ever shown right after it is made (it is stored hashed).
   const [loginCode, setLoginCode] = useState<string | null>(createdCode ?? null);
-  const [newEmail, setNewEmail] = useState('');
   const [tab, setTab] = useState<'overview' | 'history' | 'ledger'>('overview');
   const [panel, setPanel] = useState<Panel>(null);
   const q = useQuery({ queryKey: ['admin-client', id], queryFn: () => api<ClientDetail>('GET', `/admin/clients/${id}`) });
@@ -107,22 +107,16 @@ export default function AdminClient() {
       <Gap h={space.md} />
       <Card style={{ marginBottom: space.md }}>
         <Text variant="label">{t('loginCode')}</Text>
-        {!c.email ? (
-          <>
-            <Text variant="small" style={{ marginVertical: space.xs }}>{t('addEmailFirst')}</Text>
-            <Field label={t('email')} value={newEmail} onChangeText={setNewEmail} autoCapitalize="none" keyboardType="email-address" />
-            <Button small title={t('save')} disabled={!newEmail.includes('@')} loading={run.isPending} onPress={() => run.mutate(() => api('PATCH', `/admin/clients/${id}`, { body: { email: newEmail.trim() } }))} />
-          </>
-        ) : loginCode ? (
+        {c.username ? <KeyValue icon="user" text={`${t('username')}: ${c.username}`} /> : null}
+        {loginCode ? (
           <>
             <Text variant="small" style={{ marginVertical: space.xs }}>{t('loginCodeHint')}</Text>
-            <Text variant="bodyMedium" selectable>{c.email}</Text>
             <Text variant="title" selectable style={{ letterSpacing: 1, marginVertical: space.xs }}>{loginCode}</Text>
             <Button
               small
               icon="send"
               title={t('sendLoginCode')}
-              onPress={() => void Share.share({ message: t('loginMessage', { name: c.name.split(' ')[0], email: c.email ?? '', code: loginCode, link: 'https://dua-pilates.com/book' }) })}
+              onPress={() => void Share.share({ message: t('loginMessage', { name: c.name.split(' ')[0], login: c.username ?? c.email ?? '', code: loginCode, link: 'https://dua-pilates.com/book' }) })}
             />
           </>
         ) : (
@@ -136,8 +130,7 @@ export default function AdminClient() {
               onPress={() =>
                 Alert.alert(t('newLoginCode'), t('newLoginCodeConfirm'), [
                   { text: t('cancel'), style: 'cancel' },
-                  { text: t('confirm'), onPress: () => run.mutate(async () => setLoginCode((await api<{ password: string }>('POST', `/admin/clients/${id}/login-code`)).password)) },
-                ])
+                  { text: t('confirm'), onPress: () => run.mutate(async () => setLoginCode((await api<{ password: string }>('POST', `/admin/clients/${id}/login-code`)).password)) },                ])
               }
             />
           </>

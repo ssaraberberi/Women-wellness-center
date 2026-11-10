@@ -7,6 +7,7 @@ import { E } from '../lib/errors.js';
 import { audit } from '../lib/settings.js';
 import { normalizePhone, zPhone } from '../lib/phone.js';
 import { hashPassword, loginCode } from '../lib/password.js';
+import { uniqueUsername } from '../lib/username.js';
 import { studioDate, studioDayRange } from '../lib/time.js';
 import { personName, userSummary } from '../lib/dto.js';
 import { notify } from '../services/notify.js';
@@ -338,17 +339,20 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       method: 'POST',
       url: '/admin/clients',
       access: [...ADMIN],
-      summary: 'Add a client at the desk. Returns her sign-in code (DUA-…), shown once: she signs in with her email and it.',
+      summary:
+        'Add a client at the desk, email optional. Returns her username (from her name) and sign-in code (DUA-…), shown once: she signs in with either her username or her email, and the code.',
       tags: ['admin-clients'],
-      body: z.object({ email: z.email(), firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).default(''), phone: zPhone, language: z.enum(['sq', 'en']).default('sq') }),
+      body: z.object({ email: z.email().nullish(), firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).default(''), phone: zPhone, language: z.enum(['sq', 'en']).default('sq') }),
     },
     async ({ body, user }) => {
-      const email = normalizeEmail(body.email);
-      if (await prisma.user.findUnique({ where: { email } })) throw E.conflict('EMAIL_TAKEN', 'There is already an account with this email');
+      const email = body.email ? normalizeEmail(body.email) : null;
+      if (email && (await prisma.user.findUnique({ where: { email } }))) throw E.conflict('EMAIL_TAKEN', 'There is already an account with this email');
       const password = loginCode();
+      const username = await uniqueUsername(prisma, body.firstName, body.lastName);
       const u = await prisma.user.create({
         data: {
           email,
+          username,
           role: 'CLIENT',
           status: 'ACTIVE',
           passwordHash: await hashPassword(password),
@@ -356,8 +360,8 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
           notificationPrefs: { create: {} },
         },
       });
-      await audit(prisma, user.id, 'client.create', 'user', u.id, { email });
-      return { id: u.id, password };
+      await audit(prisma, user.id, 'client.create', 'user', u.id, { email, username });
+      return { id: u.id, password, username };
     },
   );
 
@@ -374,12 +378,14 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
     async ({ params, user }) => {
       const u = await prisma.user.findUnique({ where: { id: params.id } });
       if (!u || u.role !== 'CLIENT' || u.status === 'DELETED') throw E.notFound('Client');
-      if (!u.email) throw E.conflict('NO_EMAIL', 'Add her email first: she signs in with it');
       const password = loginCode();
-      await prisma.user.update({ where: { id: u.id }, data: { passwordHash: await hashPassword(password), status: u.status === 'INVITED' ? 'ACTIVE' : u.status } });
+      // A client made before usernames (or added to a class by name) gets one now.
+      const profile = await prisma.userProfile.findUnique({ where: { userId: u.id } });
+      const username = u.username ?? (await uniqueUsername(prisma, profile?.firstName ?? '', profile?.lastName ?? ''));
+      await prisma.user.update({ where: { id: u.id }, data: { username, passwordHash: await hashPassword(password), status: u.status === 'INVITED' ? 'ACTIVE' : u.status } });
       await revokeAllSessions(u.id);
       await audit(prisma, user.id, 'client.login_code', 'user', u.id, {});
-      return { password, email: u.email };
+      return { password, email: u.email, username };
     },
   );
 
@@ -398,6 +404,7 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
     const active = purchases.filter((p) => p.status === 'ACTIVE' && p.expiresAt && p.expiresAt > now);
     return {
       ...userSummary(u),
+      username: u.username,
       status: u.status,
       createdAt: u.createdAt,
       language: u.profile?.language,

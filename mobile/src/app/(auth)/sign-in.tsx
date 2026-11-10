@@ -34,14 +34,15 @@ export default function SignIn() {
     return value;
   };
 
+  // A password or a DUA code goes with her email or the username the studio gave her.
   const signIn = async () => {
-    const value = cleanEmail();
-    if (!value) return;
+    const value = email.trim().toLowerCase();
+    if (!value) return setError(t('invalidEmail'));
     if (!password) return setError(t('enterPassword'));
     setBusy('password');
     setError(null);
     try {
-      const res = await api<any>('POST', '/auth/login', { body: { email: value, password }, auth: false });
+      const res = await api<any>('POST', '/auth/login', { body: { email: value, password: /^dua-/i.test(password.trim()) ? password.trim().toUpperCase() : password }, auth: false });
       await completeSignIn(res);
       router.replace('/');
     } catch (e) {
@@ -107,7 +108,7 @@ export default function SignIn() {
         <Text variant="body" center style={{ marginTop: space.sm, marginBottom: space.xxl }}>{t('signInSub')}</Text>
 
         <Field
-          label={t('email')}
+          label={t('emailOrUsername')}
           value={email}
           onChangeText={(v) => {
             setEmail(v);

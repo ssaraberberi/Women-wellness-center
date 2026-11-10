@@ -7,6 +7,7 @@ import { otpEmail, sendEmail } from './mail.js';
 import { notifyAdmins } from './notify.js';
 import { issueSession, revokeAllSessions } from './tokens.js';
 import { hashPassword, isLegacyHash, verifyPassword } from '../lib/password.js';
+import { loginWhere } from '../lib/username.js';
 
 const OTP_TTL_MS = 10 * 60_000;
 const MAX_ATTEMPTS = 5;
@@ -225,9 +226,9 @@ const badLogin = () => new AppError(401, 'INVALID_CREDENTIALS', 'Wrong email or 
  * Email + password. One answer for "no such account", "no password set" and
  * "wrong password", and the same work done in each case.
  */
-export async function loginWithPassword(rawEmail: string, password: string, meta: { ip?: string; userAgent?: string }) {
-  const email = normalizeEmail(rawEmail);
-  const user = await prisma.user.findUnique({ where: { email } });
+export async function loginWithPassword(login: string, password: string, meta: { ip?: string; userAgent?: string }) {
+  // Her email, or the username the desk gave her.
+  const user = await prisma.user.findUnique({ where: loginWhere(login) });
   const ok = await verifyPassword(password, user?.passwordHash);
   if (!user || !ok || user.status === 'DISABLED' || user.status === 'DELETED') throw badLogin();
   await prisma.user.update({
