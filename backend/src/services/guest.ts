@@ -9,6 +9,7 @@ import { issueSession } from './tokens.js';
 import { usableCredits } from './credits.js';
 import { bookClass, cancelBooking, instructorName, lastFreeCancel, lek, singleClassProduct, takenPlaces, whenText } from './booking.js';
 import { notifyAdmins } from './notify.js';
+import { lookalikes } from './offers.js';
 import { brandedEmail, sendEmail } from './mail.js';
 
 /**
@@ -141,6 +142,67 @@ async function clientForVerifiedEmail(email: string, input: { firstName: string;
     const u = await prisma.user.findUniqueOrThrow({ where: { email }, include: { profile: true } });
     return { user: { id: u.id, language: u.profile?.language ?? input.lang }, created: false };
   }
+}
+
+/**
+ * A visitor: a name and a phone, no account and no code. One class, paid at
+ * the studio. Nothing proves who she is, so she is not signed in, no package
+ * is touched, and an account someone signs in to is never matched — only a
+ * client who has never signed in (an earlier visitor, or one the desk added)
+ * with the same phone or email is reused. Anyone else is a new client,
+ * flagged for the desk when she looks like someone already known.
+ */
+export async function visitorBooking(
+  input: { sessionId: string; email?: string | null; firstName: string; lastName: string; phone: string; lang: 'sq' | 'en'; platform: Platform },
+  opts: { idempotencyKey?: string | null },
+) {
+  const email = input.email ? normalizeEmail(input.email) : null;
+  if (opts.idempotencyKey) {
+    const prior = await prisma.classBooking.findFirst({ where: { idempotencyKey: opts.idempotencyKey, sessionId: input.sessionId, user: { profile: { phone: input.phone } } } });
+    if (prior) return { status: 'already_booked' as const, booking: await bookingView(prior.id) };
+  }
+  await assertOpenForGuests(input.sessionId);
+
+  const unclaimed = { role: 'CLIENT' as const, passwordHash: null, emailVerifiedAt: null, status: { in: ['ACTIVE' as const, 'INVITED' as const] } };
+  const reuse =
+    (await prisma.user.findFirst({ where: { ...unclaimed, profile: { phone: input.phone } }, orderBy: { createdAt: 'asc' } })) ??
+    (email ? await prisma.user.findFirst({ where: { ...unclaimed, email } }) : null);
+  let userId = reuse?.id;
+  if (!userId) {
+    const twins = await lookalikes(prisma, { email, phone: input.phone, firstName: input.firstName, lastName: input.lastName });
+    const emailTaken = email ? !!(await prisma.user.findUnique({ where: { email }, select: { id: true } })) : false;
+    const u = await prisma.user.create({
+      data: {
+        email: emailTaken ? null : email,
+        role: 'CLIENT',
+        profile: { create: { firstName: input.firstName, lastName: input.lastName, phone: input.phone, language: input.lang } },
+        notificationPrefs: { create: {} },
+      },
+    });
+    userId = u.id;
+    const lines = [
+      'Booked online as a visitor; identity not verified.',
+      ...(emailTaken ? [`Email ${email} is already used by another account — left off this profile.`] : []),
+      ...(twins.length ? [`Possible duplicate of ${twins.map((x) => x.id).join(', ')} (same phone or email) — check before merging.`] : []),
+    ];
+    await prisma.clientNote.create({ data: { clientId: u.id, authorId: u.id, body: lines.join(' '), visibility: 'INTERNAL' } });
+    await notifyAdmins(prisma, {
+      type: 'ADMIN_NEW_CLIENT',
+      dedupeKey: `signup:${u.id}`,
+      params: { client: `${input.firstName} ${input.lastName}`.trim(), via: input.platform === 'WEB' ? 'web' : 'app' },
+      data: { kind: 'client', clientId: u.id },
+    });
+  }
+
+  const booking = await bookClass(userId, input.sessionId, {
+    actor: { id: userId, role: 'CLIENT' },
+    source: input.platform === 'WEB' ? 'GUEST_WEB' : 'GUEST_APP',
+    idempotencyKey: opts.idempotencyKey,
+    pay: 'single',
+    // A visitor changes or cancels a booking by calling the studio: nothing to email.
+    skipEmail: true,
+  });
+  return { status: 'booked' as const, booking: await bookingView(booking.id), created: !reuse };
 }
 
 // ───────────────────────────── private links ─────────────────────────────

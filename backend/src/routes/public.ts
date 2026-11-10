@@ -7,7 +7,7 @@ import { studioDayRange } from '../lib/time.js';
 import { sessionInclude, sessionsForUser } from '../lib/dto.js';
 import { zPhone } from '../lib/phone.js';
 import { singleClassProduct } from '../services/booking.js';
-import { cancelByToken, confirmGuestBooking, requestGuestCode, viewByToken } from '../services/guest.js';
+import { cancelByToken, confirmGuestBooking, requestGuestCode, viewByToken, visitorBooking } from '../services/guest.js';
 import { publicCatalogue } from '../services/offers.js';
 
 /**
@@ -87,6 +87,28 @@ export async function publicRoutes(app: FastifyInstance) {
       }),
     },
     ({ body, req, idempotencyKey }) => confirmGuestBooking(body, { idempotencyKey, meta: meta(req) }),
+  );
+
+  route(
+    app,
+    {
+      method: 'POST',
+      url: '/public/visitor-bookings',
+      access: 'public',
+      summary: 'A visitor books one class with a name and a phone (email optional): paid at the studio, not signed in. Send an Idempotency-Key.',
+      tags: ['public'],
+      rateLimit: tight,
+      body: z.object({
+        sessionId: z.uuid(),
+        firstName: z.string().trim().min(1).max(60),
+        lastName: z.string().trim().min(1).max(60),
+        phone: zPhone,
+        email: z.email().max(200).nullish(),
+        lang: z.enum(['sq', 'en']).default('sq'),
+        platform: z.enum(['WEB', 'APP']).default('WEB'),
+      }),
+    },
+    ({ body, idempotencyKey }) => visitorBooking(body, { idempotencyKey }),
   );
 
   // The private link travels in the body, never in a URL the server would log.
