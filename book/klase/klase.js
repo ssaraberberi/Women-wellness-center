@@ -43,7 +43,8 @@ const SQ = {
   'Your place is confirmed. You pay at the studio, in cash. To change or cancel it, message the studio.': 'Vendi yt është i konfirmuar. Paguan në studio, me cash. Për ta ndryshuar ose anuluar, shkruaji studios.',
   'Write your first name': 'Shkruaj emrin', 'Write your last name': 'Shkruaj mbiemrin', 'Write a phone number we can call': 'Shkruaj një numër telefoni ku të marrim',
   'VALIDATION': 'Kontrollo të dhënat: numri i telefonit duhet të jetë i plotë.', 'SINGLE_PRICE_MISSING': 'Rezervimi si vizitore nuk është i hapur tani. Na shkruaj në WhatsApp.',
-  'Use the email you gave the studio and the DUA-… code they gave you.': 'Përdor email-in që i dhe studios dhe kodin DUA-… që të dhanë.',
+  'Use the username (or email) and the DUA-… code the studio gave you.': 'Përdor përdoruesin (ose email-in) dhe kodin DUA-… që të dha studioja.',
+  'Username or email': 'Përdoruesi ose email-i', 'Write your username or email': 'Shkruaj përdoruesin ose email-in',
   'No code yet, or lost it? Ask the studio.': 'S\'ke kod, ose e humbe? Pyet studion.',
   'Class': 'Klasa', 'Date': 'Data', 'Time': 'Ora', 'Instructor': 'Instruktorja', 'Payment': 'Pagesa', 'From your package': 'Nga paketa jote',
   'Cancellation Policy': 'Politika e anulimit',
@@ -369,10 +370,10 @@ function drawLogin() {
     ]);
     return;
   }
-  title(t('Sign in') + '.', t('Use the email you gave the studio and the DUA-… code they gave you.'));
+  title(t('Sign in') + '.', t('Use the username (or email) and the DUA-… code the studio gave you.'));
   add(h('form.form', { novalidate: true, onsubmit: e => { e.preventDefault(); signIn(); } }, [
     h('div.who', null, [
-      field('email', t('Email'), { type: 'email', inputmode: 'email', autocomplete: 'email', autocapitalize: 'off', spellcheck: 'false', maxlength: 200 }),
+      field('email', t('Username or email'), { type: 'text', autocomplete: 'username', autocapitalize: 'off', spellcheck: 'false', placeholder: 'ana.hoxha', maxlength: 200 }),
       field('password', t('Your code'), { type: 'password', autocomplete: 'current-password', autocapitalize: 'characters', spellcheck: 'false', placeholder: 'DUA-XXXXXXXX', maxlength: 128 })
     ]),
     h('button', { type: 'submit', hidden: true })
@@ -414,7 +415,8 @@ async function signIn() {
   g.email = g.email.trim();
   // The code is handed out in capitals; a phone keyboard may not type them so.
   const password = /^dua-/i.test(g.password.trim()) ? g.password.trim().toUpperCase() : g.password;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.email)) return invalid('email', 'That email does not look right');
+  if (!g.email) return invalid('email', 'Write your username or email');
+  if (g.email.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.email)) return invalid('email', 'That email does not look right');
   if (!password) return invalid('password', 'Write your code');
   S.busy = true; S.error = null; draw();
   try {
