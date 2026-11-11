@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { Alert } from '@/lib/alert';
 import { ClassRow } from '@/components/ClassRow';
 import { DateStrip } from '@/components/DateStrip';
-import { Badge, Button, Card, EmptyState, ErrorState, Gap, Header, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, ErrorState, Gap, Header, Row, Screen, Segmented, SkeletonList, Text, ToggleRow } from '@/components/ui';
 import { api } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';
 import { lek, time, todayISO } from '@/lib/format';
@@ -32,8 +32,12 @@ export default function AdminCalendar() {
   const { t, lang } = useT();
   const [date, setDate] = useState(todayISO());
   const [tab, setTab] = useState<'pilates' | 'spa'>('pilates');
+  // Off: only the classes someone has booked. On: every class of the day.
+  const [fullDay, setFullDay] = useState(false);
   const sq = useQuery({ queryKey: ['admin-sessions', date], queryFn: () => api<SessionDto[]>('GET', `/admin/sessions?from=${date}&to=${date}`), enabled: tab === 'pilates' });
   const aq = useQuery({ queryKey: ['admin-appts', date], queryFn: () => api<AdminAppt[]>('GET', `/admin/spa/appointments?from=${date}&to=${date}`), enabled: tab === 'spa' });
+
+  const shown = (sq.data ?? []).filter((s) => fullDay || s.booked > 0);
 
   const act = useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'cancel' | 'COMPLETED' | 'NO_SHOW' }) =>
@@ -64,14 +68,15 @@ export default function AdminCalendar() {
         </>
       ) : null}
       <DateStrip value={date} onChange={setDate} marks allowPast />
+      {tab === 'pilates' ? <ToggleRow label={t('fullDayView')} hint={t('fullDayViewHint')} value={fullDay} onChange={setFullDay} /> : null}
       <Gap h={space.lg} />
       {tab === 'pilates' ? (
         sq.isPending ? (
           <SkeletonList count={5} />
         ) : sq.isError ? (
           <ErrorState error={sq.error} onRetry={() => void sq.refetch()} />
-        ) : sq.data.length ? (
-          sq.data.map((s) => (
+        ) : shown.length ? (
+          shown.map((s) => (
             <View key={s.id}>
               <ClassRow s={{ ...s, myBookingId: null, myWaitlist: null }} onPress={() => router.push({ pathname: '/admin/session/[id]', params: { id: s.id } })} />
               <Text variant="caption" style={{ marginTop: -4, marginBottom: space.sm, marginLeft: space.lg }}>
@@ -79,6 +84,8 @@ export default function AdminCalendar() {
               </Text>
             </View>
           ))
+        ) : !fullDay && sq.data.length ? (
+          <EmptyState icon="calendar" title={t('noBookedClasses')} body={t('noBookedClassesSub')} action={<Button small title={t('fullDayView')} onPress={() => setFullDay(true)} />} />
         ) : (
           <EmptyState icon="calendar" title={t('noClasses')} />
         )
