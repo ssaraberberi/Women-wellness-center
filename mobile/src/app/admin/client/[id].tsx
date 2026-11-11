@@ -8,7 +8,7 @@ import { api, newIdempotencyKey } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';
 import { DateStrip } from '@/components/DateStrip';
 import { PayDialog, type PayTarget } from '@/components/PayDialog';
-import { addDays, dateShort, lek, longDate, manualDiscountAmount, time, todayISO, whenShort } from '@/lib/format';
+import { addDays, dateShort, lek, longDate, manualDiscountAmount, time, tirane, todayISO, whenShort } from '@/lib/format';
 import { errorText, useT } from '@/lib/i18n';
 import type { Product, SessionDto } from '@/lib/types';
 import { colors, space } from '@/theme';
@@ -71,7 +71,8 @@ export default function AdminClient() {
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
   const addVisit = (body: { sessionId: string } | { date: string }) => visit.mutate(body);
-  const [editEnd, setEditEnd] = useState<{ id: string; date: string } | null>(null);
+  // A package's start and end, edited one at a time on the same calendar.
+  const [dates, setDates] = useState<{ id: string; which: 'start' | 'end'; start: string; end: string } | null>(null);
 
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
@@ -230,17 +231,38 @@ export default function AdminClient() {
                   <Text variant="heading" style={{ flex: 1 }}>{p.name}</Text>
                   <Badge label={tEnum(p.status)} tone={p.status === 'ACTIVE' ? 'success' : p.status === 'PENDING_PAYMENT' ? 'warning' : 'neutral'} />
                 </Row>
-                <Text variant="small">{lek(p.price)}{p.expiresAt ? ` · ${t('expires', { date: dateShort(p.expiresAt, lang) })}` : ''}</Text>
+                <Text variant="small">
+                  {lek(p.price)}
+                  {p.startsAt ? ` · ${t('startsOnDay', { date: dateShort(p.startsAt, lang) })}` : ''}
+                  {p.expiresAt ? ` · ${t('expires', { date: dateShort(p.expiresAt, lang) })}` : ''}
+                </Text>
                 {p.wallet ? <Text variant="bodyMedium">{t('ofCredits', { n: p.wallet.remaining, total: p.wallet.total })}</Text> : null}
-                {p.expiresAt && editEnd?.id !== p.id ? (
-                  <Button small variant="ghost" icon="calendar" title={t('changeEnd')} onPress={() => setEditEnd({ id: p.id, date: p.expiresAt!.slice(0, 10) })} style={{ alignSelf: 'flex-start' }} />
+                {p.expiresAt && dates?.id !== p.id ? (
+                  <Button
+                    small
+                    variant="ghost"
+                    icon="calendar"
+                    title={t('changeDates')}
+                    onPress={() => setDates({ id: p.id, which: 'end', start: tirane(p.startsAt ?? p.expiresAt!).iso, end: tirane(p.expiresAt!).iso })}
+                    style={{ alignSelf: 'flex-start' }}
+                  />
                 ) : null}
-                {editEnd?.id === p.id ? (
+                {dates?.id === p.id ? (
                   <View style={{ marginTop: space.sm }}>
-                    <DateStrip value={editEnd.date} onChange={(d) => setEditEnd({ id: p.id, date: d })} allowPast />
+                    <Row style={{ marginBottom: space.sm }}>
+                      <Chip label={t('startsOnDay', { date: dateShort(dates.start, lang) })} active={dates.which === 'start'} onPress={() => setDates({ ...dates, which: 'start' })} />
+                      <Chip label={t('endsOnDay', { date: dateShort(dates.end, lang) })} active={dates.which === 'end'} onPress={() => setDates({ ...dates, which: 'end' })} />
+                    </Row>
+                    <DateStrip key={dates.which} value={dates.which === 'start' ? dates.start : dates.end} onChange={(d) => setDates({ ...dates, [dates.which]: d })} allowPast />
                     <Row style={{ marginTop: space.sm }}>
-                      <Button small title={t('endsOnDay', { date: dateShort(editEnd.date, lang) })} loading={run.isPending} onPress={() => run.mutate(() => api('PATCH', `/admin/purchases/${p.id}`, { body: { expiresOn: editEnd.date } }).then(() => setEditEnd(null)))} />
-                      <Button small variant="ghost" title={t('cancel')} onPress={() => setEditEnd(null)} />
+                      <Button
+                        small
+                        title={t('save')}
+                        disabled={dates.end < dates.start}
+                        loading={run.isPending}
+                        onPress={() => run.mutate(() => api('PATCH', `/admin/purchases/${p.id}`, { body: { startsOn: dates.start, expiresOn: dates.end } }).then(() => setDates(null)))}
+                      />
+                      <Button small variant="ghost" title={t('cancel')} onPress={() => setDates(null)} />
                     </Row>
                   </View>
                 ) : null}

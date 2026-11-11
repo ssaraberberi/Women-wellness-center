@@ -558,22 +558,23 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       method: 'PATCH',
       url: '/admin/purchases/:id',
       access: [...ADMIN],
-      summary: 'Set the day a package ends (its sessions end with it, at the end of that day)',
+      summary: 'Set the day a package starts (from the start of that day) and/or ends (its sessions end with it, at the end of that day)',
       tags: ['admin-clients'],
       params: zIdParams,
-      body: z.object({ expiresOn: zDate }),
+      body: z.object({ startsOn: zDate.optional(), expiresOn: zDate.optional() }).refine((b) => b.startsOn || b.expiresOn, 'Give a start or an end date'),
     },
     async ({ params, body, user }) =>
       transaction(async (tx) => {
         const p = await tx.membershipPurchase.findUnique({ where: { id: params.id } });
-        if (!p || !p.expiresAt) throw E.conflict('NOT_ACTIVE', 'Only an activated package has an end date');
-        const expiresAt = studioDayRange(body.expiresOn).to;
-        if (p.startsAt && expiresAt <= p.startsAt) throw E.badRequest('VALIDATION', 'The end date must be after the package starts');
-        await tx.membershipPurchase.update({ where: { id: p.id }, data: { expiresAt, status: p.status === 'EXPIRED' && expiresAt > new Date() ? 'ACTIVE' : p.status } });
+        if (!p || !p.expiresAt) throw E.conflict('NOT_ACTIVE', 'Only an activated package has dates');
+        const startsAt = body.startsOn ? studioDayRange(body.startsOn).from : p.startsAt;
+        const expiresAt = body.expiresOn ? studioDayRange(body.expiresOn).to : p.expiresAt;
+        if (startsAt && expiresAt <= startsAt) throw E.badRequest('VALIDATION', 'The end date must be after the start date');
+        await tx.membershipPurchase.update({ where: { id: p.id }, data: { startsAt, expiresAt, status: p.status === 'EXPIRED' && expiresAt > new Date() ? 'ACTIVE' : p.status } });
         await tx.creditWallet.updateMany({ where: { purchaseId: p.id }, data: { expiresAt } });
         await tx.spaEntitlement.updateMany({ where: { purchaseId: p.id }, data: { expiresAt } });
-        await audit(tx, user.id, 'purchase.set_end', 'membership_purchase', p.id, { from: p.expiresAt, to: expiresAt });
-        return { ok: true, expiresAt };
+        await audit(tx, user.id, 'purchase.set_dates', 'membership_purchase', p.id, { from: { startsAt: p.startsAt, expiresAt: p.expiresAt }, to: { startsAt, expiresAt } });
+        return { ok: true, startsAt, expiresAt };
       }),
   );
 

@@ -47,5 +47,13 @@ describe('the desk writes in the days she came, and the day her package ends', (
     const after = await prisma.membershipPurchase.findUniqueOrThrow({ where: { id: p.id } });
     expect(+w.expiresAt).toBe(+after.expiresAt!);
     expect(after.expiresAt!.toISOString() > `${end}T00:00`).toBe(true);
+
+    // The start too; and never an end before the start.
+    const start = new Date(Date.now() - 10 * 864e5).toISOString().slice(0, 10);
+    expect((await app.inject({ method: 'PATCH', url: `/admin/purchases/${p.id}`, headers: admin.auth, payload: { startsOn: start } })).statusCode).toBe(200);
+    const moved = await prisma.membershipPurchase.findUniqueOrThrow({ where: { id: p.id } });
+    expect(moved.startsAt!.toISOString() < `${start}T00:00`).toBe(true); // midnight in Tirana is the evening before in UTC
+    expect(+moved.expiresAt!).toBe(+after.expiresAt!);
+    expect((await app.inject({ method: 'PATCH', url: `/admin/purchases/${p.id}`, headers: admin.auth, payload: { startsOn: end, expiresOn: start } })).statusCode).toBe(400);
   });
 });
