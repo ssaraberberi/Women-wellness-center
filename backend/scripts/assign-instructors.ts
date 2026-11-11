@@ -28,11 +28,21 @@ async function instructor(firstName: string) {
     where: { user: { status: { not: 'DELETED' }, profile: { firstName: { equals: firstName, mode: 'insensitive' } } } },
     include: { user: { include: { profile: true } } },
   });
-  if (found.length !== 1) {
-    const list = found.map((s) => `${s.user.profile?.firstName} ${s.user.profile?.lastName} <${s.user.email ?? s.user.username}>`).join(', ');
-    throw new Error(`Expected exactly one staff member named ${firstName}, found ${found.length}${list ? `: ${list}` : ''}`);
+  // Pinned by id when the name is not enough: ALMIRA_ID=… NEDA_ID=…
+  const pinned = process.env[`${firstName.toUpperCase()}_ID`];
+  // Otherwise the one who actually teaches: an active instructor, not a disabled account.
+  const teaching = found.filter((s) => s.isInstructor && s.active && s.user.status === 'ACTIVE');
+  const pick = pinned ? found.filter((s) => s.userId === pinned) : teaching.length === 1 ? teaching : found;
+  if (pick.length !== 1) {
+    const list = await Promise.all(
+      found.map(async (s) => {
+        const [classes, slots] = await Promise.all([prisma.classSession.count({ where: { instructorId: s.userId } }), prisma.classScheduleTemplate.count({ where: { instructorId: s.userId } })]);
+        return `\n    ${s.userId}  ${s.user.profile?.firstName} ${s.user.profile?.lastName}  <${s.user.email ?? s.user.username ?? '—'}>  role=${s.user.role} status=${s.user.status} instructor=${s.isInstructor} active=${s.active} classes=${classes} weeklySlots=${slots} since=${s.createdAt.toISOString().slice(0, 10)}`;
+      }),
+    );
+    throw new Error(`Expected exactly one staff member named ${firstName}, found ${found.length}:${list.join('')}`);
   }
-  const s = found[0];
+  const s = pick[0];
   return { id: s.userId, name: `${s.user.profile?.firstName ?? ''} ${s.user.profile?.lastName ?? ''}`.trim(), isInstructor: s.isInstructor, active: s.active };
 }
 
