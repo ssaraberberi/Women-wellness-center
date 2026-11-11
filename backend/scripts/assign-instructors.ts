@@ -10,7 +10,13 @@
  * Changed: the weekly slots (so classes made from now on get the right
  * instructor) and every upcoming class that is still on, including ones edited
  * by hand. Classes that already happened or were cancelled stay as they are.
- * A class at any other hour (15:00, 21:00 …) is left alone and listed.
+ *
+ *   15                          → off: no class at that hour
+ *
+ * An off hour is handled like removing a weekly slot in the admin: the slot
+ * stops, and its upcoming classes nobody booked (or waits for) are deleted.
+ * A booked one stays and is listed, so the desk can move or cancel it.
+ * A class at any other hour (21:00 …) is left alone and listed.
  * Running it twice is harmless.
  */
 import { prisma } from '../src/lib/prisma.js';
@@ -22,6 +28,7 @@ const BY_HOUR: Record<number, 'Almira' | 'Neda'> = {
   7: 'Almira', 8: 'Almira', 16: 'Almira', 17: 'Almira', 18: 'Almira', 19: 'Almira', 20: 'Almira',
   9: 'Neda', 10: 'Neda', 11: 'Neda', 12: 'Neda', 13: 'Neda', 14: 'Neda',
 };
+const OFF_HOURS = new Set([15]);
 
 async function instructor(firstName: string) {
   const found = await prisma.staffProfile.findMany({
@@ -57,12 +64,18 @@ async function main() {
 
   const now = new Date();
   const templates = await prisma.classScheduleTemplate.findMany({ where: { active: true }, include: { classType: true }, orderBy: [{ weekday: 'asc' }, { startTime: 'asc' }] });
-  const sessions = await prisma.classSession.findMany({ where: { status: 'SCHEDULED', startsAt: { gt: now } }, include: { classType: true }, orderBy: { startsAt: 'asc' } });
+  const sessions = await prisma.classSession.findMany({ where: { status: 'SCHEDULED', startsAt: { gt: now } }, include: { classType: true, _count: { select: { bookings: true, waitlist: true } } }, orderBy: { startsAt: 'asc' } });
+  const tOff: string[] = [];
+  const tOffLabel: string[] = [];
+  const sOff: string[] = [];
+  const sOffKept: string[] = [];
 
   const tChanges: { id: string; to: string }[] = [];
   const tSkipped: string[] = [];
   for (const t of templates) {
-    const who = BY_HOUR[Number(t.startTime.slice(0, 2))];
+    const hour = Number(t.startTime.slice(0, 2));
+    if (OFF_HOURS.has(hour)) { tOff.push(t.id); tOffLabel.push(`${'MTWTFSS'[t.weekday - 1]} ${t.startTime} ${t.classType.name}`); continue; }
+    const who = BY_HOUR[hour];
     if (!who) { tSkipped.push(`${'MTWTFSS'[t.weekday - 1]} ${t.startTime} ${t.classType.name}`); continue; }
     if (t.instructorId !== people[who].id) tChanges.push({ id: t.id, to: people[who].id });
   }
@@ -72,6 +85,11 @@ async function main() {
   const summary = new Map<string, number>();
   for (const s of sessions) {
     const hour = Number(formatStudio(s.startsAt, 'H'));
+    if (OFF_HOURS.has(hour)) {
+      if (s._count.bookings || s._count.waitlist) sOffKept.push(`${formatStudio(s.startsAt, 'EEE d LLL HH:mm')} ${s.classType.name} (${s._count.bookings} booking(s), ${s._count.waitlist} waiting)`);
+      else sOff.push(s.id);
+      continue;
+    }
     const who = BY_HOUR[hour];
     if (!who) { sSkipped.push(`${formatStudio(s.startsAt, 'EEE d LLL HH:mm')} ${s.classType.name}`); continue; }
     if (s.instructorId === people[who].id) continue;
@@ -83,6 +101,8 @@ async function main() {
   console.log(`  weekly slots: ${templates.length} active, ${tChanges.length} to change, ${tSkipped.length} at other hours`);
   console.log(`  upcoming classes: ${sessions.length}, ${[...sChanges.values()].flat().length} to change, ${sSkipped.length} at other hours`);
   for (const [k, n] of [...summary].sort()) console.log(`    ${k}: ${n}`);
+  console.log(`  off hours (${[...OFF_HOURS].map((h) => `${String(h).padStart(2, '0')}:00`).join(', ')}): ${tOff.length} weekly slot(s) stopped${tOffLabel.length ? ` (${tOffLabel.join('; ')})` : ''}, ${sOff.length} upcoming class(es) removed, ${sOffKept.length} kept because someone booked`);
+  for (const k of sOffKept) console.log(`    KEPT, booked: ${k}`);
   if (tSkipped.length) console.log(`  weekly slots left alone: ${tSkipped.join('; ')}`);
   if (sSkipped.length) console.log(`  upcoming classes left alone (first 20): ${sSkipped.slice(0, 20).join('; ')}`);
 
@@ -97,6 +117,9 @@ async function main() {
       const sIds = sChanges.get(id) ?? [];
       if (sIds.length) await tx.classSession.updateMany({ where: { id: { in: sIds } }, data: { instructorId: id } });
     }
+    if (tOff.length) await tx.classScheduleTemplate.updateMany({ where: { id: { in: tOff } }, data: { active: false } });
+    // Checked again inside the transaction: a booking made since the preview keeps its class.
+    if (sOff.length) await tx.classSession.deleteMany({ where: { id: { in: sOff }, bookings: { none: {} }, waitlist: { none: {} } } });
   }, { timeout: 60_000 });
   console.log('Done.');
 }
