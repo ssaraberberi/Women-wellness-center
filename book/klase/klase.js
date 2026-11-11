@@ -55,7 +55,7 @@ const SQ = {
   'Free cancellation until %s.': 'Anulim falas deri: %s.',
   'Book another class': 'Rezervo një klasë tjetër', 'My bookings': 'Rezervimet e mia', 'Back to the website': 'Kthehu te faqja',
   'You have %s sessions in your package': 'Ke %s seanca në paketë', 'You have 1 session in your package': 'Ke 1 seancë në paketë',
-  'Book this class': 'Rezervo këtë klasë', 'Use 1 session from my package': 'Përdor 1 seancë nga paketa', '%s left after this': 'Të mbeten %s pas kësaj',
+  'Book this class': 'Rezervo këtë klasë', 'Use 1 session from my package': 'Përdor 1 seancë nga paketa', 'Reserve': 'Rezervo', '1 session from your package · %s left after this': '1 seancë nga paketa · të mbeten %s pas kësaj', 'Book this class?': 'Rezervo këtë klasë?', 'One class will be used from your package.': 'Do të përdoret 1 klasë nga paketa jote.', 'Are you sure?': 'Je e sigurt?', 'Yes, book': 'Po, rezervo', 'Cancel': 'Anulo', '%s left after this': 'Të mbeten %s pas kësaj',
   'Book for both of us (DUO)': 'Rezervo për të dyja (DUO)', 'With %s · two places, a session from each package': 'Me %s · dy vende, një seancë nga secila paketë',
   'No sessions left in your package. Ask the studio for a new one.': 'Nuk ke seanca të mbetura në paketë. Pyet studion për një paketë të re.',
   'Signed in as': 'Je brenda si', 'Sign out': 'Dil',
@@ -466,13 +466,40 @@ function drawChoice() {
   if (!d.eligible && !d.duo) {
     add(h('div.emptybox', null, [h('p', { text: t('No sessions left in your package. Ask the studio for a new one.') }), studioLink()]));
   } else {
-    add(h('div.choice', null, [
+    if (d.duo) add(h('div.choice', null, [
       d.duo ? h('button', { type: 'button', disabled: S.busy, onclick: run('/book-duo', { duo: d.duo.partner }) }, [h('b', { text: t('Book for both of us (DUO)') }), h('span', { text: t('With %s · two places, a session from each package', d.duo.partner) })]) : null,
-      d.eligible ? h('button', { type: 'button', disabled: S.busy, onclick: run('/book', {}) }, [h('b', { text: t('Use 1 session from my package') }), h('span', { text: t('%s left after this', credits - 1) })]) : null
     ]));
+    if (d.eligible) {
+      add(h('div.reserve', null, [
+        h('button.btn.btn--wine.btn--block', { type: 'button', disabled: S.busy, onclick: () => confirmBooking(s, credits, run('/book', {})) }, t('Reserve')),
+        h('p', { text: t('1 session from your package · %s left after this', credits - 1) })
+      ]));
+    }
   }
   add(policy());
   barWith([h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => go('pick') })]);
+}
+
+/* "Are you sure?" before a session leaves the package. A real <dialog>: Esc and the
+   backdrop close it, focus stays inside while it is open. */
+function confirmBooking(s, credits, go) {
+  const z = tirana(s.startsAt);
+  const dlg = h('dialog.confirm', { 'aria-labelledby': 'confirm-title' });
+  const close = () => { dlg.close(); };
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+  dlg.append(
+    h('h2', { id: 'confirm-title', text: t('Book this class?') }),
+    h('p', { text: t('One class will be used from your package.') + ' ' + t('Are you sure?') }),
+    h('p.confirm__class', null, [h('b', { text: className(s) }), h('span', { text: longDate(z.date) + ' · ' + z.time })]),
+    h('p.confirm__left', { text: t('%s left after this', credits - 1) }),
+    h('div.confirm__actions', null, [
+      h('button.btn.btn--ghost', { type: 'button', text: t('Cancel'), onclick: close }),
+      h('button.btn.btn--wine', { type: 'button', text: t('Yes, book'), onclick: () => { close(); go(); } })
+    ])
+  );
+  document.body.appendChild(dlg);
+  dlg.showModal();
 }
 
 /* ---------- 4. booked ---------- */
