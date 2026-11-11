@@ -340,9 +340,9 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
       url: '/admin/clients',
       access: [...ADMIN],
       summary:
-        'Add a client at the desk, email optional. Returns her username (from her name) and sign-in code (DUA-…), shown once: she signs in with either her username or her email, and the code.',
+        'Add a client at the desk, email and phone optional. Returns her username (from her name) and sign-in code (DUA-…), shown once: she signs in with either her username or her email, and the code.',
       tags: ['admin-clients'],
-      body: z.object({ email: z.email().nullish(), firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).default(''), phone: zPhone, language: z.enum(['sq', 'en']).default('sq') }),
+      body: z.object({ email: z.email().nullish(), firstName: z.string().trim().min(1).max(60), lastName: z.string().trim().max(60).default(''), phone: z.preprocess((v) => (typeof v === 'string' && !v.trim() ? null : v), zPhone.nullish()), language: z.enum(['sq', 'en']).default('sq') }),
     },
     async ({ body, user }) => {
       const email = body.email ? normalizeEmail(body.email) : null;
@@ -356,7 +356,7 @@ export async function adminPeopleRoutes(app: FastifyInstance) {
           role: 'CLIENT',
           status: 'ACTIVE',
           passwordHash: await hashPassword(password),
-          profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone, language: body.language } },
+          profile: { create: { firstName: body.firstName, lastName: body.lastName, phone: body.phone ?? null, language: body.language } },
           notificationPrefs: { create: {} },
         },
       });

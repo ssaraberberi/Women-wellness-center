@@ -16,7 +16,7 @@ export default function NewClient() {
   const set = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
   const phone = checkPhone(form.phone);
   const save = useMutation({
-    mutationFn: () => api<{ id: string; password: string }>('POST', '/admin/clients', { body: { ...form, email: form.email.trim() || null, phone: phone!.e164, language: lang } }),
+    mutationFn: () => api<{ id: string; password: string }>('POST', '/admin/clients', { body: { ...form, email: form.email.trim() || null, phone: phone?.e164 ?? null, language: lang } }),
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: ['admin-clients'] });
       router.replace({ pathname: '/admin/client/[id]', params: { id: r.id, code: r.password } });
@@ -24,12 +24,12 @@ export default function NewClient() {
     onError: (e) => Alert.alert('DUA', errorText(e, lang)),
   });
   return (
-    <Screen footer={<Button title={t('create')} onPress={() => save.mutate()} loading={save.isPending} disabled={!form.firstName.trim() || !form.lastName.trim() || !phone} />}>
+    <Screen footer={<Button title={t('create')} onPress={() => save.mutate()} loading={save.isPending} disabled={!form.firstName.trim() || !form.lastName.trim() || (!!form.phone.trim() && !phone)} />}>
       <Header title={t('newClient')} back />
       <Field label={t('firstName')} value={form.firstName} onChangeText={set('firstName')} />
       <Field label={t('lastName')} value={form.lastName} onChangeText={set('lastName')} />
       <Field label={t('optionalField', { label: t('email') })} value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" />
-      <PhoneField label={t('phone')} value={form.phone} onChangeText={set('phone')} />
+      <PhoneField label={t('optionalField', { label: t('phone') })} value={form.phone} onChangeText={set('phone')} />
     </Screen>
   );
 }
