@@ -275,7 +275,8 @@ async function tellStaff(
     if (opts.type === 'STAFF_NEW_BOOKING') {
       await notify(tx, { userId: session.instructorId, type: 'INSTRUCTOR_NEW_BOOKING', dedupeKey: `${opts.dedupeKey}:instructor`, params: { client: params.client, ...(await instructorDay(tx, session.instructorId, session)) }, data });
     } else {
-      await notify(tx, { userId: session.instructorId, type: opts.type, dedupeKey: `${opts.dedupeKey}:instructor`, params, data });
+      // A cancellation reaches her by email too, like a new booking does.
+      await notify(tx, { userId: session.instructorId, type: opts.type, dedupeKey: `${opts.dedupeKey}:instructor`, params, data, forceEmail: true });
     }
   }
   await notifyAdmins(tx, { type: opts.type, dedupeKey: opts.dedupeKey, params, data, exceptUserId: opts.actorId });

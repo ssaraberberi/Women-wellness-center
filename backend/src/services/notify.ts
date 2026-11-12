@@ -11,7 +11,7 @@ import { brandedEmail, sendEmail } from './mail.js';
  */
 export async function notify(
   db: Tx | typeof prisma,
-  opts: { userId: string; type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue; skipEmail?: boolean },
+  opts: { userId: string; type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue; skipEmail?: boolean; forceEmail?: boolean },
 ) {
   const def = MESSAGES[opts.type];
   if (!def) throw new Error(`Unknown notification type ${opts.type}`);
@@ -38,7 +38,8 @@ export async function notify(
     rows.push({ userId: opts.userId, type: opts.type, channel: 'PUSH', title: msg.title, body: msg.body, data: opts.data, dedupeKey: opts.dedupeKey });
   }
   // skipEmail: the caller sends its own letter (one that carries a private link, which must not sit in this table).
-  if (def.email && !opts.skipEmail && (prefs.emailEnabled || def.critical)) {
+  // forceEmail: staff who must hear about it even when the message is in-app only for clients.
+  if ((def.email || opts.forceEmail) && !opts.skipEmail && (prefs.emailEnabled || def.critical || opts.forceEmail)) {
     rows.push({
       userId: opts.userId,
       type: opts.type,
@@ -52,7 +53,7 @@ export async function notify(
   await db.notification.createMany({ data: rows, skipDuplicates: true });
 }
 
-/** The same notification to every active admin, except whoever caused it. */
+/** The same notification to every active admin, except whoever caused it — always by email too: the admins hear about everything. */
 export async function notifyAdmins(
   db: Tx | typeof prisma,
   opts: { type: keyof typeof MESSAGES; dedupeKey: string; params: Record<string, string | number | undefined>; data?: Prisma.InputJsonValue; exceptUserId?: string },
@@ -60,7 +61,7 @@ export async function notifyAdmins(
   const admins = await db.user.findMany({ where: { role: 'ADMIN', status: 'ACTIVE' }, select: { id: true } });
   for (const a of admins) {
     if (a.id === opts.exceptUserId) continue;
-    await notify(db, { userId: a.id, type: opts.type, dedupeKey: `${opts.dedupeKey}:admin:${a.id}`, params: opts.params, data: opts.data });
+    await notify(db, { userId: a.id, type: opts.type, dedupeKey: `${opts.dedupeKey}:admin:${a.id}`, params: opts.params, data: opts.data, forceEmail: true });
   }
 }
 

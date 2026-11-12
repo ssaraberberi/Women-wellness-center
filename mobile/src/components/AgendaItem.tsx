@@ -14,6 +14,7 @@ export interface StaffItem {
   status: string;
   capacity?: number;
   booked?: number;
+  names?: string[];
   room?: string | null;
   client?: string;
   durationMin?: number;
@@ -44,6 +45,9 @@ export function AgendaItem({ item, onPress }: { item: StaffItem; onPress: () => 
         <Text variant="small" numberOfLines={1}>
           {item.kind === 'class' ? `${item.booked}/${item.capacity} · ${item.room ?? 'Studio'}` : `${item.client} · ${item.room}`}
         </Text>
+        {item.kind === 'class' && item.names?.length && !cancelled ? (
+          <Text variant="small" style={{ color: colors.ink, marginTop: 2 }}>{item.names.join(', ')}</Text>
+        ) : null}
       </View>
       {cancelled ? <Badge label={t('CANCELLED')} tone="danger" /> : item.status === 'COMPLETED' || item.status === 'NO_SHOW' ? <Badge label={t(item.status)} /> : null}
       <Feather name="chevron-right" size={18} color={colors.muted} />

@@ -22,7 +22,7 @@ export async function staffRoutes(app: FastifyInstance) {
     const [sessions, appointments, closures, timeOff] = await Promise.all([
       prisma.classSession.findMany({
         where: { instructorId: user.id, startsAt: { gte: from, lt: to } },
-        include: { classType: true, _count: { select: { bookings: { where: { status: 'BOOKED' } } } } },
+        include: { classType: true, bookings: { where: { status: 'BOOKED' }, include: { user: { include: { profile: true } } }, orderBy: { bookedAt: 'asc' } } },
         orderBy: { startsAt: 'asc' },
       }),
       prisma.spaAppointment.findMany({
@@ -42,7 +42,9 @@ export async function staffRoutes(app: FastifyInstance) {
         endsAt: s.endsAt,
         status: s.status,
         capacity: s.capacity,
-        booked: s._count.bookings,
+        booked: s.bookings.length,
+        // Who is coming, so she sees it in her list without opening the class.
+        names: s.bookings.map((b) => personName(b.user.profile, 'Client')),
         room: s.room,
       })),
       appointments: appointments.map((a) => ({
