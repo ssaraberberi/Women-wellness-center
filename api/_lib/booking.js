@@ -31,9 +31,13 @@ const bad = (status, message, code) => { const e = new Error(message); e.status 
 const need = (u, ...roles) => { if (!u) bad(401, 'Sign in first'); if (!roles.includes(u.role)) bad(403, 'Not allowed'); };
 const trim = v => typeof v === 'string' ? v.trim() : v;
 /* Packages the website no longer shows or sells online, whatever the database says.
-   The trial class (1,400 L) is gone: one class is the single class, 2,400 L. */
-export const OFF_WEB = new Set(['try-dua']);
-const onWeb = p => p.bookable && !OFF_WEB.has(p.id);
+   The trial class (1,400 L) is gone: one class is the single class, 2,400 L.
+   The spa packs are gone (treatments are sold one at a time), and so is every
+   Pilates + Spa package — any package with both reformer and spa in it. */
+export const OFF_WEB = new Set(['try-dua', 'relax-pack', 'lymph-pack', 'sculpt-pack']);
+const hasType = (p, type) => (p.allowances || []).some(a => (a.types || []).includes(type));
+export const hiddenOnWeb = p => OFF_WEB.has(p.id) || (hasType(p, 'reformer') && hasType(p, 'spa'));
+const onWeb = p => p.bookable && !hiddenOnWeb(p);
 const digest = t => createHash('sha256').update(String(t)).digest('hex');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;

@@ -394,7 +394,7 @@ export async function publicPackages() {
   return {
     showPrices,
     packages: plans
-      .filter(p => !booking.OFF_WEB.has(p.id))
+      .filter(p => !booking.hiddenOnWeb(p))
       .sort((a, b) => (a.sort - b.sort) || a.name.localeCompare(b.name))
       .map(p => ({
         id: p.id,

@@ -21,8 +21,7 @@
   var STEPS = {
     start: { q: 'What are you here for?', a: [
       { t: 'Reformer Pilates', v: 'reformer', go: 'r_done' },
-      { t: 'Massage and spa', v: 'spa', go: 's_goal' },
-      { t: 'Both', v: 'both', go: 'b_often' }
+      { t: 'Massage and spa', v: 'spa', go: 's_goal' }
     ]},
 
     /* reformer */
@@ -45,14 +44,10 @@
 
     /* spa */
     s_goal: { q: 'What would you like it to do?', a: [
-      { t: 'Switch everything off', v: 'relax', go: 's_many' },
-      { t: 'Make me feel lighter', v: 'light', go: 's_many' },
-      { t: 'Work on firming', v: 'firm', go: 's_many' },
-      { t: 'Ease aching muscles', v: 'ache', go: 's_many' }
-    ]},
-    s_many: { q: 'One treatment, or a few?', a: [
-      { t: 'Just one', v: 'one', go: 's_long' },
-      { t: 'A few, over time', v: 'many', go: null }
+      { t: 'Switch everything off', v: 'relax', go: 's_long' },
+      { t: 'Make me feel lighter', v: 'light', go: 's_long' },
+      { t: 'Work on firming', v: 'firm', go: 's_long' },
+      { t: 'Ease aching muscles', v: 'ache', go: 's_long' }
     ]},
     s_long: { q: 'How long?', a: [
       { t: 'An hour', v: 'h1', go: null },
@@ -96,12 +91,6 @@
     }
 
     if (kind === 'spa') {
-      if (a.s_many === 'many') {
-        if (a.s_goal === 'light') return { pack: 'lymph-pack', why: 'Five lymphatic treatments, which is where this one works best.' };
-        if (a.s_goal === 'firm') return { pack: 'sculpt-pack', why: 'Five sculpt treatments — body care asks for repetition.' };
-        if (a.s_goal === 'ache') return { pack: 'deep', why: 'Deep recovery is not sold as a pack yet, so this is the treatment on its own.' };
-        return { pack: 'relax-pack', why: 'Three relax treatments, at less than three separate ones.' };
-      }
       if (a.s_long === 'h15') return { pack: 'signature', why: 'Ninety minutes, and the one we built to be the whole experience.' };
       if (a.s_goal === 'light') return { pack: 'lymph', why: 'Lymphatic massage, for lightness and recovery.' };
       if (a.s_goal === 'firm') return { pack: 'sculpt', why: 'Sculpt, for firming and body care.' };

@@ -635,6 +635,7 @@
     'Repeat': 'Përsërit',
     'A week with room for both.': 'Një javë me vend për të dyja.',
     'See Pilates + Spa packages': 'Shiko paketat Pilates + Spa',
+    'See the packages': 'Shiko paketat',
     'The spa menu': 'Menuja e spa-s',
     'to Saturday.': 'deri të shtunën.',
     'Every class is fifty minutes and starts on the hour.': 'Çdo klasë zgjat pesëdhjetë minuta dhe fillon në orë të plotë.',
