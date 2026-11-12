@@ -32,7 +32,7 @@ const need = (u, ...roles) => { if (!u) bad(401, 'Sign in first'); if (!roles.in
 const trim = v => typeof v === 'string' ? v.trim() : v;
 /* Packages the website no longer shows or sells online, whatever the database says.
    The trial class (1,400 L) is gone: one class is the single class, 2,400 L. */
-const OFF_WEB = new Set(['try-dua']);
+export const OFF_WEB = new Set(['try-dua']);
 const onWeb = p => p.bookable && !OFF_WEB.has(p.id);
 const digest = t => createHash('sha256').update(String(t)).digest('hex');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
