@@ -232,7 +232,7 @@ const errorBox = () => (S.error ? h('p.notice', { role: 'alert', text: t(S.error
 const infoBox = () => (S.info ? h('p.notice.notice--soft', { role: 'status', text: S.info }) : null);
 const policy = () => h('div.policy', null, [h('b', { text: t('Cancellation Policy') }), h('span', { text: t('Free cancellation until %s hour before the class. Cancelling later, or not coming, the session is used.', S.cancelHours) })]);
 /* What a visitor pays at the studio, said in passing. */
-const prices = () => h('p.muted.small', { text: '(' + t('Trial class') + ' 1,400 L · ' + t('Single class') + ' 2,400 L)' });
+const prices = () => h('p.muted.small', { text: '(' + t('Single class') + ' 2,400 L)' });
 const studioLink = () => h('a.btn.btn--ghost', { href: 'https://wa.me/' + STUDIO_WA, target: '_blank', rel: 'noopener', text: t('Message the studio') });
 
 /* ---------- 1. a day and a time ---------- */

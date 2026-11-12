@@ -30,6 +30,10 @@ import { sendBookingEmail, mailConfigured } from './mail.js';
 const bad = (status, message, code) => { const e = new Error(message); e.status = status; e.code = code; throw e; };
 const need = (u, ...roles) => { if (!u) bad(401, 'Sign in first'); if (!roles.includes(u.role)) bad(403, 'Not allowed'); };
 const trim = v => typeof v === 'string' ? v.trim() : v;
+/* Packages the website no longer shows or sells online, whatever the database says.
+   The trial class (1,400 L) is gone: one class is the single class, 2,400 L. */
+const OFF_WEB = new Set(['try-dua']);
+const onWeb = p => p.bookable && !OFF_WEB.has(p.id);
 const digest = t => createHash('sha256').update(String(t)).digest('hex');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -103,7 +107,7 @@ async function hasHistory(c, clientId, exceptReservation) {
 
 /* ---------- the catalogue the booking page reads ---------- */
 function eligiblePlansFor(o, plans) {
-  const pool = plans.filter(p => p.bookable && p.allowances.length);
+  const pool = plans.filter(p => onWeb(p) && p.allowances.length);
   if (o.eligiblePlans && o.eligiblePlans.length) return pool.filter(p => o.eligiblePlans.includes(p.id));
   return o.kind === 'discount' ? pool.filter(p => p.kind !== 'single') : pool;
 }
@@ -115,7 +119,7 @@ export async function publicCatalogue() {
   return {
     settings: { openingDate: st.openingDate, cancelMinutes: st.cancelMinutes, horizonDays: st.horizonDays, today, showPrices: priced },
     classTypes: types,
-    plans: plans.filter(p => p.bookable && p.allowances.length).map(p => ({
+    plans: plans.filter(p => onWeb(p) && p.allowances.length).map(p => ({
       id: p.id, name: p.name, kind: p.kind, featured: p.featured, validityDays: p.validityDays,
       price: priced ? p.price : null, lines: load.linesOfPlan(p),
       tagline: p.tagline, blurb: p.blurb, en: p.en
@@ -341,7 +345,7 @@ export async function createReservation(body, meta, actor) {
     plan = plans.find(p => p.id === trim(body.planId) && !p.archived);
     if (!plan) bad(400, 'Choose a package', 'plan');
     if (!plan.allowances.length) bad(409, 'That package has no classes in it', 'plan');
-    if (!admin && !plan.bookable) bad(409, 'That package cannot be booked online', 'plan');
+    if (!admin && !onWeb(plan)) bad(409, 'That package cannot be booked online', 'plan');
     if (offer && !eligiblePlansFor(offer, plans).some(p => p.id === plan.id)) bad(409, 'This offer does not apply to that package', 'plan');
   }
 

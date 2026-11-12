@@ -87,9 +87,7 @@
       if (a.r_who === 'solo')
         return { pack: 'personal', why: 'One to one, so the whole class is built around you.' };
       if (a.r_often === 'once')
-        return a.r_done === 'new'
-          ? { pack: 'try-dua', why: 'A first class, at the price we keep for a first class.' }
-          : { pack: 'single', why: 'One class, no package, whenever it suits you.' };
+        return { pack: 'single', why: 'One class, no package, whenever it suits you.' };
       if (a.r_often === 'w1') return { pack: 'start', why: 'Four classes a month is about once a week.' };
       if (a.r_often === 'w2') return { pack: 'routine', why: 'Eight classes a month is about twice a week — and the best price per class for that rhythm.' };
       return a.r_done === 'regular'
