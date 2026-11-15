@@ -205,6 +205,72 @@
   </div>
 </section>
 
+<!-- ───────────────────────────── 2b. STEP INSIDE (virtual studio) ─────────────────────────────
+     A panorama of the Reformer room, not a 3D walkthrough: the visitor turns
+     and looks around from one spot. The viewer (assets/js/tour.js) and its
+     library load only when someone presses the button. Scenes are listed in
+     tour.js, so a genuine 360° image or a second room is a config change. -->
+<section class="sec tour" id="inside" aria-labelledby="tour-title">
+  <div class="wrap tour__head">
+    <p class="eyebrow" data-reveal>Virtual studio</p>
+    <h2 class="display display--md" id="tour-title" data-reveal-lines><span class="line">Step inside DUA</span></h2>
+    <p class="lede" data-reveal>Your space to move, breathe &amp; reconnect.</p>
+  </div>
+  <div class="wrap">
+    <div class="tour__stage" data-tour data-scene="reformer">
+      <picture class="tour__poster">
+        <source media="(max-width: 759px) and (orientation: portrait)" srcset="assets/tour/reformer-studio-view-portrait-900.jpg" width="900" height="1125">
+        <img loading="lazy" decoding="async"
+          src="assets/tour/reformer-studio-view-1600.jpg"
+          srcset="assets/tour/reformer-studio-view-960.jpg 960w, assets/tour/reformer-studio-view-1600.jpg 1600w"
+          sizes="(max-width: 1320px) 100vw, 1192px" width="1600" height="900"
+          alt="The Reformer studio at DUA: oak floor, wooden reformers, the DUA wall and sheer curtains">
+      </picture>
+
+      <div class="tour__view" data-tour-view role="application" tabindex="-1"
+        aria-label="Interactive panorama of the Reformer studio. Drag to look around."></div>
+
+      <div class="tour__intro" data-tour-intro>
+        <p class="tour__kicker">A space made for you</p>
+        <p class="tour__title">Discover DUA from wherever you are.</p>
+        <button class="btn btn--light tour__enter" type="button" data-tour-enter>Explore the studio</button>
+      </div>
+
+      <div class="tour__loading" data-tour-loading role="status" hidden>
+        <span>Loading the studio</span>
+        <span class="tour__bar" aria-hidden="true"><span data-tour-bar></span></span>
+      </div>
+
+      <div class="tour__ui" data-tour-ui hidden>
+        <p class="tour__hint" data-tour-hint aria-hidden="true">Drag to explore</p>
+        <a class="btn btn--sm tour__book" href="/book">Book your class</a>
+        <div class="tour__tools" role="toolbar" aria-label="Tour controls">
+          <button type="button" class="tour__tool" data-tour-zoom="in" aria-label="Zoom in" title="Zoom in">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button type="button" class="tour__tool" data-tour-zoom="out" aria-label="Zoom out" title="Zoom out">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          <button type="button" class="tour__tool" data-tour-reset aria-label="Reset view" title="Reset view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v3.7h3.7"/></svg></button>
+          <button type="button" class="tour__tool" data-tour-full aria-label="Full screen" title="Full screen" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path class="tour__full-on" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="tour__full-off" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg></button>
+          <button type="button" class="tour__tool" data-tour-exit aria-label="Exit tour" title="Exit tour">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+      </div>
+
+      <div class="tour__fallback" data-tour-fallback hidden>
+        <div class="tour__strip" tabindex="0" aria-label="The whole panorama of the Reformer studio">
+          <img data-tour-strip alt="The whole Reformer studio in one panorama, from the DUA wall to the windows" width="1774" height="887">
+        </div>
+        <p class="tour__fallback-note">Your browser cannot show the interactive view, so here is the whole panorama: scroll sideways to look around.</p>
+        <button class="tour__tool tour__fallback-close" type="button" data-tour-exit aria-label="Exit tour" title="Exit tour">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+    <p class="tour__note">A panorama of the Reformer room: look left and right, up and down.</p>
+  </div>
+</section>
+
 <!-- ───────────────────────────── 3. TWO RITUALS ───────────────────────────── -->
 <section class="sec" id="reformer" aria-labelledby="reformer-title">
   <div class="wrap ritual">
@@ -550,6 +616,7 @@
 <script src="assets/js/tabs.js"></script>
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/whatsapp.js"></script>
+<script src="assets/js/tour.js"></script>
 <script src="assets/js/i18n.js"></script>
 </body>
 </html>
