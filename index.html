@@ -186,6 +186,47 @@
   <div class="hero__scrim" aria-hidden="true"></div>
 </section>
 
+<!-- ───────────────────────────── BLACK FRIDAY (offer) ─────────────────────────────
+     Hidden until assets/js/blackfriday.js finds the BLACK FRIDAY offer live in
+     the catalogue with places left; the places come from the desk's sales and
+     the whole thing (this, the bar at the bottom, the one-time pop-up) goes away
+     at zero. Prices are filled in from the offer's package. -->
+<section class="bf on-dark" id="black-friday" aria-labelledby="bf-title" hidden data-bf>
+  <div class="bf__ribbon bf__ribbon--top" aria-hidden="true"><span>Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday •</span></div>
+  <div class="bf__inner wrap">
+    <p class="bf__brand">DUA <span>Pilates &amp; Spa</span></p>
+    <h2 class="bf__title" id="bf-title"><span data-sq="Black">Black</span> <em data-sq="Friday">Friday</em></h2>
+    <p class="bf__tag" data-sq="Vetëm për 10 vajza">For 10 women only</p>
+
+    <div class="bf__deal">
+      <div class="bf__what">
+        <b data-sq="2× në javë">2× a week</b>
+        <span><span data-bf-credits>24</span> <span data-sq="seanca">classes</span> · <span data-bf-months>3</span> <span data-sq="muaj">months</span></span>
+      </div>
+      <div class="bf__price">
+        <s data-bf-was>43,500 ALL</s>
+        <strong data-bf-price>36,000 ALL</strong>
+      </div>
+    </div>
+
+    <div class="bf__left" role="status">
+      <div class="bf__pips" aria-hidden="true" data-bf-pips></div>
+      <p><span data-sq="Mbeten">Only</span> <b data-bf-left>10</b> <span data-sq="nga 10 vende">of 10 places left</span></p>
+    </div>
+
+    <ul class="bf__facts">
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.2 0 3.9 1.5 4.4 4.2"/></svg>
+        <span data-sq="Maksimumi 5 persona në klasë (super private)">At most 5 people per class (super private)</span></li>
+      <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>
+        <span data-sq="Hënë – Shtunë · 07:00 – 21:00">Monday – Saturday · 07:00 – 21:00</span></li>
+    </ul>
+
+    <a class="btn bf__cta" href="/book" data-sq="Rezervo tani">Book now</a>
+    <p class="bf__note" data-sq="Paketa paguhet në studio. Oferta mbyllet kur zihen 10 vendet.">Paid at the studio. The offer closes when the 10 places are taken.</p>
+  </div>
+  <div class="bf__ribbon bf__ribbon--bottom" aria-hidden="true"><span>Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday •</span></div>
+</section>
+
 <!-- ───────────────────────────── 2. PHILOSOPHY ───────────────────────────── -->
 <section class="sec philo" id="studio">
   <div class="wrap philo__grid">
@@ -617,6 +658,7 @@
 <script src="assets/js/quiz.js"></script>
 <script src="assets/js/whatsapp.js"></script>
 <script src="assets/js/tour.js"></script>
+<script src="assets/js/blackfriday.js"></script>
 <script src="assets/js/i18n.js"></script>
 </body>
 </html>

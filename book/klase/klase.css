@@ -68,3 +68,17 @@
 .slots--quiet .slot__what b{font-size:.98rem}
 .slot.is-few .slot__left{color:var(--wine);font-weight:500}
 .closes{margin-top:10px}
+
+/* Black Friday, at the top of the class list while it has places. */
+.bfb{position:relative;overflow:hidden;margin:18px 0 6px;border-radius:var(--r);color:#fff;
+  background:linear-gradient(180deg,rgba(54,34,24,.84),rgba(40,25,18,.95)),url(/assets/img/dua-studio-daylight-720.jpg) center/cover,#3A2519}
+.bfb__ribbon{margin:0;background:#B3141C;color:#fff;white-space:nowrap;overflow:hidden;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:6px 0}
+.bfb__body{display:grid;gap:6px;padding:16px 18px 18px;text-align:center}
+.bfb__title{font-family:var(--display);font-weight:400;font-size:2rem;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.bfb__deal{margin:0;font-size:15px}
+.bfb__deal s{opacity:.7;text-decoration-color:#B3141C;text-decoration-thickness:2px}
+.bfb__deal strong{background:#B3141C;padding:2px 10px;font-weight:600}
+.bfb__left{margin:4px 0 0;font-size:13px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.bfb__how{margin:4px 0 0;font-size:13px;opacity:.85}
+.bfb__how a{color:#fff}
+.bfb .btn--ghost{display:inline-flex;margin-top:8px;color:#fff;border-color:rgba(255,255,255,.55);background:transparent}

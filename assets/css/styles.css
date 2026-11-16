@@ -730,3 +730,83 @@ html.is-tour-full,html.is-tour-full body{overflow:hidden}
 @media (prefers-reduced-motion:reduce){
   .tour__poster,.tour__intro,.tour__hint,.tour__bar>span{transition:none}
 }
+
+/* ---------- 21. Black Friday (offer) ----------
+   Loud on purpose, for as long as the offer has places: the studio's own
+   photograph under a warm umber veil, red ribbons like the poster, and the
+   real count of places left. Shown by assets/js/blackfriday.js. */
+:root{--bf-red:#B3141C;--bf-red-deep:#8E0F16}
+.bf{position:relative;overflow:hidden;color:var(--on-dark);text-align:center;
+  background:linear-gradient(180deg,rgba(54,34,24,.80),rgba(54,34,24,.90) 55%,rgba(40,25,18,.97)),url(../img/dua-studio-daylight-1086.jpg) center/cover no-repeat,#3A2519;
+  padding:clamp(96px,11vw,150px) 0}
+.bf__ribbon{position:absolute;left:-10%;right:-10%;background:var(--bf-red);color:#fff;white-space:nowrap;overflow:hidden;
+  font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;padding:9px 0;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.bf__ribbon span{display:inline-block;animation:bf-slide 28s linear infinite}
+.bf__ribbon--top{top:26px;transform:rotate(-4deg)}
+.bf__ribbon--bottom{bottom:26px;transform:rotate(-4deg)}
+.bf__ribbon--bottom span{animation-direction:reverse}
+@keyframes bf-slide{from{transform:translateX(0)}to{transform:translateX(-25%)}}
+.bf__inner{position:relative;display:grid;justify-items:center;gap:18px;max-width:760px}
+.bf__brand{font-family:var(--display);font-size:2rem;letter-spacing:.04em;line-height:1}
+.bf__brand span{display:block;font-family:var(--sans);font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;margin-top:6px;color:var(--on-dark-soft)}
+.bf__title{font-family:var(--display);font-weight:400;font-size:clamp(4rem,13vw,8.5rem);line-height:.86;letter-spacing:-.01em;text-transform:uppercase}
+.bf__title span{display:block}
+.bf__title em{display:block;font-style:italic}
+.bf__tag{display:inline-block;background:var(--bf-red);color:#fff;padding:10px 22px;transform:rotate(-2deg);
+  font-size:clamp(15px,2.2vw,20px);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-style:italic;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+.bf__deal{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px;margin-top:18px;width:100%}
+.bf__deal::before{content:"";grid-column:2;grid-row:1;width:1px;height:76px;background:var(--line-dark)}
+.bf__what{grid-column:1;grid-row:1;justify-self:end;text-align:right}
+.bf__what b{display:block;font-family:var(--sans);font-size:clamp(1.5rem,3vw,2.1rem);font-weight:500}
+.bf__what>span{font-size:1.15rem;color:var(--on-dark)}
+.bf__price{grid-column:3;grid-row:1;justify-self:start;text-align:left}
+.bf__price s{display:block;font-size:1.25rem;color:var(--on-dark-soft);text-decoration-color:var(--bf-red);text-decoration-thickness:2px}
+.bf__price strong{display:inline-block;margin-top:4px;background:var(--bf-red);color:#fff;padding:6px 16px;font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:600;letter-spacing:.01em}
+.bf__left{display:grid;justify-items:center;gap:10px;margin-top:6px}
+.bf__pips{display:flex;gap:6px}
+.bf__pips i{width:22px;height:8px;background:#fff}
+.bf__pips i.is-taken{background:rgba(255,255,255,.22)}
+.bf__left p{font-size:15px;letter-spacing:.06em;text-transform:uppercase}
+.bf__left b{font-size:1.5em;color:#fff;font-weight:600;padding:0 2px}
+.bf__facts{display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%;margin-top:10px;color:var(--on-dark)}
+.bf__facts li{display:grid;justify-items:center;gap:8px;font-size:15px;line-height:1.45}
+.bf__facts svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.2}
+.bf__cta{margin-top:14px;background:#fff;border-color:#fff;color:var(--umber);min-width:240px;min-height:56px;font-size:13px}
+.bf__cta:hover{background:var(--bf-red);border-color:var(--bf-red);color:#fff}
+.bf__note{font-size:13px;color:var(--on-dark-soft);max-width:44ch}
+@media (max-width:620px){
+  .bf__deal{grid-template-columns:1fr;gap:14px}
+  .bf__deal::before{display:none}
+  .bf__what,.bf__price{grid-column:1;grid-row:auto;justify-self:center;text-align:center}
+  .bf__facts{grid-template-columns:1fr;gap:16px}
+}
+
+/* The bar at the bottom of the screen. */
+.bf-bar{position:fixed;left:0;right:0;bottom:0;z-index:90;display:flex;align-items:stretch;background:var(--bf-red);color:#fff;
+  padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -6px 20px rgba(0,0,0,.18);transition:transform .45s var(--ease)}
+.bf-bar.is-away{transform:translateY(110%)}
+.bf-bar__link{flex:1;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 16px;padding:12px 8px 12px 16px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;text-align:center}
+.bf-bar__link>b{font-weight:700;letter-spacing:.16em}
+.bf-bar__left b{font-size:1.2em}
+.bf-bar__x{width:48px;font-size:22px;color:#fff;border-left:1px solid rgba(255,255,255,.25)}
+html.has-bf-bar .wa{bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+html.has-bf-bar body{padding-bottom:64px}
+
+/* The one-time pop-up. */
+.bf-pop{width:min(440px,calc(100vw - 32px));padding:34px 26px 26px;border:0;text-align:center;color:var(--on-dark);
+  background:linear-gradient(180deg,rgba(54,34,24,.86),rgba(40,25,18,.96)),url(../img/dua-studio-daylight-720.jpg) center/cover,#3A2519;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.bf-pop::backdrop{background:rgba(20,14,10,.55)}
+.bf-pop__x{position:absolute;top:8px;right:10px;width:40px;height:40px;font-size:24px;color:var(--on-dark)}
+.bf-pop__kicker{font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--on-dark-soft)}
+.bf-pop__title{font-family:var(--display);font-weight:400;font-size:3.6rem;line-height:.9;text-transform:uppercase;margin:10px 0 16px}
+.bf-pop__title em{font-style:italic}
+.bf-pop__deal{margin-top:18px;font-size:1.1rem}
+.bf-pop__price{margin-top:8px}
+.bf-pop__price s{color:var(--on-dark-soft);text-decoration-color:var(--bf-red);text-decoration-thickness:2px;margin-right:6px}
+.bf-pop__price strong{background:var(--bf-red);color:#fff;padding:4px 12px;font-size:1.6rem;font-weight:600}
+.bf-pop__left{margin-top:14px;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.bf-pop__left b{font-size:1.4em;color:#fff}
+.bf-pop__actions{display:grid;justify-items:center;gap:10px;margin-top:6px}
+
+@media (prefers-reduced-motion:reduce){.bf__ribbon span{animation:none}.bf-bar{transition:none}}
+.bf-pop__x:focus-visible,.bf-bar__x:focus-visible{outline-color:#fff}.bf-pop__x:focus:not(:focus-visible){outline:0}

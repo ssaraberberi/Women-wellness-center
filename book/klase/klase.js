@@ -30,6 +30,8 @@ const SQ = {
   'Book a class': 'Rezervo një klasë', 'Booked': 'U rezervua',
   'Pick a day, then a time.': 'Zgjidh një ditë, pastaj orën.',
   'Previous month': 'Muaji i kaluar', 'Next month': 'Muaji tjetër', 'Free places': 'Vende të lira', 'Full': 'Plot',
+  '2× a week · %s classes · %s months': '2× në javë · %s seanca · %s muaj', 'Only %s of 10 places left': 'Mbeten vetëm %s nga 10 vende',
+  'Paid at the studio: book your class and tell us at the desk, or write to us.': 'Paguhet në studio: rezervo klasën dhe na thuaj në recepsion, ose na shkruaj.',
   'Suggested for you': 'E sugjeruar për ty', 'Other times': 'Orare të tjera', 'Available': 'E lirë',
   'Last place': 'Vendi i fundit', 'Last 2 places': '2 vendet e fundit', 'Booking closed': 'Rezervimet u mbyllën', 'Closes in %s': 'Mbyllet pas %s',
   '%s h %s min': '%s orë e %s min', '%s min': '%s min', 'Booking for this class closes at %s.': 'Rezervimi për këtë klasë mbyllet në %s.',
@@ -265,8 +267,27 @@ function slotLabel(s, now) {
   return { text: t('Available') };
 }
 
+/* Black Friday, at the top of the list while it has places. Bought at the studio. */
+function bfBanner() {
+  const o = S.bf;
+  if (!o) return null;
+  const p = o.product, L = n => n.toLocaleString('en-US') + ' L';
+  const left = o.left == null ? 10 : o.left;
+  return h('aside.bfb', { 'aria-label': 'Black Friday' }, [
+    h('p.bfb__ribbon', { 'aria-hidden': 'true', text: 'Black Friday • Black Friday • Black Friday • Black Friday • Black Friday • Black Friday •' }),
+    h('div.bfb__body', null, [
+      h('b.bfb__title', { text: 'Black Friday' }),
+      h('p.bfb__deal', null, [t('2× a week · %s classes · %s months', p.classCredits, Math.round(p.validityDays / 30)), ' ',
+        p.originalPrice ? h('s', { text: L(p.originalPrice) }) : null, ' ', h('strong', { text: L(p.price) })]),
+      h('p.bfb__left', null, [t('Only %s of 10 places left', left)]),
+      h('p.bfb__how', null, [t('Paid at the studio: book your class and tell us at the desk, or write to us.'), ' ', studioLink()])
+    ])
+  ]);
+}
+
 function drawPick() {
   title(t('Book a class') + '.', t('Pick a day, then a time.'));
+  add(bfBanner());
   add(errorBox());
   if (!S.sessions) { add(h('p.loading', { style: 'min-height:30vh' }, '…')); return; }
   const now = Date.now();
@@ -687,6 +708,11 @@ document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click'
 (async function start() {
   draw();
   call('GET', '/public/studio').then(st => { S.cancelHours = st.policies.freeCancelHours; draw(); }, () => {});
+  // The Black Friday offer, while it has places (the count is the desk's real sales).
+  call('GET', '/public/catalogue').then(c => {
+    S.bf = (c.offers || []).find(o => (o.title || '').toUpperCase() === 'BLACK FRIDAY' && o.left !== 0 && o.product) || null;
+    if (S.view === 'pick') draw();
+  }, () => {});
   await Promise.all([loadSessions(), loadMe()]);
   draw();
 })();
