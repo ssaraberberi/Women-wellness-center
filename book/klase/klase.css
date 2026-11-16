@@ -56,3 +56,15 @@
 .confirm__left{font-size:13.5px}
 .confirm__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
 .confirm__actions .btn{padding:12px 14px}
+
+/* Suggested for you: the classes someone has booked, first and a little
+   larger; every other open time below, quieter but just as bookable. */
+.slots--suggested .slot{min-height:76px;border-color:var(--wine);box-shadow:inset 3px 0 0 var(--wine)}
+.slots--suggested .slot{flex-wrap:wrap;row-gap:6px}
+.slot__tag{flex:0 0 100%;font-style:normal;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--wine);line-height:1.2}
+.slots__head{margin:26px 0 0;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+.slots--quiet{gap:8px;margin-top:10px}
+.slots--quiet .slot{min-height:56px;padding:10px 16px;background:transparent}
+.slots--quiet .slot__what b{font-size:.98rem}
+.slot.is-few .slot__left{color:var(--wine);font-weight:500}
+.closes{margin-top:10px}

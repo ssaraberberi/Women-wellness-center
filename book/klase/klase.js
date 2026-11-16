@@ -30,6 +30,11 @@ const SQ = {
   'Book a class': 'Rezervo një klasë', 'Booked': 'U rezervua',
   'Pick a day, then a time.': 'Zgjidh një ditë, pastaj orën.',
   'Previous month': 'Muaji i kaluar', 'Next month': 'Muaji tjetër', 'Free places': 'Vende të lira', 'Full': 'Plot',
+  'Suggested for you': 'E sugjeruar për ty', 'Other times': 'Orare të tjera', 'Available': 'E lirë',
+  'Last place': 'Vendi i fundit', 'Last 2 places': '2 vendet e fundit', 'Booking closed': 'Rezervimet u mbyllën', 'Closes in %s': 'Mbyllet pas %s',
+  '%s h %s min': '%s orë e %s min', '%s min': '%s min', 'Booking for this class closes at %s.': 'Rezervimi për këtë klasë mbyllet në %s.',
+  '%s is also suggested for you. Would you like that one instead?': 'Edhe %s është e sugjeruar për ty. Do ta zgjedhësh atë?',
+  'Yes, %s': 'Po, %s', 'No, keep %s': 'Jo, mbaj %s', 'Another time?': 'Një orë tjetër?',
   '%s places': '%s vende', '1 place': '1 vend', 'with %s': 'me %s', 'In progress': 'Po zhvillohet',
   'Nothing on this day.': 'Asgjë këtë ditë.',
   'No classes are open for booking yet.': 'Ende nuk ka klasa të hapura për rezervim.',
@@ -68,7 +73,7 @@ const SQ = {
   /* What the server says, by code */
   'INVALID_CREDENTIALS': 'Email-i ose kodi nuk është i saktë.', 'UNAUTHORIZED': 'Email-i ose kodi nuk është i saktë.',
   'RATE_LIMITED': 'Shumë kërkesa. Provo sërish pas pak.', 'CLASS_FULL': 'Kjo klasë sapo u mbush. Zgjidh një orë tjetër.',
-  'CLASS_STARTED': 'Kjo klasë ka filluar.', 'CLASS_CANCELLED': 'Kjo klasë nuk pranon më rezervime.', 'STUDIO_CLOSED': 'Studioja është e mbyllur atë ditë.',
+  'CLASS_STARTED': 'Rezervimet për këtë klasë janë mbyllur.', 'CLASS_CANCELLED': 'Kjo klasë nuk pranon më rezervime.', 'STUDIO_CLOSED': 'Studioja është e mbyllur atë ditë.',
   'ALREADY_BOOKED': 'E ke tashmë një vend në këtë klasë.', 'BOOKING_NOT_OPEN': 'Rezervimet për këtë datë nuk janë hapur ende.',
   'INSUFFICIENT_CREDITS': 'Nuk ke seanca të mbetura në paketë.', 'NO_MEMBERSHIP': 'Nuk ke paketë aktive. Pyet studion.', 'MEMBERSHIP_EXPIRED': 'Paketa jote ka skaduar. Pyet studion.',
   'CANCEL_CLOSED': 'Klasa ka filluar, nuk anulohet më.', 'DUO_TOGETHER': 'DUO-ja juaj rezervohet bashkë: zgjidh "Rezervo për të dyja".',
@@ -78,7 +83,7 @@ const SQ = {
 const EN = {
   INVALID_CREDENTIALS: 'That email or code is not right.', UNAUTHORIZED: 'That email or code is not right.',
   RATE_LIMITED: 'Too many requests. Try again in a little while.', CLASS_FULL: 'That class has just filled up. Pick another time.',
-  CLASS_STARTED: 'This class has already started.', CLASS_CANCELLED: 'This class is not taking bookings.', STUDIO_CLOSED: 'The studio is closed that day.',
+  CLASS_STARTED: 'Booking for this class has closed.', CLASS_CANCELLED: 'This class is not taking bookings.', STUDIO_CLOSED: 'The studio is closed that day.',
   ALREADY_BOOKED: 'You already have a place in this class.', BOOKING_NOT_OPEN: 'Booking for this date is not open yet.',
   INSUFFICIENT_CREDITS: 'No sessions left in your package.', NO_MEMBERSHIP: 'You have no active package. Ask the studio.', MEMBERSHIP_EXPIRED: 'Your package has expired. Ask the studio.',
   CANCEL_CLOSED: 'The class has started, it can no longer be cancelled.', DUO_TOGETHER: 'Your DUO is booked together: choose "Book for both of us".',
@@ -236,6 +241,30 @@ const prices = () => h('p.muted.small', { text: '(' + t('Single class') + ' 2,40
 const studioLink = () => h('a.btn.btn--ghost', { href: 'https://wa.me/' + STUDIO_WA, target: '_blank', rel: 'noopener', text: t('Message the studio') });
 
 /* ---------- 1. a day and a time ---------- */
+/* ---------- what a class shows in the list ----------
+   No head-counts: a client who sees "5 places" next to "2 places" picks the
+   emptier class, and the studio pays the instructor per class. So a class
+   says only whether it is open, and the truth about its last places.
+   Classes someone has already booked come first, as "Suggested for you". */
+const closedNow = (s, now) => new Date(s.closesAt || s.startsAt) <= now;
+const isOpen = (s, now) => s.status === 'SCHEDULED' && !closedNow(s, now) && s.available > 0;
+const isSuggested = (s, now) => isOpen(s, now) && s.booked > 0;
+
+function slotLabel(s, now) {
+  const left = +new Date(s.closesAt || s.startsAt) - now;
+  if (new Date(s.startsAt) <= now) return { text: t('In progress') };
+  if (s.available <= 0) return { text: t('Full') };
+  if (left <= 0) return { text: t('Booking closed') };
+  if (s.available === 1) return { text: t('Last place'), urgent: true };
+  if (s.available === 2) return { text: t('Last 2 places'), urgent: true };
+  if (left < 3 * 3600e3) {
+    const m = Math.max(1, Math.ceil(left / 60e3)), hh = Math.floor(m / 60), mm = m % 60;
+    return { text: t('Closes in %s', hh ? t('%s h %s min', hh, mm) : t('%s min', mm)), urgent: true };
+  }
+  // "Today"/"tomorrow" is already the heading above the list; the countdown is the urgency.
+  return { text: t('Available') };
+}
+
 function drawPick() {
   title(t('Book a class') + '.', t('Pick a day, then a time.'));
   add(errorBox());
@@ -249,34 +278,85 @@ function drawPick() {
   const byDate = d => open.filter(s => tirana(s.startsAt).date === d);
   const dates = [];
   for (let d = S.from; d <= S.to; d = plusDays(d, 1)) dates.push(d);
-  if (!S.day || !byDate(S.day).length) S.day = dates.find(d => byDate(d).some(s => s.available > 0)) || dates.find(d => byDate(d).length) || dates[0];
+  if (!S.day || !byDate(S.day).length) S.day = dates.find(d => byDate(d).some(s => isOpen(s, now))) || dates.find(d => byDate(d).length) || dates[0];
   add(calendar(dates, byDate));
   add(h('h2.display', { style: 'font-size:1.25rem;margin-top:14px', text: longDate(S.day) }));
-  const slots = h('div.slots');
   const list = byDate(S.day);
-  if (!list.length) slots.appendChild(h('p.empty', { text: t('Nothing on this day.') }));
-  list.forEach(s => {
+  const slot = (s, kind) => {
     const on = S.picked === s.id;
-    const running = new Date(s.startsAt) <= now;
-    const label = running ? t('In progress') : s.available <= 0 ? t('Full') : s.available === 1 ? t('1 place') : t('%s places', s.available);
+    const lab = slotLabel(s, now);
     const z = tirana(s.startsAt), e = tirana(s.endsAt);
-    slots.appendChild(h('button.slot', {
-      type: 'button', class: (on ? 'is-on' : '') + (s.available > 0 && s.available <= 2 ? ' is-few' : ''),
-      disabled: running || (s.available <= 0 && !on), 'aria-pressed': String(on),
+    const shut = !isOpen(s, now);
+    return h('button.slot', {
+      type: 'button', class: [on ? 'is-on' : '', lab.urgent ? 'is-few' : '', kind ? 'is-' + kind : ''].filter(Boolean).join(' ') || null,
+      disabled: shut && !on, 'aria-pressed': String(on),
       onclick: () => { S.picked = on ? null : s.id; S.error = null; draw(); }
     }, [
+      kind === 'suggested' ? h('em.slot__tag', { text: t('Suggested for you') }) : null,
       h('span.slot__time', { text: z.time + '–' + e.time }),
-      h('span.slot__what', null, [h('b', { text: className(s) }), s.instructor ? h('span', { text: t('with %s', s.instructor.name) }) : null]),
-      h('span.slot__left', { text: label }),
+      h('span.slot__what', null, [
+        h('b', { text: className(s) }), s.instructor ? h('span', { text: t('with %s', s.instructor.name) }) : null
+      ]),
+      h('span.slot__left', { text: lab.text }),
       h('span.slot__box', { 'aria-hidden': 'true' }, on ? icon(ICON_CHECK) : null)
-    ]));
-  });
-  add(slots);
+    ]);
+  };
+  const suggested = list.filter(s => isSuggested(s, now));
+  const others = list.filter(s => !isSuggested(s, now));
+  // Only worth saying when there is a choice: some classes have people, some do not.
+  const grouped = suggested.length && others.some(s => isOpen(s, now));
+  if (!list.length) add(h('div.slots', null, [h('p.empty', { text: t('Nothing on this day.') })]));
+  else if (!grouped) add(h('div.slots', null, list.map(s => slot(s, null))));
+  else {
+    add(h('div.slots.slots--suggested', null, suggested.map(s => slot(s, 'suggested'))));
+    add(h('p.slots__head', { text: t('Other times') }));
+    add(h('div.slots.slots--quiet', null, others.map(s => slot(s, 'quiet'))));
+  }
   barWith([
     h('a.btn.btn--ghost', { href: '/', text: '←', 'aria-label': t('Back to the website') }),
-    h('button.btn.btn--wine', { type: 'button', disabled: !S.picked || S.busy, text: S.busy ? t('One moment…') : t('Continue'), onclick: () => (S.me ? openChoice() : go('login')) })
+    h('button.btn.btn--wine', { type: 'button', disabled: !S.picked || S.busy, text: S.busy ? t('One moment…') : t('Continue'), onclick: () => nudgeThen(proceed) })
   ]);
 }
+
+function proceed() { return S.me ? openChoice() : go('login'); }
+
+/* She picked a class nobody has booked: once, offer the nearest suggested
+   class within two hours that day. One tap to switch, one to keep hers. */
+function nudgeThen(next) {
+  const now = Date.now();
+  const s = picked();
+  if (!s || S.nudged === s.id || isSuggested(s, now) || !isOpen(s, now)) return next();
+  const day = tirana(s.startsAt).date;
+  const near = (S.sessions || [])
+    .filter(o => o.id !== s.id && isSuggested(o, now) && tirana(o.startsAt).date === day && Math.abs(new Date(o.startsAt) - new Date(s.startsAt)) <= 2 * 3600e3)
+    .sort((a, b) => Math.abs(new Date(a.startsAt) - new Date(s.startsAt)) - Math.abs(new Date(b.startsAt) - new Date(s.startsAt)))[0];
+  if (!near) return next();
+  S.nudged = s.id;
+  const range = o => tirana(o.startsAt).time + '–' + tirana(o.endsAt).time;
+  const dlg = h('dialog.confirm', { 'aria-labelledby': 'nudge-title' });
+  const close = () => dlg.close();
+  dlg.addEventListener('close', () => dlg.remove());
+  dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+  dlg.append(
+    h('h2', { id: 'nudge-title', text: t('Another time?') }),
+    h('p', { text: t('%s is also suggested for you. Would you like that one instead?', range(near)) }),
+    h('p.confirm__class', null, [h('b', { text: className(near) }), h('span', { text: longDate(tirana(near.startsAt).date) + ' · ' + range(near) + (near.instructor ? ' · ' + t('with %s', near.instructor.name) : '') })]),
+    h('div.confirm__actions', null, [
+      h('button.btn.btn--ghost', { type: 'button', text: t('No, keep %s', tirana(s.startsAt).time), onclick: () => { close(); next(); } }),
+      h('button.btn.btn--wine', { type: 'button', text: t('Yes, %s', tirana(near.startsAt).time), onclick: () => { close(); S.picked = near.id; S.nudged = near.id; draw(); next(); } })
+    ])
+  );
+  if (typeof dlg.showModal !== 'function') return next();
+  document.body.appendChild(dlg);
+  dlg.showModal();
+}
+
+/* The closing time, said plainly where she confirms. */
+const closesNote = s => {
+  if (!s || !s.closesAt || new Date(s.closesAt) <= Date.now()) return null;
+  return h('p.muted.small.closes', { text: t('Booking for this class closes at %s.', tirana(s.closesAt).time) });
+};
+
 const className = s => (lang === 'en' && s.classType.nameEn) || s.classType.name;
 
 /* A month on a page, Monday first: days with a free place carry a dot. */
@@ -288,7 +368,7 @@ function calendar(dates, byDate) {
   const shift = n => {
     const x = new Date(y, m + n, 15);
     S.month = x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0');
-    const firstOpen = dates.find(d => d.startsWith(S.month) && byDate(d).some(s => s.available > 0));
+    const firstOpen = dates.find(d => d.startsWith(S.month) && byDate(d).some(s => isOpen(s, Date.now())));
     if (firstOpen) S.day = firstOpen;
     draw();
   };
@@ -305,7 +385,7 @@ function calendar(dates, byDate) {
   for (let n = 1; n <= count; n++) {
     const d = S.month + '-' + String(n).padStart(2, '0');
     const list = dates.includes(d) ? byDate(d) : [];
-    const free = list.some(s => s.available > 0);
+    const free = list.some(s => isOpen(s, Date.now()));
     const cls = [d === S.day ? 'is-on' : '', free ? 'has-room' : '', list.length && !free ? 'is-full' : '', list.some(s => s.id === S.picked) ? 'is-picked' : '', d === today ? 'is-today' : ''].filter(Boolean).join(' ');
     grid.appendChild(h('button.cal__day', { type: 'button', class: cls || null, disabled: !list.length, 'aria-label': longDate(d), 'aria-pressed': String(d === S.day),
       onclick: () => { S.day = d; draw(); } }, [h('span', { text: String(n) }), h('i', { 'aria-hidden': 'true' })]));
@@ -362,6 +442,7 @@ function drawLogin() {
     ]));
     add(errorBox());
     if (s) add(classSummary(s));
+    if (s) add(closesNote(s));
     add(prices());
     add(policy());
     barWith([
@@ -381,6 +462,7 @@ function drawLogin() {
   add(errorBox());
   add(h('p.muted.small', { text: t('No code yet, or lost it? Ask the studio.') }));
   if (s) add(classSummary(s));
+  if (s) add(closesNote(s));
   barWith([
     h('button.btn.btn--ghost', { type: 'button', text: t('Back'), onclick: () => go('pick') }),
     h('button.btn.btn--wine', { type: 'button', disabled: S.busy, text: S.busy ? t('One moment…') : t('Sign in'), onclick: signIn })
@@ -448,6 +530,7 @@ function drawChoice() {
   const credits = d.myCredits || 0;
   title(t('Book this class') + '.', d.eligible ? (credits === 1 ? t('You have 1 session in your package') : t('You have %s sessions in your package', credits)) + '.' : null);
   add(classSummary(s));
+  add(closesNote(s));
   add(errorBox());
   const run = (path, done) => async () => {
     if (S.busy) return;
@@ -607,3 +690,9 @@ document.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click'
   await Promise.all([loadSessions(), loadMe()]);
   draw();
 })();
+
+/* The countdown ("Closes in 40 min") and closed classes move on with the
+   clock: redraw the list once a minute while it is on screen. */
+setInterval(() => {
+  if (S.view === 'pick' && !document.hidden && !document.querySelector('dialog[open]')) draw();
+}, 60e3);
