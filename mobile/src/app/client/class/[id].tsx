@@ -13,12 +13,16 @@ import { errorText, useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
 import { loc, type SessionDetail } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { useSlotText } from '@/components/ClassRow';
+import { slotLabel, useNow } from '@/lib/slots';
 
 export default function ClassDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const qc = useQueryClient();
   const { t, lang } = useT();
+  const slotText = useSlotText();
+  const now = useNow();
   const q = useQuery({ queryKey: ['session', id], queryFn: () => api<SessionDetail>('GET', `/sessions/${id}`) });
   // One key per screen visit: a double tap or a retry after a timeout books once.
   const bookKey = useRef(newIdempotencyKey());
@@ -162,7 +166,11 @@ export default function ClassDetail() {
               <KeyValue icon="calendar" text={longDate(s.startsAt, lang)} />
               <KeyValue icon="clock" text={`${time(s.startsAt)} – ${time(s.endsAt)}`} />
               {s.room ? <KeyValue icon="map-pin" text={s.room} /> : null}
-              <KeyValue icon="users" text={`${t('placesLeft', { n: s.available })} · ${t('capacity')} ${s.capacity}`} />
+              {/* No head-counts for clients: only open, the last places, or when booking closes. */}
+              <KeyValue icon="users" text={slotText(slotLabel(s, now))} />
+              {!s.myBookingId && s.closesAt && Date.parse(s.closesAt) > now ? (
+                <Text variant="small" style={{ marginTop: 2 }}>{t('bookingClosesAt', { time: time(s.closesAt) })}</Text>
+              ) : null}
               <Gap h={space.md} />
               <Text variant="body">{loc(lang, s.classType.description, s.classType.descriptionEn)}</Text>
               {s.instructorBio ? (

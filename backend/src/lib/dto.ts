@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from './prisma.js';
+import { getSettings } from './settings.js';
 
 export const personName = (p?: { firstName: string; lastName: string } | null, fallback?: string | null) =>
   p ? `${p.firstName} ${p.lastName}`.trim() : (fallback ?? '');
@@ -19,7 +20,8 @@ type SessionRow = Prisma.ClassSessionGetPayload<{ include: typeof sessionInclude
  */
 export async function sessionsForUser(sessions: SessionRow[], userId?: string) {
   const ids = sessions.map((s) => s.id);
-  const [held, mine, myWait, waitingCounts] = await Promise.all([
+  const [settings, held, mine, myWait, waitingCounts] = await Promise.all([
+    getSettings(),
     prisma.classWaitlist.groupBy({ by: ['sessionId'], where: { sessionId: { in: ids }, status: 'OFFERED', offerExpiresAt: { gt: new Date() } }, _count: true }),
     userId ? prisma.classBooking.findMany({ where: { sessionId: { in: ids }, userId, status: 'BOOKED' }, select: { id: true, sessionId: true } }) : [],
     userId ? prisma.classWaitlist.findMany({ where: { sessionId: { in: ids }, userId, status: { in: ['WAITING', 'OFFERED'] } } }) : [],
@@ -63,6 +65,8 @@ export async function sessionsForUser(sessions: SessionRow[], userId?: string) {
         instructor: s.instructor ? { id: s.instructor.userId, name: personName(s.instructor.user.profile) } : null,
         myBookingId: mineBy.get(s.id) ?? null,
         myWaitlist: w ? { id: w.id, status: w.status, offerExpiresAt: w.offerExpiresAt, position } : null,
+        // When online booking for this class closes (the studio's cutoff before the start).
+        closesAt: new Date(+s.startsAt - settings.bookingCutoffMin * 60_000),
       };
     }),
   );

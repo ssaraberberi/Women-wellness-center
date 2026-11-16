@@ -16,6 +16,8 @@ export interface SessionDto {
   instructor: { id: string; name: string } | null;
   myBookingId: string | null;
   myWaitlist: { id: string; status: 'WAITING' | 'OFFERED'; offerExpiresAt: string | null; position: number | null } | null;
+  /** When online booking for this class closes (the studio's cutoff). Older API: absent. */
+  closesAt?: string;
 }
 
 export interface SessionDetail extends SessionDto {

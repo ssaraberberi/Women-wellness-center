@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, Gap, Header, Notice, Screen, SkeletonList } fro
 import { api } from '@/lib/api';
 import { addDays, lek, todayISO } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import { arrange } from '@/lib/slots';
 import type { PublicSession, SessionDto } from '@/lib/types';
 import { colors, space } from '@/theme';
 
@@ -25,7 +26,11 @@ export default function GuestTimetable() {
     queryKey: ['public-sessions', date],
     queryFn: () => api<{ singlePrice: number | null; sessions: PublicSession[] }>('GET', `/public/sessions?from=${date}&to=${date}`, { auth: false }),
   });
-  const list = useMemo(() => (q.data?.sessions ?? []).filter((s) => s.status === 'SCHEDULED' && Date.parse(s.endsAt) > now), [q.data, now]);
+  const all = useMemo(() => (q.data?.sessions ?? []).filter((s) => s.status === 'SCHEDULED' && Date.parse(s.endsAt) > now).map((s) => ({ ...s, myBookingId: null, myWaitlist: null }) as SessionDto), [q.data, now]);
+  // Classes someone has booked first, as "Suggested for you" (the same rule as the website).
+  const { suggested, others, grouped } = arrange(all, now);
+  const list = grouped ? [...suggested, ...others] : all;
+  const isSugg = new Set(grouped ? suggested.map((s) => s.id) : []);
 
   return (
     <Screen scroll={false}>
@@ -50,9 +55,11 @@ export default function GuestTimetable() {
             refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} tintColor={colors.wine} />}
             renderItem={({ item }) => (
               <ClassRow
-                s={{ ...item, myBookingId: null, myWaitlist: null } as SessionDto}
+                s={item}
                 now={now}
-                onPress={() => (q.data?.singlePrice && item.available > 0 && Date.parse(item.startsAt) > now ? router.push({ pathname: '/guest/[id]', params: { id: item.id } }) : undefined)}
+                client
+                suggested={isSugg.has(item.id)}
+                onPress={() => (q.data?.singlePrice && item.available > 0 && Date.parse(item.closesAt ?? item.startsAt) > now ? router.push({ pathname: '/guest/[id]', params: { id: item.id } }) : undefined)}
               />
             )}
           />

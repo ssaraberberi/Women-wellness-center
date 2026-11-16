@@ -2,16 +2,18 @@ import Feather from '@expo/vector-icons/Feather';
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { ClassRow } from '@/components/ClassRow';
 import { DateStrip } from '@/components/DateStrip';
 import { Chip, EmptyState, ErrorState, Gap, IconButton, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
+import { Alert } from '@/lib/alert';
 import { api } from '@/lib/api';
 import { SPA_ENABLED } from '@/lib/features';
-import { addDays, lek, partOfDay, todayISO } from '@/lib/format';
+import { addDays, lek, partOfDay, time, tirane, todayISO } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
+import { arrange, nearestSuggested } from '@/lib/slots';
 import { loc, type SessionDto, type Treatment } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
@@ -66,8 +68,27 @@ function PilatesTimetable() {
     () => (q.data ?? []).filter((s) => Date.parse(s.endsAt) > now && (!onlyAvailable || s.available > 0 || s.myBookingId)),
     [q.data, onlyAvailable, now],
   );
-  const groups = (['morning', 'afternoon'] as const).map((p) => ({ p, items: list.filter((s) => partOfDay(s.startsAt) === p) })).filter((g) => g.items.length);
+  // Classes someone has booked come first, as "Suggested for you"; morning / afternoon otherwise.
+  const { suggested, others, grouped } = arrange(list, now);
+  const groups: Group[] = grouped
+    ? [{ p: 'suggestedForYou', items: suggested }, { p: 'otherTimes', items: others }]
+    : (['morning', 'afternoon'] as const).map((p) => ({ p, items: list.filter((s) => partOfDay(s.startsAt) === p) })).filter((g) => g.items.length);
   const filtersOn = onlyAvailable;
+
+  /* She opened a class nobody has booked: once per class, offer the nearest
+     suggested one within two hours that day. One tap to switch, one to keep hers. */
+  const nudged = useRef(new Set<string>());
+  const open = (id: string) => {
+    const go = (to: string) => router.push({ pathname: '/client/class/[id]', params: { id: to } });
+    const picked = list.find((s) => s.id === id);
+    const near = picked && !nudged.current.has(id) ? nearestSuggested(list, picked, now, (a, b) => tirane(a).iso === tirane(b).iso) : null;
+    if (!picked || !near) return go(id);
+    nudged.current.add(id);
+    Alert.alert(t('anotherTime'), t('nudgeSuggested', { range: `${time(near.startsAt)}–${time(near.endsAt)}` }), [
+      { text: t('nudgeKeep', { time: time(picked.startsAt) }), style: 'cancel', onPress: () => go(id) },
+      { text: t('nudgeYes', { time: time(near.startsAt) }), onPress: () => go(near.id) },
+    ]);
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -92,16 +113,19 @@ function PilatesTimetable() {
         ) : groups.length === 0 ? (
           <EmptyState icon="calendar" title={t('noClasses')} body={t('noClassesSub')} />
         ) : (
-          <SessionGroups groups={groups} now={now} onOpen={(id) => router.push({ pathname: '/client/class/[id]', params: { id } })} refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />
+          <SessionGroups groups={groups} now={now} onOpen={open} refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />
         )}
       </View>
     </View>
   );
 }
 
-function SessionGroups({ groups, now, onOpen, refreshing, onRefresh }: { groups: { p: 'morning' | 'afternoon'; items: SessionDto[] }[]; now: number; onOpen: (id: string) => void; refreshing: boolean; onRefresh: () => void }) {
+type Group = { p: 'morning' | 'afternoon' | 'suggestedForYou' | 'otherTimes'; items: SessionDto[] };
+
+function SessionGroups({ groups, now, onOpen, refreshing, onRefresh }: { groups: Group[]; now: number; onOpen: (id: string) => void; refreshing: boolean; onRefresh: () => void }) {
   const { t } = useT();
-  const rows = groups.flatMap((g) => [{ kind: 'h' as const, key: g.p, p: g.p }, ...g.items.map((s) => ({ kind: 's' as const, key: s.id, s }))]);
+  // The suggested classes carry their own tag, so their group needs no heading.
+  const rows = groups.flatMap((g) => [...(g.p === 'suggestedForYou' ? [] : [{ kind: 'h' as const, key: g.p, p: g.p }]), ...g.items.map((s) => ({ kind: 's' as const, key: s.id, s, suggested: g.p === 'suggestedForYou' }))]);
   return (
     <FlatList
       data={rows}
@@ -112,7 +136,7 @@ function SessionGroups({ groups, now, onOpen, refreshing, onRefresh }: { groups:
         item.kind === 'h' ? (
           <Text variant="heading" style={{ marginTop: space.sm, marginBottom: space.sm }}>{t(item.p)}</Text>
         ) : (
-          <ClassRow s={item.s} now={now} onPress={() => onOpen(item.s.id)} />
+          <ClassRow s={item.s} now={now} client suggested={item.suggested} onPress={() => onOpen(item.s.id)} />
         )
       }
     />

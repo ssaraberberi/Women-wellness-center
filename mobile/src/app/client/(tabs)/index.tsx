@@ -13,6 +13,8 @@ import { useT } from '@/lib/i18n';
 import { photo } from '@/lib/images';
 import { loc, type SessionDto, type Treatment } from '@/lib/types';
 import { colors, fonts, radius, space } from '@/theme';
+import { useSlotText } from '@/components/ClassRow';
+import { slotLabel, useNow } from '@/lib/slots';
 
 interface Home {
   firstName: string;
@@ -29,6 +31,8 @@ interface Home {
 export default function ClientHome() {
   const router = useRouter();
   const { t, lang } = useT();
+  const slotText = useSlotText();
+  const now = useNow();
   const q = useQuery({ queryKey: ['home'], queryFn: () => api<Home>('GET', '/me/home') });
   const unread = useQuery({ queryKey: ['notifications'], queryFn: () => api<{ unread: number }>('GET', '/me/notifications?limit=1') });
   const h = q.data;
@@ -112,7 +116,7 @@ export default function ClientHome() {
                       <Text variant="heading">{loc(lang, s.classType.name, s.classType.nameEn)}</Text>
                       <Text variant="small">{whenShort(s.startsAt, lang)} · {s.instructor?.name}</Text>
                     </View>
-                    <Badge label={s.available === 1 ? t('spot') : t('spots', { n: s.available })} />
+                    <Badge label={slotText(slotLabel(s, now))} />
                   </Row>
                 </Card>
               ))}
