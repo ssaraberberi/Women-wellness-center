@@ -297,7 +297,13 @@ export async function adminOpsRoutes(app: FastifyInstance) {
       const settings = await getSettings();
       return transaction(async (tx) => {
         const s = await lockSession(tx, params.id);
-        if (s.status !== 'SCHEDULED') throw E.conflict('CLASS_CANCELLED', 'This class is cancelled');
+        if (s.status === 'CANCELLED') throw E.conflict('CLASS_CANCELLED', 'This class is cancelled');
+        // A class that already happened keeps its time and size; only who taught it
+        // (and the room) can still be put right, e.g. for the instructor's pay.
+        const over = s.status === 'COMPLETED' || s.endsAt <= new Date();
+        if (over && (body.date !== undefined || body.startTime !== undefined || body.durationMin !== undefined || body.capacity !== undefined)) {
+          throw E.conflict('CLASS_OVER', 'This class has already taken place: only its instructor can be changed');
+        }
         const current = DateTime.fromJSDate(s.startsAt).setZone(TZ);
         const startsAt = body.date || body.startTime ? studioDateTime(body.date ?? current.toISODate()!, body.startTime ?? current.toFormat('HH:mm')) : s.startsAt;
         const duration = body.durationMin ?? Math.round((+s.endsAt - +s.startsAt) / 60_000);
@@ -305,7 +311,9 @@ export async function adminOpsRoutes(app: FastifyInstance) {
         if (body.capacity !== undefined && body.capacity < booked) throw E.conflict('CAPACITY_BELOW_BOOKED', `${booked} people are booked; cancel bookings first`);
         const updated = await tx.classSession.update({
           where: { id: s.id },
-          data: { startsAt, endsAt: addMinutes(startsAt, duration), capacity: body.capacity, instructorId: body.instructorId === undefined ? undefined : body.instructorId, room: body.room === undefined ? undefined : body.room, detached: true },
+          data: over
+            ? { instructorId: body.instructorId === undefined ? undefined : body.instructorId, room: body.room === undefined ? undefined : body.room, detached: true }
+            : { startsAt, endsAt: addMinutes(startsAt, duration), capacity: body.capacity, instructorId: body.instructorId === undefined ? undefined : body.instructorId, room: body.room === undefined ? undefined : body.room, detached: true },
         });
         const moved = +startsAt !== +s.startsAt;
         if (moved) {
@@ -314,11 +322,12 @@ export async function adminOpsRoutes(app: FastifyInstance) {
             await notify(tx, { userId: b.userId, type: 'SESSION_CHANGED', dedupeKey: `moved:${s.id}:${+startsAt}:${b.userId}`, params: { className: s.classType.name, when: whenText(startsAt) }, data: { kind: 'class', sessionId: s.id } });
           }
         }
-        const newInstructor = body.instructorId && body.instructorId !== s.instructorId ? body.instructorId : null;
+        // Nobody is told about a change to a class that is over.
+        const newInstructor = !over && body.instructorId && body.instructorId !== s.instructorId ? body.instructorId : null;
         if (newInstructor) {
           await notify(tx, { userId: newInstructor, type: 'STAFF_ASSIGNED', dedupeKey: `assigned:${s.id}:${newInstructor}`, params: { className: s.classType.name, when: whenText(startsAt) }, data: { kind: 'session', sessionId: s.id } });
         }
-        if (s.instructorId && (moved || (body.instructorId !== undefined && body.instructorId !== s.instructorId))) {
+        if (!over && s.instructorId && (moved || (body.instructorId !== undefined && body.instructorId !== s.instructorId))) {
           await notify(tx, { userId: s.instructorId, type: 'STAFF_SCHEDULE_CHANGED', dedupeKey: `changed:${s.id}:${+startsAt}:${body.instructorId ?? 'same'}`, params: { className: s.classType.name, when: whenText(startsAt) } });
         }
         if (body.capacity !== undefined && body.capacity > s.capacity) await offerFreedPlaces(tx, s.id, settings);

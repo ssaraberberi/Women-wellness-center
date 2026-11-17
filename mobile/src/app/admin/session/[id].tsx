@@ -147,6 +147,11 @@ export default function AdminSessionScreen() {
                 }
               />
             </Row>
+          ) : s.status === 'COMPLETED' ? (
+            // Over: only who taught it can still be put right (e.g. for her pay).
+            <Row style={{ marginTop: space.md, flexWrap: 'wrap' }}>
+              <Button small variant="secondary" icon="user" title={t('editInstructor')} onPress={() => setEditing((v) => !v)} />
+            </Row>
           ) : null}
 
           {adding ? (
@@ -191,8 +196,14 @@ export default function AdminSessionScreen() {
 
           {editing ? (
             <Card style={{ marginTop: space.md }}>
-              <Field label={t('capacity')} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" placeholder={String(s.capacity)} />
-              <Field label="HH:mm" value={startTime} onChangeText={setStartTime} placeholder={time(s.startsAt)} />
+              {s.status === 'SCHEDULED' ? (
+                <>
+                  <Field label={t('capacity')} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" placeholder={String(s.capacity)} />
+                  <Field label="HH:mm" value={startTime} onChangeText={setStartTime} placeholder={time(s.startsAt)} />
+                </>
+              ) : (
+                <Text variant="small" style={{ marginBottom: space.sm }}>{t('classOverInstructorOnly')}</Text>
+              )}
               <Text variant="label">{t('instructor')}</Text>
               <Row style={{ flexWrap: 'wrap', marginVertical: space.sm }}>
                 {(instructors.data ?? []).map((i) => (
